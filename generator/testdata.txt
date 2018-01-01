@@ -1,0 +1,272 @@
+# Data with only null values should produce empty schema.
+DATA 
+{ "s": null, "a": [], "m": {} }
+SCHEMA
+[]
+
+# If 'keep_nulls' flag is given, then the input data with null values produces
+# schema which seems to be the best match.
+DATA keep_nulls
+{ "s": null, "a": [], "m": {} }
+SCHEMA
+[
+  {
+    "mode": "REPEATED",
+    "type": "STRING",
+    "name": "a"
+  },
+  {
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "type": "STRING",
+        "name": "__unknown__"
+      }
+    ],
+    "type": "RECORD",
+    "name": "m"
+  },
+  {
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "name": "s"
+  }
+]
+
+# Fields with primitive types. BYTES is not supported.
+DATA
+{ "s": "string", "b": true, "i": 1, "x": 3.1, "t": "2017-05-22T17:10:00-07:00" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "b",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "s",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "t",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  }
+]
+
+# Fields with arrays and records.
+DATA
+{ "a": [1, 2], "r": { "r0": "r0", "r1": "r1" } }
+SCHEMA
+[
+  {
+    "mode": "REPEATED",
+    "name": "a",
+    "type": "INTEGER"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "r0",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "r1",
+        "type": "STRING"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "r",
+    "type": "RECORD"
+  }
+]
+
+# All elements of an array must be of the same type. Also check that an error
+# in one element ("a") continues the processing the remaining elements. (The
+# bug was caused by a missing try/except block while looping over each
+# element.)
+DATA
+{ "s": "string", "x": 3.2, "i": 3, "b": true, "a": [ "a", 1] }
+ERRORS
+1: Not all array elements are equal type: ['a', 1]
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "b",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "s",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  }
+]
+
+# Two independent fields are merged without conflict.
+DATA
+{ "a": [1, 2] }
+{ "i": 3 }
+SCHEMA
+[
+  {
+    "mode": "REPEATED",
+    "name": "a",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  }
+]
+
+# Merging happens recursively.
+DATA
+{ "r" : { "a": [1, 2] } }
+{ "r" : { "i": 3 } }
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "REPEATED",
+        "name": "a",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "i",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "r",
+    "type": "RECORD"
+  }
+]
+
+# Check that 'null' does not clobber a previous interference.
+DATA
+{ "i": 1 }
+{ "i": null }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  }
+]
+
+# NULLABLE STRING for 'null' placeholder upgrades to a hard NULLABLE {type}
+# when a real value is given.
+DATA
+{ "i": null }
+{ "i": 3 }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  }
+]
+
+# No upgrade of NULLABLE to REPEATED for primitive types.
+DATA
+{ "i": 3 }
+{ "i": [1, 2] }
+ERRORS
+2: Mismatched mode for non-RECORD: old=(hard,i,NULLABLE,INTEGER); new=(hard,i,REPEATED,INTEGER)
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  }
+]
+
+# No downgrade of REPEATED to NULLABLE.
+DATA
+{ "i": [1, 2] }
+{ "i": 3 }
+ERRORS
+2: Mismatched mode for non-RECORD: old=(hard,i,REPEATED,INTEGER); new=(hard,i,NULLABLE,INTEGER)
+SCHEMA
+[
+  {
+    "mode": "REPEATED",
+    "name": "i",
+    "type": "INTEGER"
+  }
+]
+
+# NULLABLE RECORD can be upgraded to a REPEATED RECORD.
+DATA
+{ "r" : { "i": 3 } }
+{ "r" : [{ "i": 4 }] }
+ERRORS
+2: Converting schema for "r" from NULLABLE RECORD into REPEATED RECORD
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "i",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "REPEATED",
+    "name": "r",
+    "type": "RECORD"
+  }
+]
+
+# REPEATED RECORD will NOT be downgraded to a NULLABLE RECORD.
+DATA
+{ "r" : [{ "i": 4 }] }
+{ "r" : { "i": 3 } }
+ERRORS
+2: Leaving schema for "r" as REPEATED RECORD
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "i",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "REPEATED",
+    "name": "r",
+    "type": "RECORD"
+  }
+]
