@@ -1,10 +1,11 @@
-# Generate BigQuery Schema
+# BigQuery Schema Generator
 
 ## Summary
 
 This script generates the BigQuery schema from the data records on the STDIN.
-The BigQuery data importer uses only the first 100 lines. This script parses
-all data records to generate the schema.
+The BigQuery data importer uses only the first 100 lines when the schema
+auto-detection feature is enabled. In contrast, this script uses all data
+records to generate the schema.
 
 Usage:
 ```
