@@ -27,10 +27,10 @@ When the auto-detect feature is used, the BigQuery data importer examines only
 the first 100 records of the input data. In many cases, this is sufficient
 because the data records were dumped from another database and the exact schema
 of the source table was known. However, for data extracted from a service
-(e.g. using a REST API) the record fields were organically at later dates. In
-this case, the first 100 records do not contain fields which are present in
-later records. The **bq load** auto-detection fails and the data fails to
-load.
+(e.g. using a REST API) the record fields could have been organically added
+at later dates. In this case, the first 100 records do not contain fields which
+are present in later records. The **bq load** auto-detection fails and the data
+fails to load.
 
 The **bq load** tool does not support the ability to process the entire dataset
 to determine a more accurate schema. This script fills in that gap. It
@@ -197,12 +197,12 @@ $ cat file.schema.json
 
 ## Unit Tests
 
-Instead of embeddeding the input data records and the expected schema file into
+Instead of embedding the input data records and the expected schema into
 the `test_generate_schema.py` file, we placed them into the `testdata.txt`
-file. This has two advantages:
+file which is parsed by the unit test program.  This has two advantages:
 
 * we can more easily update the input and output data records, and 
-* the `testdata.txt` data could be reused for versions written in other languages
+* the `testdata.txt` data can be reused for versions written in other languages
 
 The output of `test_generate_schema.py` should look something like this:
 ```
