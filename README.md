@@ -27,10 +27,10 @@ When the auto-detect feature is used, the BigQuery data importer examines only
 the first 100 records of the input data. In many cases, this is sufficient
 because the data records were dumped from another database and the exact schema
 of the source table was known. However, for data extracted from a service
-(e.g. using a REST API) the record fields were organically at later dates. In
-this case, the first 100 records do not contain fields which are present in
-later records. The **bq load** auto-detection fails and the data fails to
-load.
+(e.g. using a REST API) the record fields could have been organically added
+at later dates. In this case, the first 100 records do not contain fields which
+are present in later records. The **bq load** auto-detection fails and the data
+fails to load.
 
 The **bq load** tool does not support the ability to process the entire dataset
 to determine a more accurate schema. This script fills in that gap. It
@@ -119,11 +119,21 @@ With the ``keep_nulls``, the resulting schema file will be:
 ]
 ```
 
+Example:
+
+```
+$ generate_schema.py --keep_nulls < file.data.json > file.schema.json
+```
+
 #### Debugging Interval
 
 By default, the `generate_schema.py` script prints a short progress message
 every 1000 lines of input data. This interval can be changed using the
 `--debugging_interval` flag.
+
+```
+$ generate_schema.py --debugging_interval 1000 < file.data.json > file.schema.json
+```
 
 #### Debugging Map
 
@@ -131,6 +141,10 @@ Instead of printing out the BigQuery schema, the `--debugging_map` prints out
 the bookkeeping metadata map which is used internally to keep track of the
 various fields and theirs types that was inferred using the data file. This
 flag is intended to be used for debugging.
+
+```
+$ generate_schema.py --debugging_map < file.data.json > file.schema.json
+```
 
 ## Examples
 
@@ -193,36 +207,6 @@ $ cat file.schema.json
     "type": "INTEGER"
   }
 ]
-```
-
-## Unit Tests
-
-Instead of embeddeding the input data records and the expected schema file into
-the `test_generate_schema.py` file, we placed them into the `testdata.txt`
-file. This has two advantages:
-
-* we can more easily update the input and output data records, and 
-* the `testdata.txt` data could be reused for versions written in other languages
-
-The output of `test_generate_schema.py` should look something like this:
-```
-----------------------------------------------------------------------
-Ran 4 tests in 0.002s
-
-OK
-Test chunk 1: First record: { "s": null, "a": [], "m": {} }
-Test chunk 2: First record: { "s": null, "a": [], "m": {} }
-Test chunk 3: First record: { "s": "string", "b": true, "i": 1, "x": 3.1, "t": "2017-05-22T17:10:00-07:00" }
-Test chunk 4: First record: { "a": [1, 2], "r": { "r0": "r0", "r1": "r1" } }
-Test chunk 5: First record: { "s": "string", "x": 3.2, "i": 3, "b": true, "a": [ "a", 1] }
-Test chunk 6: First record: { "a": [1, 2] }
-Test chunk 7: First record: { "r" : { "a": [1, 2] } }
-Test chunk 8: First record: { "i": 1 }
-Test chunk 9: First record: { "i": null }
-Test chunk 10: First record: { "i": 3 }
-Test chunk 11: First record: { "i": [1, 2] }
-Test chunk 12: First record: { "r" : { "i": 3 } }
-Test chunk 13: First record: { "r" : [{ "i": 4 }] }
 ```
 
 ## System Requirements

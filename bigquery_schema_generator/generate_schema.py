@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 #
 # Copyright 2017 Brian T. Park
 #
@@ -18,7 +18,7 @@ Generate the BigQuery schema of the data file given on the standard input.
 Unlike the BigQuery importer which uses only the first 100 records, this script
 uses all available records in the data file.
 
-Usage: generator_schema.py [-h] [flags ...] < file.data.json > file.schema.json
+Usage: generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
 
 * file.data.json is a newline-delimited JSON data file, one JSON object per line.
 * file.schema.json is the schema definition of the table.
