@@ -119,11 +119,21 @@ With the ``keep_nulls``, the resulting schema file will be:
 ]
 ```
 
+Example:
+
+```
+$ generate_schema.py --keep_nulls < file.data.json > file.schema.json
+```
+
 #### Debugging Interval
 
 By default, the `generate_schema.py` script prints a short progress message
 every 1000 lines of input data. This interval can be changed using the
 `--debugging_interval` flag.
+
+```
+$ generate_schema.py --debugging_interval 1000 < file.data.json > file.schema.json
+```
 
 #### Debugging Map
 
@@ -131,6 +141,10 @@ Instead of printing out the BigQuery schema, the `--debugging_map` prints out
 the bookkeeping metadata map which is used internally to keep track of the
 various fields and theirs types that was inferred using the data file. This
 flag is intended to be used for debugging.
+
+```
+$ generate_schema.py --debugging_map < file.data.json > file.schema.json
+```
 
 ## Examples
 
