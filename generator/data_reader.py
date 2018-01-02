@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 #
 # Copyright 2017 Brian T. Park
 #
@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Parses the 'testdata.txt' date file used by the 'generate_schema_test.py'
+Parses the 'testdata.txt' date file used by the 'test_generate_schema.py'
 program.
 
 Usage:
