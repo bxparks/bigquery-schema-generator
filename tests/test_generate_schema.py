@@ -18,9 +18,9 @@ import unittest
 import os
 import json
 from collections import OrderedDict
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+from bigquery_schema_generator.generate_schema import sort_schema
 from data_reader import DataReader
-from generate_schema import SchemaGenerator
-from generate_schema import sort_schema
 
 
 class TestSchemaGenerator(unittest.TestCase):
