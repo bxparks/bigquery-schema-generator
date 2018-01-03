@@ -1,0 +1,1 @@
+python3 -m bigquery_schema_generator.generate_schema

@@ -39,24 +39,49 @@ in JSON format on the STDOUT. This schema file can be fed back into the **bq
 load** tool to create a table that is more compatible with the data fields in
 the input dataset.
 
+## Installation
+
+Install from [PyPI](https://pypi.python.org/pypi) repository using:
+```
+$ pip3 install bigquery_schema_generator
+```
+
 ## Usage
 
 The `generate_schema.py` script accepts a newline-delimited JSON data file on
 the STDIN. (CSV is not supported currently.) It scans every record in the
 input data file to deduce the table's schema. It prints the JSON formatted
-schema file on the STDOUT:
+schema file on the STDOUT. There are at least 3 ways to run this script:
+
+If you installed using `pip3`, then it should have installed a small helper
+script named `generate-schema` in your local `./bin` directory of your current
+environment (depending on whether you are using a virtual environment).
+
 ```
-$ generate_schema.py < file.data.json > file.schema.json
+$ generate-schema < file.data.json > file.schema.json
 ```
 
-The schema file can be used in the **bq** command using:
+You can invoke the module directly using:
+```
+$ python3 -m bigquery_schema_generator.generate_schema < file.data.json > file.schema.json
+```
+
+If you retrieved this code from its [GitHub
+repository](https://github.com/bxparks/bigquery-schema-generator), then you can invoke
+the Python script directly:
+```
+$ ./generate_schema.py < file.data.json > file.schema.json
+```
+
+The resulting schema file can be used in the **bq load** command using the
+`--schema` flag:
 ```
 $ bq load --schema file.schema.json mydataset.mytable file.data.json
 ```
 
 where `mydataset.mytable` is the target table in BigQuery.
 
-A useful flag for **bq load** is `--ignore_unknown_values`, which causes `bq load`
+A useful flag for **bq load** is `--ignore_unknown_values`, which causes **bq load**
 to ignore fields in the input data which are not defined in the schema. When
 `generate_schema.py` detects an inconsistency in the definition of a particular
 field in the input data, it removes the field from the schema definition.
@@ -64,9 +89,11 @@ Without the `--ignore_unknown_values`, the **bq load** fails when the
 inconsistent data record is read.
 
 After the BigQuery table is loaded, the schema can be retrieved using:
+
 ```
 $ bq show --schema mydataset.mytable | python -m json.tool
 ```
+
 (The `python -m json.tool` command will pretty-print the JSON formatted schema
 file.) This schema file should be identical to `file.schema.json`.
 
@@ -74,9 +101,18 @@ file.) This schema file should be identical to `file.schema.json`.
 
 The `generate_schema.py` script supports a handful of command line flags:
 
+* `--help` Prints the usage with the list of supported flags.
 * `--keep_nulls` Print the schema for null values, empty arrays or empty records.
 * `--debugging_interval lines` Number of lines between heartbeat debugging messages. Default 1000.
 * `--debugging_map` Print the metadata schema map for debugging purposes
+
+#### Help
+
+Print the built-in help strings:
+
+```
+$ ./generate_schema.py --help
+```
 
 #### Null Values
 
@@ -122,7 +158,7 @@ With the ``keep_nulls``, the resulting schema file will be:
 Example:
 
 ```
-$ generate_schema.py --keep_nulls < file.data.json > file.schema.json
+$ ./generate_schema.py --keep_nulls < file.data.json > file.schema.json
 ```
 
 #### Debugging Interval
@@ -132,7 +168,7 @@ every 1000 lines of input data. This interval can be changed using the
 `--debugging_interval` flag.
 
 ```
-$ generate_schema.py --debugging_interval 1000 < file.data.json > file.schema.json
+$ ./generate_schema.py --debugging_interval 1000 < file.data.json > file.schema.json
 ```
 
 #### Debugging Map
@@ -143,7 +179,7 @@ various fields and theirs types that was inferred using the data file. This
 flag is intended to be used for debugging.
 
 ```
-$ generate_schema.py --debugging_map < file.data.json > file.schema.json
+$ ./generate_schema.py --debugging_map < file.data.json > file.schema.json
 ```
 
 ## Examples
@@ -212,7 +248,7 @@ $ cat file.schema.json
 ## System Requirements
 
 This project was developed on Ubuntu 17.04 using Python 3.5. It is likely
-compatible with other python environments but I have not yet verified those.
+compatible with other Python environments but I have not yet verified those.
 
 ## Author
 
