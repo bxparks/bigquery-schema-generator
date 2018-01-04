@@ -9,7 +9,7 @@ except OSError:
         long_description = f.read()
 
 setup(name='bigquery-schema-generator',
-      version='0.1.1',
+      version='0.1.2',
       description='BigQuery schema generator',
       long_description=long_description,
       url='https://github.com/bxparks/bigquery-schema-generator',
