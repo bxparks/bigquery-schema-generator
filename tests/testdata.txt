@@ -3,6 +3,7 @@ DATA
 { "s": null, "a": [], "m": {} }
 SCHEMA
 []
+END
 
 # If 'keep_nulls' flag is given, then the input data with null values produces
 # schema which seems to be the best match.
@@ -33,6 +34,7 @@ SCHEMA
     "name": "s"
   }
 ]
+END
 
 # Fields with primitive types. BYTES is not supported.
 DATA
@@ -65,6 +67,7 @@ SCHEMA
     "type": "FLOAT"
   }
 ]
+END
 
 # INTEGER will upgrade to FLOAT.
 DATA
@@ -78,6 +81,7 @@ SCHEMA
     "type": "FLOAT"
   }
 ]
+END
 
 # FLOAT will not downgrade to INTEGER.
 DATA
@@ -91,6 +95,7 @@ SCHEMA
     "type": "FLOAT"
   }
 ]
+END
 
 # Fields with arrays and records.
 DATA
@@ -120,6 +125,7 @@ SCHEMA
     "type": "RECORD"
   }
 ]
+END
 
 # All elements of an array must be of the same type. Also check that an error
 # in one element ("a") continues the processing the remaining elements. (The
@@ -152,6 +158,7 @@ SCHEMA
     "type": "FLOAT"
   }
 ]
+END
 
 # Two independent fields are merged without conflict.
 DATA
@@ -170,6 +177,7 @@ SCHEMA
     "type": "INTEGER"
   }
 ]
+END
 
 # Merging happens recursively.
 DATA
@@ -195,6 +203,7 @@ SCHEMA
     "type": "RECORD"
   }
 ]
+END
 
 # Check that 'null' does not clobber a previous interference.
 DATA
@@ -208,6 +217,7 @@ SCHEMA
     "type": "INTEGER"
   }
 ]
+END
 
 # NULLABLE STRING for 'null' placeholder upgrades to a hard NULLABLE {type}
 # when a real value is given.
@@ -222,6 +232,7 @@ SCHEMA
     "type": "INTEGER"
   }
 ]
+END
 
 # No upgrade of NULLABLE to REPEATED for primitive types.
 DATA
@@ -237,6 +248,7 @@ SCHEMA
     "type": "INTEGER"
   }
 ]
+END
 
 # No downgrade of REPEATED to NULLABLE.
 DATA
@@ -252,6 +264,7 @@ SCHEMA
     "type": "INTEGER"
   }
 ]
+END
 
 # NULLABLE RECORD can be upgraded to a REPEATED RECORD.
 DATA
@@ -274,6 +287,7 @@ SCHEMA
     "type": "RECORD"
   }
 ]
+END
 
 # REPEATED RECORD will NOT be downgraded to a NULLABLE RECORD.
 DATA
@@ -296,3 +310,4 @@ SCHEMA
     "type": "RECORD"
   }
 ]
+END

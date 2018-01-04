@@ -37,6 +37,7 @@ class DataReader:
         ...
         SCHEMA
         bigquery_schema
+        END
 
         # comment
         DATA [flags]
@@ -47,6 +48,7 @@ class DataReader:
         ...
         SCHEMA
         bigquery_schema
+        END
 
         ...
 
@@ -96,7 +98,7 @@ class DataReader:
 
     # Recognized tags.
     # TODO: Change to a hash set to speed up the lookup if many are added.
-    TAG_TOKENS = ['DATA', 'ERRORS', 'SCHEMA']
+    TAG_TOKENS = ['DATA', 'ERRORS', 'SCHEMA', 'END']
 
     def __init__(self, testdata_file):
         self.testdata_file = testdata_file
@@ -119,6 +121,8 @@ class DataReader:
         errors = self.read_errors_section()
         error_map = self.process_errors(errors)
         schema = self.read_schema_section()
+        self.read_end_marker()
+
         return {
             'data_flags': data_flags,
             'records': records,
@@ -129,7 +133,7 @@ class DataReader:
 
     def read_data_section(self):
         """Returns a tuple of ([data_flags]..., [data records])
-        Returns None if EOF.
+        Returns None if there are no more test data chunks.
         """
 
         # First tag must be 'DATA [flags]'
@@ -146,7 +150,7 @@ class DataReader:
         while True:
             line = self.read_line()
             if line is None:
-                raise Exception("Unexpected EOF, should be SCHEMA tag")
+                raise Exception("Unexpected EOF, should be ERRORS or SCHEMA tag")
             (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
                 if tag == 'DATA':
@@ -218,6 +222,16 @@ class DataReader:
             schema_lines.append(line)
 
         return ''.join(schema_lines)
+
+    def read_end_marker(self):
+        """Verify that the 'END' marker exists."""
+        tag_line = self.read_line()
+        if tag_line is None:
+            raise Exception("Unexpected EOF, should be END tag")
+        (tag, _) = self.parse_tag_line(tag_line)
+        if tag != 'END':
+            raise Exception("Unrecoginized tag line '%s', should be END" %
+                            tag_line)
 
     def parse_tag_line(self, line):
         """Parses a potential tag line of the form 'TAG [flags...]' where
