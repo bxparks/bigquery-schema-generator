@@ -9,7 +9,7 @@ records to generate the schema.
 
 Usage:
 ```
-$ generate_schema.py < file.data.json > file.schema.json
+$ generate-schema < file.data.json > file.schema.json
 ```
 
 ## Background
@@ -53,7 +53,7 @@ the STDIN. (CSV is not supported currently.) It scans every record in the
 input data file to deduce the table's schema. It prints the JSON formatted
 schema file on the STDOUT. There are at least 3 ways to run this script:
 
-If you installed using `pip3`, then it should have installed a small helper
+1) If you installed using `pip3`, then it should have installed a small helper
 script named `generate-schema` in your local `./bin` directory of your current
 environment (depending on whether you are using a virtual environment).
 
@@ -61,22 +61,25 @@ environment (depending on whether you are using a virtual environment).
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-You can invoke the module directly using:
+2) You can invoke the module directly using:
 ```
 $ python3 -m bigquery_schema_generator.generate_schema < file.data.json > file.schema.json
 ```
+This is essentially what the `generate-schema` command does.
 
-If you retrieved this code from its [GitHub
+3) If you retrieved this code from its [GitHub
 repository](https://github.com/bxparks/bigquery-schema-generator), then you can invoke
 the Python script directly:
 ```
 $ ./generate_schema.py < file.data.json > file.schema.json
 ```
 
+### Schema Output
+
 The resulting schema file can be used in the **bq load** command using the
 `--schema` flag:
 ```
-$ bq load --schema file.schema.json mydataset.mytable file.data.json
+$ bq load --source_format NEWLINE_DELIMITED_JSON --schema file.schema.json mydataset.mytable file.data.json
 ```
 
 where `mydataset.mytable` is the target table in BigQuery.
@@ -111,7 +114,7 @@ The `generate_schema.py` script supports a handful of command line flags:
 Print the built-in help strings:
 
 ```
-$ ./generate_schema.py --help
+$ generate-schema --help
 ```
 
 #### Null Values
@@ -158,7 +161,7 @@ With the ``keep_nulls``, the resulting schema file will be:
 Example:
 
 ```
-$ ./generate_schema.py --keep_nulls < file.data.json > file.schema.json
+$ generate-schema --keep_nulls < file.data.json > file.schema.json
 ```
 
 #### Debugging Interval
@@ -168,7 +171,7 @@ every 1000 lines of input data. This interval can be changed using the
 `--debugging_interval` flag.
 
 ```
-$ ./generate_schema.py --debugging_interval 1000 < file.data.json > file.schema.json
+$ generate-schema --debugging_interval 1000 < file.data.json > file.schema.json
 ```
 
 #### Debugging Map
@@ -179,7 +182,7 @@ various fields and theirs types that was inferred using the data file. This
 flag is intended to be used for debugging.
 
 ```
-$ ./generate_schema.py --debugging_map < file.data.json > file.schema.json
+$ generate-schema --debugging_map < file.data.json > file.schema.json
 ```
 
 ## Examples
@@ -187,7 +190,7 @@ $ ./generate_schema.py --debugging_map < file.data.json > file.schema.json
 Here is an example of a single JSON data record on the STDIN:
 
 ```
-$ ./generate_schema.py
+$ generate-schema
 { "s": "string", "b": true, "i": 1, "x": 3.1, "t": "2017-05-22T17:10:00-07:00" }
 ^D
 INFO:root:Processed 1 lines
@@ -227,7 +230,7 @@ cat > file.data.json
 { "i": 3 }
 ^D
 
-$ ./generate_schema.py < file.data.json > file.schema.json
+$ generate-schema < file.data.json > file.schema.json
 INFO:root:Processed 2 lines
 
 $ cat file.schema.json
