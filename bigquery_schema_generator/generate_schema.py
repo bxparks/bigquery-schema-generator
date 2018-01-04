@@ -137,6 +137,11 @@ class SchemaGenerator:
     def merge_schema_entry(self, old_schema_entry, new_schema_entry):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
         a merged schema entry. Recursivesly merges in sub-fields as well.
+
+        Returns the merged schema_entry. This method assumes that the
+        'old_schema_entry' is no longer used by the calling code, so it often
+        modifies the old_schema_entry in-place to generate the merged
+        schema_entry.
         """
         if not old_schema_entry:
             return new_schema_entry
@@ -173,45 +178,58 @@ class SchemaGenerator:
                 'old_name (%s) != new_name(%s), should never happen' %
                 (old_name, new_name))
 
-        # Check that the types match.
+        # Allow an INTEGER to be upgraded to a FLOAT.
+        if old_type == 'INTEGER' and new_type == 'FLOAT':
+            old_info['type'] = 'FLOAT'
+            return old_schema_entry
+
+        # A FLOAT does not downgrade to an INTEGER.
+        if old_type == 'FLOAT' and new_type == 'INTEGER':
+            return old_schema_entry
+
+        # No other type conversions are allowed.
         if old_type != new_type:
             raise Exception(
                 'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
                 (old_status, old_name, old_mode, old_type, new_status,
                  new_name, new_mode, new_type))
 
-        # If not RECORD, then the mode must match as well.
-        # TODO: Maybe allow NULLABLE {primitive_type} be upgradeable to a
-        # REPEATED {primitive_type}, like we do with the RECORD type below.
-        # TODO: Maybe allow an INTEGER to be upgraded to a FLOAT, but not the
-        # other way.
-        if old_type != 'RECORD':
-            if old_mode != new_mode:
-                raise Exception(
-                    'Mismatched mode for non-RECORD: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)'
-                    % (old_status, old_name, old_mode, old_type, new_status,
-                       new_name, new_mode, new_type))
-            else:
-                return old_schema_entry
+        # Allow NULLABLE RECORD to be upgraded to REPEATED RECORD because
+        # 'bq load' allows it.
+        if old_type == 'RECORD':
+            if old_mode == 'NULLABLE' and new_mode == 'REPEATED':
+                old_info['mode'] = 'REPEATED'
+                self.log_error(
+                    'Converting schema for "%s" from NULLABLE RECORD into REPEATED RECORD'
+                    % old_name)
+            elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
+                # TODO: Maybe remove this warning output. It was helpful during
+                # development, but maybe it's just natural.
+                self.log_error('Leaving schema for "%s" as REPEATED RECORD' %
+                               old_name)
 
-        # By the time we get here, type == RECORD.
-        # Set mode to be REPEATED if either old or new is REPEATED.
-        if old_mode == 'NULLABLE' and new_mode == 'REPEATED':
-            old_info['mode'] = 'REPEATED'
-            self.log_error(
-                'Converting schema for "%s" from NULLABLE RECORD into REPEATED RECORD'
-                % old_name)
-        elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
-            self.log_error('Leaving schema for "%s" as REPEATED RECORD' %
-                           old_name)
+            # RECORD type needs a recursive merging of sub-fields.
+            old_fields = old_info['fields']
+            new_fields = new_info['fields']
+            for key, new_entry in new_fields.items():
+                old_entry = old_fields.get(key)
+                merged_entry = self.merge_schema_entry(old_entry, new_entry)
+                old_fields[key] = merged_entry
+            return old_schema_entry
 
-        # RECORD type needs a recursive merging of sub-fields.
-        old_fields = old_info['fields']
-        new_fields = new_info['fields']
-        for key, new_entry in new_fields.items():
-            old_entry = old_fields.get(key)
-            merged_entry = self.merge_schema_entry(old_entry, new_entry)
-            old_fields[key] = merged_entry
+        # For all other types, make sure that the old_mode is the same as the
+        # new_mode. It might seem reasonable to allow a NULLABLE
+        # {primitive_type} to be upgraded to a REPEATED {primitive_type}, but
+        # currently 'bq load' does not support that so we must also follow that
+        # rule.
+        if old_mode != new_mode:
+            raise Exception(
+                'Mismatched mode for non-RECORD: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)'
+                % (old_status, old_name, old_mode, old_type, new_status,
+                   new_name, new_mode, new_type))
+
+        # If we got to here, then the new record is the same as all previous
+        # records so just return the old_schema_entry.
         return old_schema_entry
 
     def get_schema_entry(self, key, value):

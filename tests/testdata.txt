@@ -66,6 +66,32 @@ SCHEMA
   }
 ]
 
+# INTEGER will upgrade to FLOAT.
+DATA
+{ "x": 3 }
+{ "x": 3.1 }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  }
+]
+
+# FLOAT will not downgrade to INTEGER.
+DATA
+{ "x": 3.1 }
+{ "x": 3 }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  }
+]
+
 # Fields with arrays and records.
 DATA
 { "a": [1, 2], "r": { "r0": "r0", "r1": "r1" } }
