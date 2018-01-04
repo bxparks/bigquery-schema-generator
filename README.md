@@ -79,7 +79,10 @@ $ ./generate_schema.py < file.data.json > file.schema.json
 The resulting schema file can be used in the **bq load** command using the
 `--schema` flag:
 ```
-$ bq load --source_format NEWLINE_DELIMITED_JSON --schema file.schema.json mydataset.mytable file.data.json
+$ bq load --source_format NEWLINE_DELIMITED_JSON \
+        --schema file.schema.json \
+        mydataset.mytable \
+        file.data.json
 ```
 
 where `mydataset.mytable` is the target table in BigQuery.
