@@ -8,7 +8,9 @@ file which is parsed by the unit test program.  This has two advantages:
 * the `testdata.txt` data can be reused for versions written in other languages
 
 The output of `test_generate_schema.py` should look something like this:
+
 ```
+$ ./test_generate_schema.py
 ----------------------------------------------------------------------
 Ran 4 tests in 0.002s
 
@@ -27,5 +29,3 @@ Test chunk 11: First record: { "i": [1, 2] }
 Test chunk 12: First record: { "r" : { "i": 3 } }
 Test chunk 13: First record: { "r" : [{ "i": 4 }] }
 ```
-
-
