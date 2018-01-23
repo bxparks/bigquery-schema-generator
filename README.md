@@ -53,7 +53,7 @@ the STDIN. (CSV is not supported currently.) It scans every record in the
 input data file to deduce the table's schema. It prints the JSON formatted
 schema file on the STDOUT. There are at least 3 ways to run this script:
 
-1\. Shell script installed by pip3
+1\. **Shell script**
 
 If you installed using `pip3`, then it should have installed a small helper
 script named `generate-schema` in your local `./bin` directory of your current
@@ -63,7 +63,7 @@ environment (depending on whether you are using a virtual environment).
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-2\. Invoke Python module
+2\. **Python module**
 
 You can invoke the module directly using:
 ```
@@ -71,7 +71,7 @@ $ python3 -m bigquery_schema_generator.generate_schema < file.data.json > file.s
 ```
 This is essentially what the `generate-schema` command does.
 
-3\. Invoke Python script
+3\. **Python script**
 
 If you retrieved this code from its [GitHub
 repository](https://github.com/bxparks/bigquery-schema-generator), then you can invoke
@@ -126,7 +126,7 @@ Print the built-in help strings:
 $ generate-schema --help
 ```
 
-#### Keep Null (`--keep_nulls`)
+#### Keep Nulls (`--keep_nulls`)
 
 Normally when the input data file contains a field which has a null, empty
 array or empty record as its value, the field is suppressed in the schema file.
