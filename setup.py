@@ -4,12 +4,17 @@ from setuptools import setup
 try:
     import pypandoc
     long_description = pypandoc.convert('README.md', 'rst', format='md')
-except (EnvironmentError, RuntimeError):
-    with open('README.md', encoding="utf-8") as f:
-        long_description = f.read()
+except:
+    # If unable to convert, try inserting the raw README.md file.
+    try:
+        with open('README.md', encoding="utf-8") as f:
+            long_description = f.read()
+    except:
+        # If all else fails, use some reasonable string.
+        long_description = 'BigQuery schema generator.'
 
 setup(name='bigquery-schema-generator',
-      version='0.1.3',
+      version='0.1.4',
       description='BigQuery schema generator',
       long_description=long_description,
       url='https://github.com/bxparks/bigquery-schema-generator',
