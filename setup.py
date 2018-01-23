@@ -3,13 +3,13 @@ from setuptools import setup
 # Convert README.md to README.rst because PyPI does not support Markdown.
 try:
     import pypandoc
-    long_description = pypandoc.convert('README.md', 'rst')
-except OSError:
+    long_description = pypandoc.convert('README.md', 'rst', format='md')
+except (EnvironmentError, RuntimeError):
     with open('README.md', encoding="utf-8") as f:
         long_description = f.read()
 
 setup(name='bigquery-schema-generator',
-      version='0.1.2',
+      version='0.1.3',
       description='BigQuery schema generator',
       long_description=long_description,
       url='https://github.com/bxparks/bigquery-schema-generator',

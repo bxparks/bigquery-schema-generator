@@ -53,7 +53,9 @@ the STDIN. (CSV is not supported currently.) It scans every record in the
 input data file to deduce the table's schema. It prints the JSON formatted
 schema file on the STDOUT. There are at least 3 ways to run this script:
 
-1) If you installed using `pip3`, then it should have installed a small helper
+1\. Shell script installed by pip3
+
+If you installed using `pip3`, then it should have installed a small helper
 script named `generate-schema` in your local `./bin` directory of your current
 environment (depending on whether you are using a virtual environment).
 
@@ -61,13 +63,17 @@ environment (depending on whether you are using a virtual environment).
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-2) You can invoke the module directly using:
+2\. Invoke Python module
+
+You can invoke the module directly using:
 ```
 $ python3 -m bigquery_schema_generator.generate_schema < file.data.json > file.schema.json
 ```
 This is essentially what the `generate-schema` command does.
 
-3) If you retrieved this code from its [GitHub
+3\. Invoke Python script
+
+If you retrieved this code from its [GitHub
 repository](https://github.com/bxparks/bigquery-schema-generator), then you can invoke
 the Python script directly:
 ```
@@ -103,7 +109,7 @@ $ bq show --schema mydataset.mytable | python -m json.tool
 (The `python -m json.tool` command will pretty-print the JSON formatted schema
 file.) This schema file should be identical to `file.schema.json`.
 
-### Options
+### Flag Options
 
 The `generate_schema.py` script supports a handful of command line flags:
 
@@ -112,7 +118,7 @@ The `generate_schema.py` script supports a handful of command line flags:
 * `--debugging_interval lines` Number of lines between heartbeat debugging messages. Default 1000.
 * `--debugging_map` Print the metadata schema map for debugging purposes
 
-#### Help
+#### Help (`--help`)
 
 Print the built-in help strings:
 
@@ -120,7 +126,7 @@ Print the built-in help strings:
 $ generate-schema --help
 ```
 
-#### Null Values
+#### Keep Null (`--keep_nulls`)
 
 Normally when the input data file contains a field which has a null, empty
 array or empty record as its value, the field is suppressed in the schema file.
@@ -167,7 +173,7 @@ Example:
 $ generate-schema --keep_nulls < file.data.json > file.schema.json
 ```
 
-#### Debugging Interval
+#### Debugging Interval (`--debugging_interval`)
 
 By default, the `generate_schema.py` script prints a short progress message
 every 1000 lines of input data. This interval can be changed using the
@@ -177,7 +183,7 @@ every 1000 lines of input data. This interval can be changed using the
 $ generate-schema --debugging_interval 1000 < file.data.json > file.schema.json
 ```
 
-#### Debugging Map
+#### Debugging Map (`--debugging_map`)
 
 Instead of printing out the BigQuery schema, the `--debugging_map` prints out
 the bookkeeping metadata map which is used internally to keep track of the
@@ -228,7 +234,7 @@ INFO:root:Processed 1 lines
 
 In most cases, the data file will be stored in a file:
 ```
-cat > file.data.json
+$ cat > file.data.json
 { "a": [1, 2] }
 { "i": 3 }
 ^D
