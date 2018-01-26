@@ -2,10 +2,10 @@
 
 ## Summary
 
-This script generates the BigQuery schema from the data records on the STDIN.
-The BigQuery data importer uses only the first 100 lines when the schema
-auto-detection feature is enabled. In contrast, this script uses all data
-records to generate the schema.
+This script generates the BigQuery schema from the newline-delimited JSON data
+records on the STDIN. The BigQuery data importer (`bq load`) uses only the
+first 100 lines when the schema auto-detection feature is enabled. In contrast,
+this script uses all data records to generate the schema.
 
 Usage:
 ```
@@ -41,10 +41,46 @@ the input dataset.
 
 ## Installation
 
-Install from [PyPI](https://pypi.python.org/pypi) repository using:
+Install from [PyPI](https://pypi.python.org/pypi) repository using `pip3`.
+If you want to install the package for your entire system globally, use
+```
+$ sudo -H pip3 install bigquery_schema_generator
+```
+If you are using a virtual environment (such as
+[venv](https://docs.python.org/3/library/venv.html), then you don't need
+the `sudo` coommand, and you can just type:
 ```
 $ pip3 install bigquery_schema_generator
 ```
+
+A successful install should print out the following:
+```
+Collecting bigquery-schema-generator
+Installing collected packages: bigquery-schema-generator
+Successfully installed bigquery-schema-generator-0.1.4
+```
+
+The shell script `generate-schema` is installed in the same directory as
+`pip3`.
+
+### Ubuntu Linux
+
+Under Ubuntu Linux, you should find the `generate-schema` script at
+`/usr/local/bin/generate-schema`.
+
+### MacOS
+
+If you installed Python from
+[Python Releases for Mac OS X](https://www.python.org/downloads/mac-osx/),
+then `/usr/local/bin/pip3` is a symlink to
+`/Library/Frameworks/Python.framework/Versions/3.6/bin/pip3`. So
+`generate-schema` is installed at
+`/Library/Frameworks/Python.framework/Versions/3.6/bin/generate-schema`.
+
+The Python installer updates `$HOME/.bash_profile` to add
+`/Library/Frameworks/Python.framework/Versions/3.6/bin` to the `$PATH`
+environment variable. So you should be able to run the `generate-schema`
+command without typing in the full path.
 
 ## Usage
 
@@ -196,7 +232,8 @@ $ generate-schema --debugging_map < file.data.json > file.schema.json
 
 ## Examples
 
-Here is an example of a single JSON data record on the STDIN:
+Here is an example of a single JSON data record on the STDIN (the `^D` below
+means typing Control-D, which indicates "end of file" under Linux and MacOS):
 
 ```
 $ generate-schema
@@ -259,8 +296,12 @@ $ cat file.schema.json
 
 ## System Requirements
 
-This project was developed on Ubuntu 17.04 using Python 3.5. It is likely
-compatible with other Python environments but I have not yet verified those.
+This project was developed on Ubuntu 17.04 using Python 3.5.3. I have
+tested it on:
+
+* Ubuntu 17.04, Python 3.5.3
+* Ubuntu 16.04, Python 3.5.2
+* MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 
 ## Author
 
