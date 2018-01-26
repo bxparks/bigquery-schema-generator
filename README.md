@@ -47,7 +47,7 @@ If you want to install the package for your entire system globally, use
 $ sudo -H pip3 install bigquery_schema_generator
 ```
 If you are using a virtual environment (such as
-[venv](https://docs.python.org/3/library/venv.html), then you don't need
+[venv](https://docs.python.org/3/library/venv.html)), then you don't need
 the `sudo` coommand, and you can just type:
 ```
 $ pip3 install bigquery_schema_generator
@@ -89,7 +89,7 @@ the STDIN. (CSV is not supported currently.) It scans every record in the
 input data file to deduce the table's schema. It prints the JSON formatted
 schema file on the STDOUT. There are at least 3 ways to run this script:
 
-1\. **Shell script**
+**1) Shell script**
 
 If you installed using `pip3`, then it should have installed a small helper
 script named `generate-schema` in your local `./bin` directory of your current
@@ -99,7 +99,7 @@ environment (depending on whether you are using a virtual environment).
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-2\. **Python module**
+**2) Python module**
 
 You can invoke the module directly using:
 ```
@@ -107,7 +107,7 @@ $ python3 -m bigquery_schema_generator.generate_schema < file.data.json > file.s
 ```
 This is essentially what the `generate-schema` command does.
 
-3\. **Python script**
+**3) Python script**
 
 If you retrieved this code from its [GitHub
 repository](https://github.com/bxparks/bigquery-schema-generator), then you can invoke
@@ -118,7 +118,7 @@ $ ./generate_schema.py < file.data.json > file.schema.json
 
 ### Schema Output
 
-The resulting schema file can be used in the **bq load** command using the
+The resulting schema file can be given to the **bq load** command using the
 `--schema` flag:
 ```
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
