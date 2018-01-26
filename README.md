@@ -160,23 +160,43 @@ Print the built-in help strings:
 
 ```
 $ generate-schema --help
+usage: generate_schema.py [-h] [--keep_nulls]
+                          [--debugging_interval DEBUGGING_INTERVAL]
+                          [--debugging_map]
+
+Generate BigQuery schema.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --keep_nulls          Print the schema for null values, empty arrays or
+                        empty records.
+  --debugging_interval DEBUGGING_INTERVAL
+                        Number of lines between heartbeat debugging messages.
+  --debugging_map       Print the metadata schema_map instead of the schema
+                        for debugging
 ```
 
 #### Keep Nulls (`--keep_nulls`)
 
 Normally when the input data file contains a field which has a null, empty
 array or empty record as its value, the field is suppressed in the schema file.
-This flag enables this field to be included in the schema file. In other words,
-for the data file:
+This flag enables this field to be included in the schema file.
+
+In other words, using a data file containing just nulls and empty values:
 ```
+$ generate_schema
 { "s": null, "a": [], "m": {} }
-```
-the schema would normally be:
-```
+^D
+INFO:root:Processed 1 lines
 []
 ```
-With the ``keep_nulls``, the resulting schema file will be:
+
+With the `keep_nulls` flag, we get:
 ```
+$ generate-schema --keep_nulls
+{ "s": null, "a": [], "m": {} }
+^D
+INFO:root:Processed 1 lines
 [
   {
     "mode": "REPEATED",
@@ -203,12 +223,6 @@ With the ``keep_nulls``, the resulting schema file will be:
 ]
 ```
 
-Example:
-
-```
-$ generate-schema --keep_nulls < file.data.json > file.schema.json
-```
-
 #### Debugging Interval (`--debugging_interval`)
 
 By default, the `generate_schema.py` script prints a short progress message
@@ -216,7 +230,7 @@ every 1000 lines of input data. This interval can be changed using the
 `--debugging_interval` flag.
 
 ```
-$ generate-schema --debugging_interval 1000 < file.data.json > file.schema.json
+$ generate-schema --debugging_interval 50 < file.data.json > file.schema.json
 ```
 
 #### Debugging Map (`--debugging_map`)
