@@ -43,6 +43,8 @@ class TestSchemaGenerator(unittest.TestCase):
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01-7'))
         self.assertTrue(
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01+7:00'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-5-2T1:3:1'))
 
     def test_timestamp_matcher_invalid(self):
         self.assertFalse(
@@ -57,6 +59,10 @@ class TestSchemaGenerator(unittest.TestCase):
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22A12:33:00'))
         self.assertFalse(
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01X07:00'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-5-2A2:3:0'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('17-05-22T12:33:01'))
 
     def test_sort_schema(self):
         unsorted = [{
