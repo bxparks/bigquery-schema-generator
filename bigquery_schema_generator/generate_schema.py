@@ -43,7 +43,7 @@ class SchemaGenerator:
     """
 
     # The regexp that detects a TIMESTAMP string field.
-    DATE_MATCHER = re.compile(
+    TIMESTAMP_MATCHER = re.compile(
         r'^\d{4}-\d{1,2}-\d{1,2}[T ]\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?'
         r'(([+-]\d{1,2}(:\d{1,2})?)|Z)?$')
 
@@ -289,7 +289,7 @@ class SchemaGenerator:
         the JSON value.
         """
         if isinstance(node_value, str):
-            if self.DATE_MATCHER.match(node_value):
+            if self.TIMESTAMP_MATCHER.match(node_value):
                 return ("NULLABLE", "TIMESTAMP")
             else:
                 return ("NULLABLE", "STRING")
@@ -315,7 +315,7 @@ class SchemaGenerator:
             verify_homogeneous_array(node_value)
             array_node = node_value[0]
             if isinstance(array_node, str):
-                if self.DATE_MATCHER.match(array_node):
+                if self.TIMESTAMP_MATCHER.match(array_node):
                     return ("REPEATED", "TIMESTAMP")
                 else:
                     return ("REPEATED", "STRING")

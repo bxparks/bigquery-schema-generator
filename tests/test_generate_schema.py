@@ -24,39 +24,39 @@ from data_reader import DataReader
 
 
 class TestSchemaGenerator(unittest.TestCase):
-    def test_date_matcher_valid(self):
+    def test_timestamp_matcher_valid(self):
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33:01'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01'))
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01'))
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01.123'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01.123'))
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01.123456'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01.123456'))
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33:01Z'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01Z'))
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01-7:00'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01-7:00'))
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01-07:30'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01-07:30'))
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33:01-7'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01-7'))
         self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01+7:00'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01+7:00'))
 
-    def test_date_matcher_invalid(self):
+    def test_timestamp_matcher_invalid(self):
         self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01-123:445'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01-123:445'))
         self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01-0700'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01-0700'))
         self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01.1234567'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01.1234567'))
         self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33'))
         self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22A12:33:00'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22A12:33:00'))
         self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33:01X07:00'))
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01X07:00'))
 
     def test_sort_schema(self):
         unsorted = [{
