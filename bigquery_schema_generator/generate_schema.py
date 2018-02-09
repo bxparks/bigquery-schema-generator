@@ -83,7 +83,8 @@ class SchemaGenerator:
             'status': 'hard | soft',
             'info': {
               'name': key,
-              'type': 'STRING | TIMESTAMP | FLOAT | INTEGER | BOOLEAN | RECORD'
+              'type': 'STRING | TIMESTAMP | DATE | TIME
+                      | FLOAT | INTEGER | BOOLEAN | RECORD'
               'mode': 'NULLABLE | REPEATED',
               'fields': schema_map
             }
@@ -194,6 +195,13 @@ class SchemaGenerator:
         if old_type == 'FLOAT' and new_type == 'INTEGER':
             return old_schema_entry
 
+        # If there's a mismatch in one of the date/time/timestamp fields, then
+        # revert to the common type STRING.
+        if is_string_type(old_type) and is_string_type(new_type):
+            if old_type != new_type:
+                new_info['type'] = 'STRING'
+            return new_schema_entry
+
         # No other type conversions are allowed.
         if old_type != new_type:
             raise Exception(
@@ -298,6 +306,10 @@ class SchemaGenerator:
         if isinstance(node_value, str):
             if self.TIMESTAMP_MATCHER.match(node_value):
                 return ("NULLABLE", "TIMESTAMP")
+            elif self.DATE_MATCHER.match(node_value):
+                return ("NULLABLE", "DATE")
+            elif self.TIME_MATCHER.match(node_value):
+                return ("NULLABLE", "TIME")
             else:
                 return ("NULLABLE", "STRING")
         # Python 'bool' is a subclass of 'int' so we must check it first
@@ -318,12 +330,21 @@ class SchemaGenerator:
             if len(node_value) == 0:
                 return ("NULLABLE", "__empty_array__")
 
-            # infer type from the first element
+            # TODO: Verify that the array elements are identical subtypes
+            # string. We probably need to restructure this so that the the first
+            # element's type is inferred, then we verify that all subsequent
+            # elements are of the same type.
             verify_homogeneous_array(node_value)
+
+            # infer type from the first element
             array_node = node_value[0]
             if isinstance(array_node, str):
                 if self.TIMESTAMP_MATCHER.match(array_node):
                     return ("REPEATED", "TIMESTAMP")
+                elif self.DATE_MATCHER.match(array_node):
+                    return ("REPEATED", "DATE")
+                elif self.TIME_MATCHER.match(array_node):
+                    return ("REPEATED", "TIME")
                 else:
                     return ("REPEATED", "STRING")
             # bool is a subclass of int so we must check this first
@@ -378,6 +399,12 @@ def verify_homogeneous_array(elements):
             raise Exception("Not all array elements are equal type: %s" %
                             elements)
 
+
+def is_string_type(type):
+    """Returns true if the value is one of: STRING, TIMESTAMP, DATE, or
+    TIME."""
+    return (type == 'STRING' or type == 'TIMESTAMP' or type == 'DATE' or
+           type == 'TIME')
 
 def flatten_schema_map(schema_map, keep_nulls=False):
     """Converts the 'schema_map' into a more flatten version which is

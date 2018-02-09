@@ -20,6 +20,7 @@ import json
 from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import sort_schema
+from bigquery_schema_generator.generate_schema import is_string_type
 from data_reader import DataReader
 
 
@@ -93,6 +94,12 @@ class TestSchemaGenerator(unittest.TestCase):
             SchemaGenerator.TIME_MATCHER.match('123:33:01'))
         self.assertFalse(
             SchemaGenerator.TIME_MATCHER.match('12:33:01.1234567'))
+
+    def test_is_string_type(self):
+        self.assertTrue(is_string_type('STRING'))
+        self.assertTrue(is_string_type('TIMESTAMP'))
+        self.assertTrue(is_string_type('DATE'))
+        self.assertTrue(is_string_type('TIME'))
 
     def test_sort_schema(self):
         unsorted = [{
