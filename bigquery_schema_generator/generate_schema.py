@@ -42,10 +42,17 @@ class SchemaGenerator:
         schema = generator.flatten_schema(schema_map)
     """
 
-    # The regexp that detects a TIMESTAMP string field.
+    # Detect a TIMESTAMP field of the form
+    # YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
     TIMESTAMP_MATCHER = re.compile(
         r'^\d{4}-\d{1,2}-\d{1,2}[T ]\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?'
         r'(([+-]\d{1,2}(:\d{1,2})?)|Z)?$')
+
+    # Detect a DATE field of the form YYYY-[M]M-[D]D.
+    DATE_MATCHER = re.compile(r'^\d{4}-\d{1,2}-\d{1,2}$')
+
+    # Detect a TIME field of the form [H]H:[M]M:[S]S[.DDDDDD]
+    TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
 
     def __init__(self,
                  keep_nulls=False,

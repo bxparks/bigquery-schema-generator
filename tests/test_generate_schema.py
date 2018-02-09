@@ -64,6 +64,36 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertFalse(
             SchemaGenerator.TIMESTAMP_MATCHER.match('17-05-22T12:33:01'))
 
+    def test_date_matcher_valid(self):
+        self.assertTrue(
+            SchemaGenerator.DATE_MATCHER.match('2017-05-22'))
+        self.assertTrue(
+            SchemaGenerator.DATE_MATCHER.match('2017-1-1'))
+
+    def test_date_matcher_invalid(self):
+        self.assertFalse(
+            SchemaGenerator.DATE_MATCHER.match('17-05-22'))
+        self.assertFalse(
+            SchemaGenerator.DATE_MATCHER.match('2017-111-22'))
+
+    def test_time_matcher_valid(self):
+        self.assertTrue(
+            SchemaGenerator.TIME_MATCHER.match('12:33:01'))
+        self.assertTrue(
+            SchemaGenerator.TIME_MATCHER.match('12:33:01.123'))
+        self.assertTrue(
+            SchemaGenerator.TIME_MATCHER.match('12:33:01.123456'))
+        self.assertTrue(
+            SchemaGenerator.TIME_MATCHER.match('1:3:1'))
+
+    def test_time_matcher_invalid(self):
+        self.assertFalse(
+            SchemaGenerator.TIME_MATCHER.match(':33:01'))
+        self.assertFalse(
+            SchemaGenerator.TIME_MATCHER.match('123:33:01'))
+        self.assertFalse(
+            SchemaGenerator.TIME_MATCHER.match('12:33:01.1234567'))
+
     def test_sort_schema(self):
         unsorted = [{
             "mode": "REPEATED",
