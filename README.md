@@ -244,6 +244,60 @@ flag is intended to be used for debugging.
 $ generate-schema --debugging_map < file.data.json > file.schema.json
 ```
 
+## Schema Types
+
+### Supported Types
+
+The **bq show --schema** command produces a JSON schema file that uses the
+older [Legacy SQL date types](https://cloud.google.com/bigquery/data-types).
+For compatibility, **generate-schema** script will also generate a schema file
+using the legacy data types.
+
+The supported types are:
+
+* `BOOLEAN`
+* `INTEGER`
+* `FLOAT`
+* `STRING`
+* `TIMESTAMP`
+* `DATE`
+* `TIME`
+* `RECORD`
+
+The `generate-schema` script supports both `NULLABLE` and `REPEATED` modes of all
+of the above types. The following types are _not_ supported:
+
+* `BYTES`
+* `DATETIME` (unable to distinguish from `TIMESTAMP`)
+
+### Type Inferrence Rules
+
+The `generate-schema` script attempt to emulate the various type conversion and
+compatibility rules implemented by *bq load*:
+
+* `INTEGER` can upgrade to `FLOAT`
+  * if a field in an early record is an `INTEGER`, but a subsequent record shows
+    this field to have a `FLOAT` value, the type of the field will be upgraded to
+    a `FLOAT`
+  * the reverse does not happen, once a field is a `FLOAT`, it will remain a
+    `FLOAT`
+* conflicting `TIME`, `DATE`, `TIMESTAMP` types downgrades to `STRING`
+  * if a field is determined to have one type of "time" in one record, then
+    subsequently a different "time" type, then the field will be assigned a
+    `STRING` type
+* `NULLABLE RECORD` can upgrade to a `REPEATED RECORD`
+  * a field may be defined as `RECORD` (aka "Struct") type with `{ ... }`
+  * if the field is subsequently read as an array with a `[{ ... }]`, the field
+    is upgraded to a `REPEATED RECORD`
+* a primitive type (`FLOAT`, `INTEGER`, `STRING`) cannot upgrade to a `REPEATED`
+  primitive type
+  * there's no technical reason why this cannot be allowed, but *bq load*
+    does not support it, so we follow the rule
+* a `DATETIME` field is always inferred to be a `TIMESTAMP`
+  * the format of these two fields are identical (in the absence of timezone)
+  * we follow the same logic as *bq load* and always infer these as `TIMESTAMP`
+
+
 ## Examples
 
 Here is an example of a single JSON data record on the STDIN (the `^D` below

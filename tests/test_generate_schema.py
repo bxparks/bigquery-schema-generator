@@ -20,43 +20,250 @@ import json
 from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import sort_schema
+from bigquery_schema_generator.generate_schema import is_string_type
+from bigquery_schema_generator.generate_schema import convert_type
 from data_reader import DataReader
 
 
 class TestSchemaGenerator(unittest.TestCase):
+    def test_timestamp_matcher_valid(self):
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01.123'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match(
+                '2017-05-22 12:33:01.123456'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01Z'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match(
+                '2017-05-22 12:33:01-7:00'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match(
+                '2017-05-22 12:33:01-07:30'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01-7'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match(
+                '2017-05-22 12:33:01+7:00'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-5-2T1:3:1'))
+
+    def test_timestamp_matcher_invalid(self):
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match(
+                '2017-05-22 12:33:01-123:445'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match(
+                '2017-05-22 12:33:01-0700'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match(
+                '2017-05-22 12:33:01.1234567'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22A12:33:00'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match(
+                '2017-05-22T12:33:01X07:00'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-5-2A2:3:0'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('17-05-22T12:33:01'))
+
     def test_date_matcher_valid(self):
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33:01'))
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01'))
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01.123'))
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01.123456'))
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33:01Z'))
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01-7:00'))
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01-07:30'))
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33:01-7'))
-        self.assertTrue(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01+7:00'))
+        self.assertTrue(SchemaGenerator.DATE_MATCHER.match('2017-05-22'))
+        self.assertTrue(SchemaGenerator.DATE_MATCHER.match('2017-1-1'))
 
     def test_date_matcher_invalid(self):
+        self.assertFalse(SchemaGenerator.DATE_MATCHER.match('17-05-22'))
+        self.assertFalse(SchemaGenerator.DATE_MATCHER.match('2017-111-22'))
+
+    def test_time_matcher_valid(self):
+        self.assertTrue(SchemaGenerator.TIME_MATCHER.match('12:33:01'))
+        self.assertTrue(SchemaGenerator.TIME_MATCHER.match('12:33:01.123'))
+        self.assertTrue(SchemaGenerator.TIME_MATCHER.match('12:33:01.123456'))
+        self.assertTrue(SchemaGenerator.TIME_MATCHER.match('1:3:1'))
+
+    def test_time_matcher_invalid(self):
+        self.assertFalse(SchemaGenerator.TIME_MATCHER.match(':33:01'))
+        self.assertFalse(SchemaGenerator.TIME_MATCHER.match('123:33:01'))
         self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01-123:445'))
-        self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01-0700'))
-        self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22 12:33:01.1234567'))
-        self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33'))
-        self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22A12:33:00'))
-        self.assertFalse(
-            SchemaGenerator.DATE_MATCHER.match('2017-05-22T12:33:01X07:00'))
+            SchemaGenerator.TIME_MATCHER.match('12:33:01.1234567'))
+
+    def test_infer_value_type(self):
+        generator = SchemaGenerator()
+        self.assertEqual('TIME', generator.infer_value_type('12:34:56'))
+        self.assertEqual('DATE', generator.infer_value_type('2018-02-08'))
+        self.assertEqual('TIMESTAMP',
+                         generator.infer_value_type('2018-02-08T12:34:56'))
+        self.assertEqual('STRING', generator.infer_value_type('abc'))
+        self.assertEqual('BOOLEAN', generator.infer_value_type(True))
+        self.assertEqual('INTEGER', generator.infer_value_type(1))
+        self.assertEqual('FLOAT', generator.infer_value_type(2.0))
+        self.assertEqual('RECORD', generator.infer_value_type({
+            'a': 1,
+            'b': 2
+        }))
+        self.assertEqual('__null__', generator.infer_value_type(None))
+        self.assertEqual('__empty_record__', generator.infer_value_type({}))
+        self.assertEqual('__empty_array__', generator.infer_value_type([]))
+        self.assertEqual('__array__', generator.infer_value_type([1, 2, 3]))
+
+    def test_infer_bigquery_type(self):
+        generator = SchemaGenerator()
+
+        self.assertEqual(('NULLABLE', 'TIME'),
+                         generator.infer_bigquery_type('12:33:01'))
+        self.assertEqual(('NULLABLE', 'DATE'),
+                         generator.infer_bigquery_type('2018-02-08'))
+        self.assertEqual(('NULLABLE', 'TIMESTAMP'),
+                         generator.infer_bigquery_type('2018-02-08T12:34:56'))
+        self.assertEqual(('NULLABLE', 'STRING'),
+                         generator.infer_bigquery_type('abc'))
+        self.assertEqual(('NULLABLE', 'BOOLEAN'),
+                         generator.infer_bigquery_type(True))
+        self.assertEqual(('NULLABLE', 'INTEGER'),
+                         generator.infer_bigquery_type(1))
+        self.assertEqual(('NULLABLE', 'FLOAT'),
+                         generator.infer_bigquery_type(2.0))
+        # yapf: disable
+        self.assertEqual(('NULLABLE', 'RECORD'),
+                         generator.infer_bigquery_type({ 'a': 1, 'b': 2 }))
+        # yapf: enable
+        self.assertEqual(('NULLABLE', '__null__'),
+                         generator.infer_bigquery_type(None))
+        self.assertEqual(('NULLABLE', '__empty_record__'),
+                         generator.infer_bigquery_type({}))
+        self.assertEqual(('NULLABLE', '__empty_array__'),
+                         generator.infer_bigquery_type([]))
+
+        self.assertEqual(('REPEATED', 'TIME'),
+                         generator.infer_bigquery_type(
+                             ['00:00:00', '00:00:01', '00:00:02']))
+        self.assertEqual(
+            ('REPEATED', 'DATE'),
+            generator.infer_bigquery_type(['2018-02-08', '2018-02-09']))
+        self.assertEqual(('REPEATED', 'TIMESTAMP'),
+                         generator.infer_bigquery_type(
+                             ['2018-02-08T12:34:56', '2018-02-08T12:34:56']))
+        self.assertEqual(('REPEATED', 'STRING'),
+                         generator.infer_bigquery_type(['a', 'b', 'c']))
+        self.assertEqual(('REPEATED', 'BOOLEAN'),
+                         generator.infer_bigquery_type([True, False, True]))
+        self.assertEqual(('REPEATED', 'INTEGER'),
+                         generator.infer_bigquery_type([1, 2, 3]))
+        self.assertEqual(('REPEATED', 'FLOAT'),
+                         generator.infer_bigquery_type([1.0, 2.0]))
+        # yapf: disable
+        self.assertEqual(('REPEATED', 'RECORD'),
+                         generator.infer_bigquery_type([
+                            { 'a': 1, 'b': 2 },
+                            { 'c': 3 }]))
+        # yapf: enable
+        self.assertEqual(('REPEATED', '__empty_record__'),
+                         generator.infer_bigquery_type([{}]))
+
+        # Cannot have arrays of nulls (REPEATED __null__)
+        with self.assertRaises(Exception):
+            generator.infer_bigquery_type([None])
+
+        # Cannot have arrays of empty arrays: (REPEATED __empty_array__)
+        with self.assertRaises(Exception):
+            generator.infer_bigquery_type([[], []])
+
+        # Cannot have arrays of arrays: (REPEATED __array__)
+        with self.assertRaises(Exception):
+            generator.infer_bigquery_type([[1, 2], [2]])
+
+    def test_infer_array_type(self):
+        generator = SchemaGenerator()
+
+        self.assertEqual('INTEGER', generator.infer_array_type([1, 1]))
+        self.assertEqual('FLOAT', generator.infer_array_type([1.0, 2.0]))
+        self.assertEqual('BOOLEAN', generator.infer_array_type([True, False]))
+        self.assertEqual('STRING', generator.infer_array_type(['a', 'b']))
+        self.assertEqual(
+            'DATE', generator.infer_array_type(['2018-02-09', '2018-02-10']))
+        self.assertEqual('TIME',
+                         generator.infer_array_type(['10:44:00', '10:44:01']))
+        self.assertEqual('TIMESTAMP',
+                         generator.infer_array_type(
+                             ['2018-02-09T11:00:00', '2018-02-10T11:00:01']))
+        self.assertEqual('RECORD', generator.infer_array_type([{'a': 1}]))
+
+        # Special types are supported
+        self.assertEqual('__null__', generator.infer_array_type([None]))
+        self.assertEqual('__empty_record__', generator.infer_array_type([{}]))
+        self.assertEqual('__empty_array__', generator.infer_array_type([[]]))
+
+        # Mixed TIME, DATE, TIMESTAMP converts to STRING
+        self.assertEqual(
+            'STRING', generator.infer_array_type(['2018-02-09', '10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(
+                             ['2018-02-09T11:00:00', '10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(
+                             ['2018-02-09', '2018-02-09T10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(['time', '10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(['date', '2018-02-09']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(
+                             ['timestamp', '2018-02-09T10:44:00']))
+
+        # Mixed FLOAT and INTEGER returns FLOAT
+        self.assertEqual('FLOAT', generator.infer_array_type([1, 2.0]))
+        self.assertEqual('FLOAT', generator.infer_array_type([1.0, 2]))
+
+        # Invalid mixed arrays
+        self.assertIsNone(generator.infer_array_type([None, 1]))
+        self.assertIsNone(generator.infer_array_type([1, True]))
+        self.assertIsNone(generator.infer_array_type([1, '2018-02-09']))
+        self.assertIsNone(generator.infer_array_type(['a', 1]))
+        self.assertIsNone(generator.infer_array_type(['a', []]))
+        self.assertIsNone(generator.infer_array_type(['a', {}]))
+        self.assertIsNone(generator.infer_array_type([{}, []]))
+        self.assertIsNone(generator.infer_array_type([{'a': 1}, []]))
+        self.assertIsNone(generator.infer_array_type([{'a': 1}, [2]]))
+        self.assertIsNone(generator.infer_array_type([{}, [2]]))
+
+    def test_convert_type(self):
+        # no conversion needed
+        self.assertEqual('INTEGER', convert_type('INTEGER', 'INTEGER'))
+        self.assertEqual('FLOAT', convert_type('FLOAT', 'FLOAT'))
+        self.assertEqual('STRING', convert_type('STRING', 'STRING'))
+        self.assertEqual('BOOLEAN', convert_type('BOOLEAN', 'BOOLEAN'))
+        self.assertEqual('DATE', convert_type('DATE', 'DATE'))
+        self.assertEqual('RECORD', convert_type('RECORD', 'RECORD'))
+
+        # conversions
+        self.assertEqual('FLOAT', convert_type('INTEGER', 'FLOAT'))
+        self.assertEqual('FLOAT', convert_type('FLOAT', 'INTEGER'))
+        self.assertEqual('STRING', convert_type('DATE', 'TIME'))
+        self.assertEqual('STRING', convert_type('DATE', 'TIMESTAMP'))
+        self.assertEqual('STRING', convert_type('DATE', 'STRING'))
+        self.assertEqual('STRING', convert_type('TIME', 'TIMESTAMP'))
+        self.assertEqual('STRING', convert_type('TIME', 'STRING'))
+        self.assertEqual('STRING', convert_type('TIMESTAMP', 'STRING'))
+
+        # no conversion possible
+        self.assertEqual(None, convert_type('INTEGER', 'BOOLEAN'))
+        self.assertEqual(None, convert_type('FLOAT', 'STRING'))
+        self.assertEqual(None, convert_type('STRING', 'BOOLEAN'))
+        self.assertEqual(None, convert_type('BOOLEAN', 'DATE'))
+        self.assertEqual(None, convert_type('BOOLEAN', 'RECORD'))
+
+    def test_is_string_type(self):
+        self.assertTrue(is_string_type('STRING'))
+        self.assertTrue(is_string_type('TIMESTAMP'))
+        self.assertTrue(is_string_type('DATE'))
+        self.assertTrue(is_string_type('TIME'))
 
     def test_sort_schema(self):
         unsorted = [{
@@ -77,16 +284,29 @@ class TestSchemaGenerator(unittest.TestCase):
             "name": "s",
             "type": "STRING"
         }]
+
+        # yapf: disable
         expected = [
-            OrderedDict([("mode", "REPEATED"), ("name", "a"),
-                         ("type", "STRING")]),
-            OrderedDict([("fields", [
-                OrderedDict([("mode", "NULLABLE"), ("name", "__unknown__"),
-                             ("type", "STRING")])
-            ]), ("mode", "NULLABLE"), ("name", "m"), ("type", "RECORD")]),
-            OrderedDict([("mode", "NULLABLE"), ("name", "s"),
-                         ("type", "STRING")])
+            OrderedDict([
+                ("mode", "REPEATED"),
+                ("name", "a"),
+                ("type", "STRING")]),
+            OrderedDict([
+                ("fields", [
+                    OrderedDict([
+                        ("mode", "NULLABLE"),
+                        ("name", "__unknown__"),
+                        ("type", "STRING")])
+                ]),
+                ("mode", "NULLABLE"),
+                ("name", "m"),
+                ("type", "RECORD")]),
+            OrderedDict([
+                ("mode", "NULLABLE"),
+                ("name", "s"),
+                ("type", "STRING")])
         ]
+        # yapf: enable
         self.assertEqual(expected, sort_schema(unsorted))
 
 
@@ -149,9 +369,10 @@ class TestFromDataFile(unittest.TestCase):
                 error_map[line_number] = messages
             messages.append(error['msg'])
 
-        # Check that each entry in 'error_logs' is expected.
-        # Currently checks only that the number of errors matches on a per line basis.
-        # TODO: Look deeper and verify that the error message strings match as well.
+        # Check that each entry in 'error_logs' is expected. Currently checks
+        # only that the number of errors matches on a per line basis.
+        # TODO: Look deeper and verify that the error message strings match as
+        # well.
         for line_number, messages in sorted(error_map.items()):
             expected_entry = expected_error_map.get(line_number)
             self.assertIsNotNone(expected_entry)

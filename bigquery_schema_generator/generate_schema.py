@@ -20,7 +20,8 @@ uses all available records in the data file.
 
 Usage: generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
 
-* file.data.json is a newline-delimited JSON data file, one JSON object per line.
+* file.data.json is a newline-delimited JSON data file, one JSON object per
+  line.
 * file.schema.json is the schema definition of the table.
 """
 
@@ -42,10 +43,17 @@ class SchemaGenerator:
         schema = generator.flatten_schema(schema_map)
     """
 
-    # The regexp that detects a TIMESTAMP string field.
-    DATE_MATCHER = re.compile(
+    # Detect a TIMESTAMP field of the form
+    # YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
+    TIMESTAMP_MATCHER = re.compile(
         r'^\d{4}-\d{1,2}-\d{1,2}[T ]\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?'
         r'(([+-]\d{1,2}(:\d{1,2})?)|Z)?$')
+
+    # Detect a DATE field of the form YYYY-[M]M-[D]D.
+    DATE_MATCHER = re.compile(r'^\d{4}-\d{1,2}-\d{1,2}$')
+
+    # Detect a TIME field of the form [H]H:[M]M:[S]S[.DDDDDD]
+    TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
 
     def __init__(self,
                  keep_nulls=False,
@@ -76,7 +84,8 @@ class SchemaGenerator:
             'status': 'hard | soft',
             'info': {
               'name': key,
-              'type': 'STRING | TIMESTAMP | FLOAT | INTEGER | BOOLEAN | RECORD'
+              'type': 'STRING | TIMESTAMP | DATE | TIME
+                      | FLOAT | INTEGER | BOOLEAN | RECORD'
               'mode': 'NULLABLE | REPEATED',
               'fields': schema_map
             }
@@ -160,8 +169,8 @@ class SchemaGenerator:
         # Verify that it's soft->soft or hard->hard
         if old_status != new_status:
             raise Exception(
-                'Unexpected schema_entry type, this should never happen: old (%s); new (%s)'
-                % (old_status, new_status))
+                ('Unexpected schema_entry type, this should never happen: '
+                 'old (%s); new (%s)') % (old_status, new_status))
 
         old_info = old_schema_entry['info']
         old_name = old_info['name']
@@ -178,37 +187,25 @@ class SchemaGenerator:
                 'old_name (%s) != new_name(%s), should never happen' %
                 (old_name, new_name))
 
-        # Allow an INTEGER to be upgraded to a FLOAT.
-        if old_type == 'INTEGER' and new_type == 'FLOAT':
-            old_info['type'] = 'FLOAT'
-            return old_schema_entry
-
-        # A FLOAT does not downgrade to an INTEGER.
-        if old_type == 'FLOAT' and new_type == 'INTEGER':
-            return old_schema_entry
-
-        # No other type conversions are allowed.
-        if old_type != new_type:
-            raise Exception(
-                'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
-                (old_status, old_name, old_mode, old_type, new_status,
-                 new_name, new_mode, new_type))
-
-        # Allow NULLABLE RECORD to be upgraded to REPEATED RECORD because
-        # 'bq load' allows it.
-        if old_type == 'RECORD':
+        # Recursively merge in the subfields of a RECORD, allowing
+        # NULLABLE to become REPEATED (because 'bq load' allows it).
+        if old_type == 'RECORD' and new_type == 'RECORD':
+            # Allow NULLABLE RECORD to be upgraded to REPEATED RECORD because
+            # 'bq load' allows it.
             if old_mode == 'NULLABLE' and new_mode == 'REPEATED':
                 old_info['mode'] = 'REPEATED'
                 self.log_error(
-                    'Converting schema for "%s" from NULLABLE RECORD into REPEATED RECORD'
-                    % old_name)
+                    ('Converting schema for "%s" from NULLABLE RECORD '
+                     'into REPEATED RECORD') % old_name)
             elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
                 # TODO: Maybe remove this warning output. It was helpful during
                 # development, but maybe it's just natural.
                 self.log_error('Leaving schema for "%s" as REPEATED RECORD' %
                                old_name)
 
-            # RECORD type needs a recursive merging of sub-fields.
+            # RECORD type needs a recursive merging of sub-fields. We merge into
+            # the 'old_schema_entry' which assumes that the 'old_schema_entry'
+            # can be modified in situ.
             old_fields = old_info['fields']
             new_fields = new_info['fields']
             for key, new_entry in new_fields.items():
@@ -217,27 +214,32 @@ class SchemaGenerator:
                 old_fields[key] = merged_entry
             return old_schema_entry
 
-        # For all other types, make sure that the old_mode is the same as the
-        # new_mode. It might seem reasonable to allow a NULLABLE
-        # {primitive_type} to be upgraded to a REPEATED {primitive_type}, but
-        # currently 'bq load' does not support that so we must also follow that
-        # rule.
+        # For all other types, the old_mode must be the same as the new_mode. It
+        # might seem reasonable to allow a NULLABLE {primitive_type} to be
+        # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
+        # not support that so we must also follow that rule.
         if old_mode != new_mode:
-            raise Exception(
-                'Mismatched mode for non-RECORD: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)'
-                % (old_status, old_name, old_mode, old_type, new_status,
-                   new_name, new_mode, new_type))
+            raise Exception(('Mismatched mode for non-RECORD: '
+                             'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
+                            (old_status, old_name, old_mode, old_type,
+                             new_status, new_name, new_mode, new_type))
 
-        # If we got to here, then the new record is the same as all previous
-        # records so just return the old_schema_entry.
-        return old_schema_entry
+        candidate_type = convert_type(old_type, new_type)
+        if not candidate_type:
+            raise Exception(
+                'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
+                (old_status, old_name, old_mode, old_type, new_status,
+                 new_name, new_mode, new_type))
+
+        new_info['type'] = candidate_type
+        return new_schema_entry
 
     def get_schema_entry(self, key, value):
         """Determines the 'schema_entry' of the JSON (key, value) pair. Calls
         deduce_schema_for_line() recursively if the value is another JSON
         object, instead of a primitive.
         """
-        value_mode, value_type = self.bigquery_type(value)
+        value_mode, value_type = self.infer_bigquery_type(value)
         if value_type == 'RECORD':
             # recursively figure out the RECORD
             fields = OrderedDict()
@@ -271,7 +273,7 @@ class SchemaGenerator:
             schema_entry = OrderedDict([('status', 'soft'),
                                         ('info', OrderedDict([
                                             ('fields', OrderedDict()),
-                                            ('mode', 'NULLABLE'),
+                                            ('mode', value_mode),
                                             ('name', key),
                                             ('type', 'RECORD'),
                                         ]))])
@@ -284,55 +286,93 @@ class SchemaGenerator:
                                         ]))])
         return schema_entry
 
-    def bigquery_type(self, node_value):
+    def infer_bigquery_type(self, node_value):
         """Determines the BigQuery (mode, type) tuple of the right hand side of
         the JSON value.
         """
-        if isinstance(node_value, str):
-            if self.DATE_MATCHER.match(node_value):
-                return ("NULLABLE", "TIMESTAMP")
-            else:
-                return ("NULLABLE", "STRING")
-        # Python 'bool' is a subclass of 'int' so we must check it first
-        elif isinstance(node_value, bool):
-            return ("NULLABLE", "BOOLEAN")
-        elif isinstance(node_value, int):
-            return ("NULLABLE", "INTEGER")
-        elif isinstance(node_value, float):
-            return ("NULLABLE", "FLOAT")
-        elif isinstance(node_value, dict):
-            if len(node_value):
-                return ("NULLABLE", "RECORD")
-            else:
-                return ("NULLABLE", "__empty_record__")
-        elif node_value is None:
-            return ("NULLABLE", "__null__")
-        elif isinstance(node_value, list):
-            if len(node_value) == 0:
-                return ("NULLABLE", "__empty_array__")
+        node_type = self.infer_value_type(node_value)
+        if node_type != '__array__':
+            return ('NULLABLE', node_type)
 
-            # infer type from the first element
-            verify_homogeneous_array(node_value)
-            array_node = node_value[0]
-            if isinstance(array_node, str):
-                if self.DATE_MATCHER.match(array_node):
-                    return ("REPEATED", "TIMESTAMP")
-                else:
-                    return ("REPEATED", "STRING")
-            # bool is a subclass of int so we must check this first
-            elif isinstance(array_node, bool):
-                return ("REPEATED", "BOOLEAN")
-            elif isinstance(array_node, int):
-                return ("REPEATED", "INTEGER")
-            elif isinstance(array_node, float):
-                return ("REPEATED", "FLOAT")
-            elif isinstance(array_node, dict):
-                return ("REPEATED", "RECORD")
+        # Do further process for arrays.
+
+        # Verify that the array elements are identical types.
+        array_type = self.infer_array_type(node_value)
+        if not array_type:
+            raise Exception(
+                "All array elements must be the same compatible type '%s': %s"
+                % (thetype, elements))
+
+        # Disallow array of special types (with '__' not supported).
+        # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
+        # allowed by 'bq load'.
+        if '__' in array_type and array_type != '__empty_record__':
+            raise Exception('Unsupported array element type: %s' % array_type)
+
+        return ('REPEATED', array_type)
+
+    def infer_value_type(self, value):
+        """Infers the type of the given JSON value.
+        If the value is '{}', the type '__empty_record__' is returned.
+        If the value is '[]', the type '__empty_array__' is returned.
+        If the value is 'null' (python None), the type '__null__' is returned.
+        Note that primitive types do not have the string '__' in the returned
+        value, which is a useful marker.
+        """
+        if isinstance(value, str):
+            if self.TIMESTAMP_MATCHER.match(value):
+                return 'TIMESTAMP'
+            elif self.DATE_MATCHER.match(value):
+                return 'DATE'
+            elif self.TIME_MATCHER.match(value):
+                return 'TIME'
             else:
-                raise Exception('Unsupported array element type: %s' %
-                                type(array_node))
+                return 'STRING'
+        # Python 'bool' is a subclass of 'int' so we must check it first
+        elif isinstance(value, bool):
+            return 'BOOLEAN'
+        elif isinstance(value, int):
+            return 'INTEGER'
+        elif isinstance(value, float):
+            return 'FLOAT'
+        elif value is None:
+            return '__null__'
+        elif isinstance(value, dict):
+            if len(value):
+                return 'RECORD'
+            else:
+                return '__empty_record__'
+        elif isinstance(value, list):
+            if len(value):
+                return '__array__'
+            else:
+                return '__empty_array__'
         else:
-            raise Exception('Unsupported node type: %s' % type(node_value))
+            raise Exception('Unsupported node type: %s' % type(value))
+
+    def infer_array_type(self, elements):
+        """Return the type of all the array elements, accounting for the same
+        conversions supported by infer_bigquery_type(). In other words:
+
+        * arrays of mixed INTEGER and FLOAT: FLOAT
+        * arrays of mixed STRING, TIME, DATE, TIMESTAMP: STRING
+
+        Returns None if the array is not homogeneous.
+        """
+        if len(elements) == 0:
+            raise Exception('Empty array, should never happen here.')
+
+        candidate_type = ''
+        for e in elements:
+            etype = self.infer_value_type(e)
+            if candidate_type == '':
+                candidate_type = etype
+                continue
+            candidate_type = convert_type(candidate_type, etype)
+            if not candidate_type:
+                return None
+
+        return candidate_type
 
     def flatten_schema(self, schema_map):
         """Converts the bookkeeping 'schema_map' into the format recognized by
@@ -361,15 +401,29 @@ class SchemaGenerator:
             print()
 
 
-def verify_homogeneous_array(elements):
-    """Verify that all element of the 'elements' list is the same type and
-    throw an exception if not.
+def convert_type(atype, btype):
+    """Return the compatible type between 'atype' and 'btype'. Return 'None'
+    if there is no compatible type. Type conversions are:
+
+    * INTEGER, FLOAT => FLOAT
+    * DATE, TIME, TIMESTAMP, STRING => STRING
     """
-    first_element = elements[0]
-    for e in elements:
-        if type(e) != type(first_element):
-            raise Exception("Not all array elements are equal type: %s" %
-                            elements)
+    if atype == btype:
+        return atype
+    if atype == 'INTEGER' and btype == 'FLOAT':
+        return 'FLOAT'
+    if atype == 'FLOAT' and btype == 'INTEGER':
+        return 'FLOAT'
+    if is_string_type(atype) and is_string_type(btype):
+        return 'STRING'
+    return None
+
+
+def is_string_type(thetype):
+    """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or
+    TIME."""
+    return (thetype == 'STRING' or thetype == 'TIMESTAMP' or
+            thetype == 'DATE' or thetype == 'TIME')
 
 
 def flatten_schema_map(schema_map, keep_nulls=False):
@@ -420,8 +474,8 @@ def flatten_schema_map(schema_map, keep_nulls=False):
 
 
 def sort_schema(schema):
-    """Sort the given BigQuery 'schema' and return a version that uses 'OrderedDict'
-    with the same sorting rules as BigQuery.
+    """Sort the given BigQuery 'schema' and return a version that uses
+    'OrderedDict' with the same sorting rules as BigQuery.
     """
     if not isinstance(schema, list):
         raise Exception('Unsupported type %s' % type(schema))
