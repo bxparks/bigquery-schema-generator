@@ -114,31 +114,31 @@ class TestSchemaGenerator(unittest.TestCase):
 
     def test_infer_bigquery_type(self):
         generator = SchemaGenerator()
-        self.assertEqual(
-            ('NULLABLE', 'TIME'), generator.infer_bigquery_type('12:33:01'))
-        self.assertEqual(
-            ('NULLABLE', 'DATE'), generator.infer_bigquery_type('2018-02-08'))
+        self.assertEqual(('NULLABLE', 'TIME'),
+                         generator.infer_bigquery_type('12:33:01'))
+        self.assertEqual(('NULLABLE', 'DATE'),
+                         generator.infer_bigquery_type('2018-02-08'))
         self.assertEqual(('NULLABLE', 'TIMESTAMP'),
                          generator.infer_bigquery_type('2018-02-08T12:34:56'))
-        self.assertEqual(
-            ('NULLABLE', 'STRING'), generator.infer_bigquery_type('abc'))
-        self.assertEqual(
-            ('NULLABLE', 'BOOLEAN'), generator.infer_bigquery_type(True))
-        self.assertEqual(
-            ('NULLABLE', 'INTEGER'), generator.infer_bigquery_type(1))
-        self.assertEqual(
-            ('NULLABLE', 'FLOAT'), generator.infer_bigquery_type(2.0))
+        self.assertEqual(('NULLABLE', 'STRING'),
+                         generator.infer_bigquery_type('abc'))
+        self.assertEqual(('NULLABLE', 'BOOLEAN'),
+                         generator.infer_bigquery_type(True))
+        self.assertEqual(('NULLABLE', 'INTEGER'),
+                         generator.infer_bigquery_type(1))
+        self.assertEqual(('NULLABLE', 'FLOAT'),
+                         generator.infer_bigquery_type(2.0))
         self.assertEqual(('NULLABLE', 'RECORD'),
                          generator.infer_bigquery_type({
                              'a': 1,
                              'b': 2
                          }))
-        self.assertEqual(
-            ('NULLABLE', '__null__'), generator.infer_bigquery_type(None))
+        self.assertEqual(('NULLABLE', '__null__'),
+                         generator.infer_bigquery_type(None))
         self.assertEqual(('NULLABLE', '__empty_record__'),
                          generator.infer_bigquery_type({}))
-        self.assertEqual(
-            ('NULLABLE', '__empty_array__'), generator.infer_bigquery_type([]))
+        self.assertEqual(('NULLABLE', '__empty_array__'),
+                         generator.infer_bigquery_type([]))
 
         self.assertEqual(('REPEATED', 'TIME'),
                          generator.infer_bigquery_type(
@@ -209,16 +209,28 @@ class TestSchemaGenerator(unittest.TestCase):
             "name": "s",
             "type": "STRING"
         }]
+        # yapf: disable
         expected = [
-            OrderedDict([("mode", "REPEATED"), ("name", "a"),
-                         ("type", "STRING")]),
-            OrderedDict([("fields", [
-                OrderedDict([("mode", "NULLABLE"), ("name", "__unknown__"),
-                             ("type", "STRING")])
-            ]), ("mode", "NULLABLE"), ("name", "m"), ("type", "RECORD")]),
-            OrderedDict([("mode", "NULLABLE"), ("name", "s"),
-                         ("type", "STRING")])
+            OrderedDict([
+                ("mode", "REPEATED"),
+                ("name", "a"),
+                ("type", "STRING")]),
+            OrderedDict([
+                ("fields", [
+                    OrderedDict([
+                        ("mode", "NULLABLE"),
+                        ("name", "__unknown__"),
+                        ("type", "STRING")])
+                ]),
+                ("mode", "NULLABLE"),
+                ("name", "m"),
+                ("type", "RECORD")]),
+            OrderedDict([
+                ("mode", "NULLABLE"),
+                ("name", "s"),
+                ("type", "STRING")])
         ]
+        # yapf: enable
         self.assertEqual(expected, sort_schema(unsorted))
 
 
