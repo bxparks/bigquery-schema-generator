@@ -252,7 +252,7 @@ class SchemaGenerator:
         deduce_schema_for_line() recursively if the value is another JSON
         object, instead of a primitive.
         """
-        value_mode, value_type = self.bigquery_type(value)
+        value_mode, value_type = self.infer_bigquery_type(value)
         if value_type == 'RECORD':
             # recursively figure out the RECORD
             fields = OrderedDict()
@@ -286,7 +286,7 @@ class SchemaGenerator:
             schema_entry = OrderedDict([('status', 'soft'),
                                         ('info', OrderedDict([
                                             ('fields', OrderedDict()),
-                                            ('mode', 'NULLABLE'),
+                                            ('mode', value_mode),
                                             ('name', key),
                                             ('type', 'RECORD'),
                                         ]))])
@@ -299,68 +299,78 @@ class SchemaGenerator:
                                         ]))])
         return schema_entry
 
-    def bigquery_type(self, node_value):
+    def infer_bigquery_type(self, node_value):
         """Determines the BigQuery (mode, type) tuple of the right hand side of
         the JSON value.
         """
-        if isinstance(node_value, str):
-            if self.TIMESTAMP_MATCHER.match(node_value):
-                return ("NULLABLE", "TIMESTAMP")
-            elif self.DATE_MATCHER.match(node_value):
-                return ("NULLABLE", "DATE")
-            elif self.TIME_MATCHER.match(node_value):
-                return ("NULLABLE", "TIME")
+        node_type = self.infer_value_type(node_value)
+        if node_type != '__array__':
+            return ('NULLABLE', node_type)
+
+        # Do further process for arrays.
+
+        # Verify that the array elements are identical types.
+        array_node = node_value[0]
+        array_type = self.infer_value_type(array_node)
+
+        # Disallow array of special types (with '__' not supported).
+        # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
+        # allowed by 'bq load'.
+        if '__' in array_type and array_type != '__empty_record__':
+            raise Exception('Unsupported array element type: %s' %
+                            type(array_node))
+        self.verify_homogeneous_array(node_value, array_type)
+        return ('REPEATED', array_type)
+
+    def infer_value_type(self, value):
+        """Infers the type of the given JSON value.
+        If the value is '{}', the type '__empty_record__' is returned.
+        If the value is '[]', the type '__empty_array__' is returned.
+        If the value is 'null' (python None), the type '__null__' is returned.
+        Note that primitive types do not have the string '__' in the returned value,
+        which is a useful marker.
+        """
+        if isinstance(value, str):
+            if self.TIMESTAMP_MATCHER.match(value):
+                return "TIMESTAMP"
+            elif self.DATE_MATCHER.match(value):
+                return "DATE"
+            elif self.TIME_MATCHER.match(value):
+                return "TIME"
             else:
-                return ("NULLABLE", "STRING")
+                return "STRING"
         # Python 'bool' is a subclass of 'int' so we must check it first
-        elif isinstance(node_value, bool):
-            return ("NULLABLE", "BOOLEAN")
-        elif isinstance(node_value, int):
-            return ("NULLABLE", "INTEGER")
-        elif isinstance(node_value, float):
-            return ("NULLABLE", "FLOAT")
-        elif isinstance(node_value, dict):
-            if len(node_value):
-                return ("NULLABLE", "RECORD")
+        elif isinstance(value, bool):
+            return "BOOLEAN"
+        elif isinstance(value, int):
+            return "INTEGER"
+        elif isinstance(value, float):
+            return "FLOAT"
+        elif value is None:
+            return "__null__"
+        elif isinstance(value, dict):
+            if len(value):
+                return "RECORD"
             else:
-                return ("NULLABLE", "__empty_record__")
-        elif node_value is None:
-            return ("NULLABLE", "__null__")
-        elif isinstance(node_value, list):
-            if len(node_value) == 0:
-                return ("NULLABLE", "__empty_array__")
-
-            # TODO: Verify that the array elements are identical subtypes
-            # string. We probably need to restructure this so that the the first
-            # element's type is inferred, then we verify that all subsequent
-            # elements are of the same type.
-            verify_homogeneous_array(node_value)
-
-            # infer type from the first element
-            array_node = node_value[0]
-            if isinstance(array_node, str):
-                if self.TIMESTAMP_MATCHER.match(array_node):
-                    return ("REPEATED", "TIMESTAMP")
-                elif self.DATE_MATCHER.match(array_node):
-                    return ("REPEATED", "DATE")
-                elif self.TIME_MATCHER.match(array_node):
-                    return ("REPEATED", "TIME")
-                else:
-                    return ("REPEATED", "STRING")
-            # bool is a subclass of int so we must check this first
-            elif isinstance(array_node, bool):
-                return ("REPEATED", "BOOLEAN")
-            elif isinstance(array_node, int):
-                return ("REPEATED", "INTEGER")
-            elif isinstance(array_node, float):
-                return ("REPEATED", "FLOAT")
-            elif isinstance(array_node, dict):
-                return ("REPEATED", "RECORD")
+                return "__empty_record__"
+        elif isinstance(value, list):
+            if len(value):
+                return "__array__"
             else:
-                raise Exception('Unsupported array element type: %s' %
-                                type(array_node))
+                return "__empty_array__"
         else:
-            raise Exception('Unsupported node type: %s' % type(node_value))
+            raise Exception('Unsupported node type: %s' % type(value))
+
+    def verify_homogeneous_array(self, elements, thetype):
+        """Verify that all element of the 'elements' list is of 'thetype',
+        throw an exception if not.
+        """
+        for e in elements:
+            etype = self.infer_value_type(e)
+            if etype != thetype:
+                raise Exception(
+                    "All array elements were expected to be type '%s': %s" %
+                    (thetype, elements))
 
     def flatten_schema(self, schema_map):
         """Converts the bookkeeping 'schema_map' into the format recognized by
@@ -389,22 +399,12 @@ class SchemaGenerator:
             print()
 
 
-def verify_homogeneous_array(elements):
-    """Verify that all element of the 'elements' list is the same type and
-    throw an exception if not.
-    """
-    first_element = elements[0]
-    for e in elements:
-        if type(e) != type(first_element):
-            raise Exception("Not all array elements are equal type: %s" %
-                            elements)
-
-
-def is_string_type(type):
-    """Returns true if the value is one of: STRING, TIMESTAMP, DATE, or
+def is_string_type(thetype):
+    """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or
     TIME."""
-    return (type == 'STRING' or type == 'TIMESTAMP' or type == 'DATE' or
-           type == 'TIME')
+    return (thetype == 'STRING' or thetype == 'TIMESTAMP' or
+            thetype == 'DATE' or thetype == 'TIME')
+
 
 def flatten_schema_map(schema_map, keep_nulls=False):
     """Converts the 'schema_map' into a more flatten version which is
