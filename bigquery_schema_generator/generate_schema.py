@@ -189,8 +189,7 @@ class SchemaGenerator:
 
         # Allow an INTEGER to be upgraded to a FLOAT.
         if old_type == 'INTEGER' and new_type == 'FLOAT':
-            old_info['type'] = 'FLOAT'
-            return old_schema_entry
+            return new_schema_entry
 
         # A FLOAT does not downgrade to an INTEGER.
         if old_type == 'FLOAT' and new_type == 'INTEGER':
@@ -376,29 +375,15 @@ class SchemaGenerator:
         if len(elements) == 0:
             raise Exception('Empty array, should never happen here.')
 
-        candidate_type = '__unknown__'
+        candidate_type = ''
         for e in elements:
             etype = self.infer_value_type(e)
-
-            if candidate_type == '__unknown__':
+            if candidate_type == '':
                 candidate_type = etype
                 continue
-
-            if candidate_type == etype:
-                continue
-
-            if candidate_type == 'INTEGER' and etype == 'FLOAT':
-                candidate_type = 'FLOAT'
-                continue
-
-            if candidate_type == 'FLOAT' and etype == 'INTEGER':
-                continue
-
-            if is_string_type(candidate_type) and is_string_type(etype):
-                candidate_type = 'STRING'
-                continue
-
-            return None
+            candidate_type = convert_type(candidate_type, etype)
+            if not candidate_type:
+                return None
 
         return candidate_type
 
@@ -428,6 +413,23 @@ class SchemaGenerator:
             json.dump(schema, sys.stdout, indent=2)
             print()
 
+
+def convert_type(atype, btype):
+    """Return the compatible type between 'atype' and 'btype'. Return 'None'
+    if there is no compatible type. Type conversions are:
+
+    * INTEGER, FLOAT => FLOAT
+    * DATE, TIME, TIMESTAMP, STRING => STRING
+    """
+    if atype == btype:
+        return atype
+    if atype == 'INTEGER' and btype == 'FLOAT':
+        return 'FLOAT'
+    if atype == 'FLOAT' and btype == 'INTEGER':
+        return 'FLOAT'
+    if is_string_type(atype) and is_string_type(btype):
+        return 'STRING'
+    return None
 
 def is_string_type(thetype):
     """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or

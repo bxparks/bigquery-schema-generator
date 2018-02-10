@@ -21,6 +21,7 @@ from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import sort_schema
 from bigquery_schema_generator.generate_schema import is_string_type
+from bigquery_schema_generator.generate_schema import convert_type
 from data_reader import DataReader
 
 
@@ -231,6 +232,32 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertIsNone(generator.infer_array_type([{'a': 1}, []]))
         self.assertIsNone(generator.infer_array_type([{'a': 1}, [2]]))
         self.assertIsNone(generator.infer_array_type([{}, [2]]))
+
+    def test_convert_type(self):
+        # no conversion needed
+        self.assertEqual('INTEGER', convert_type('INTEGER', 'INTEGER'))
+        self.assertEqual('FLOAT', convert_type('FLOAT', 'FLOAT'))
+        self.assertEqual('STRING', convert_type('STRING', 'STRING'))
+        self.assertEqual('BOOLEAN', convert_type('BOOLEAN', 'BOOLEAN'))
+        self.assertEqual('DATE', convert_type('DATE', 'DATE'))
+        self.assertEqual('RECORD', convert_type('RECORD', 'RECORD'))
+
+        # conversions
+        self.assertEqual('FLOAT', convert_type('INTEGER', 'FLOAT'))
+        self.assertEqual('FLOAT', convert_type('FLOAT', 'INTEGER'))
+        self.assertEqual('STRING', convert_type('DATE', 'TIME'))
+        self.assertEqual('STRING', convert_type('DATE', 'TIMESTAMP'))
+        self.assertEqual('STRING', convert_type('DATE', 'STRING'))
+        self.assertEqual('STRING', convert_type('TIME', 'TIMESTAMP'))
+        self.assertEqual('STRING', convert_type('TIME', 'STRING'))
+        self.assertEqual('STRING', convert_type('TIMESTAMP', 'STRING'))
+
+        # no conversion possible
+        self.assertEqual(None, convert_type('INTEGER', 'BOOLEAN'))
+        self.assertEqual(None, convert_type('FLOAT', 'STRING'))
+        self.assertEqual(None, convert_type('STRING', 'BOOLEAN'))
+        self.assertEqual(None, convert_type('BOOLEAN', 'DATE'))
+        self.assertEqual(None, convert_type('BOOLEAN', 'RECORD'))
 
     def test_is_string_type(self):
         self.assertTrue(is_string_type('STRING'))
