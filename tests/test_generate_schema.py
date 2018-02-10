@@ -114,6 +114,7 @@ class TestSchemaGenerator(unittest.TestCase):
 
     def test_infer_bigquery_type(self):
         generator = SchemaGenerator()
+
         self.assertEqual(('NULLABLE', 'TIME'),
                          generator.infer_bigquery_type('12:33:01'))
         self.assertEqual(('NULLABLE', 'DATE'),
@@ -179,10 +180,27 @@ class TestSchemaGenerator(unittest.TestCase):
         with self.assertRaises(Exception):
             generator.infer_bigquery_type([[1, 2], [2]])
 
-    def test_array_same_type(self):
-        # Array elements must be of the same type
+    def test_verify_homogeneous_array(self):
+        generator = SchemaGenerator()
+
+        generator.verify_homogeneous_array([1, 1], 'INTEGER')
+        generator.verify_homogeneous_array([1.0, 2.0], 'FLOAT')
+        generator.verify_homogeneous_array([True, False], 'BOOLEAN')
+        generator.verify_homogeneous_array(['a', 'b'], 'STRING')
+        generator.verify_homogeneous_array(['2018-02-09', '2018-02-10'], 'DATE')
+        generator.verify_homogeneous_array(['10:44:00', '10:44:01'], 'TIME')
+        generator.verify_homogeneous_array(
+            ['2018-02-09T11:00:00', '2018-02-10T11:00:01'], 'TIMESTAMP')
+        generator.verify_homogeneous_array([ {'a': 1} ], 'RECORD')
+
         with self.assertRaises(Exception):
-            generator.infer_bigquery_type([1, "a"])
+            generator.verify_homogeneous_array([1, 1], 'STRING')
+
+        with self.assertRaises(Exception):
+            generator.verify_homogeneous_array([1, 1], 'RECORD')
+
+        with self.assertRaises(Exception):
+            generator.verify_homogeneous_array(['a', 1], 'INTEGER')
 
     def test_is_string_type(self):
         self.assertTrue(is_string_type('STRING'))
@@ -209,6 +227,7 @@ class TestSchemaGenerator(unittest.TestCase):
             "name": "s",
             "type": "STRING"
         }]
+
         # yapf: disable
         expected = [
             OrderedDict([
