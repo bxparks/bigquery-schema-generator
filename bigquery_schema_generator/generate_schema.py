@@ -311,16 +311,18 @@ class SchemaGenerator:
         # Do further process for arrays.
 
         # Verify that the array elements are identical types.
-        array_node = node_value[0]
-        array_type = self.infer_value_type(array_node)
+        array_type = self.infer_array_type(node_value)
+        if not array_type:
+            raise Exception(
+                "All array elements must be the same compatible type '%s': %s" %
+                (thetype, elements))
 
         # Disallow array of special types (with '__' not supported).
         # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
         # allowed by 'bq load'.
         if '__' in array_type and array_type != '__empty_record__':
-            raise Exception('Unsupported array element type: %s' %
-                            type(array_node))
-        self.verify_homogeneous_array(node_value, array_type)
+            raise Exception('Unsupported array element type: %s' % array_type)
+
         return ('REPEATED', array_type)
 
     def infer_value_type(self, value):
@@ -333,45 +335,72 @@ class SchemaGenerator:
         """
         if isinstance(value, str):
             if self.TIMESTAMP_MATCHER.match(value):
-                return "TIMESTAMP"
+                return 'TIMESTAMP'
             elif self.DATE_MATCHER.match(value):
-                return "DATE"
+                return 'DATE'
             elif self.TIME_MATCHER.match(value):
-                return "TIME"
+                return 'TIME'
             else:
-                return "STRING"
+                return 'STRING'
         # Python 'bool' is a subclass of 'int' so we must check it first
         elif isinstance(value, bool):
-            return "BOOLEAN"
+            return 'BOOLEAN'
         elif isinstance(value, int):
-            return "INTEGER"
+            return 'INTEGER'
         elif isinstance(value, float):
-            return "FLOAT"
+            return 'FLOAT'
         elif value is None:
-            return "__null__"
+            return '__null__'
         elif isinstance(value, dict):
             if len(value):
-                return "RECORD"
+                return 'RECORD'
             else:
-                return "__empty_record__"
+                return '__empty_record__'
         elif isinstance(value, list):
             if len(value):
-                return "__array__"
+                return '__array__'
             else:
-                return "__empty_array__"
+                return '__empty_array__'
         else:
             raise Exception('Unsupported node type: %s' % type(value))
 
-    def verify_homogeneous_array(self, elements, thetype):
-        """Verify that all element of the 'elements' list is of 'thetype',
-        throw an exception if not.
+    def infer_array_type(self, elements):
+        """Return the type of all the array elements, accounting for the same
+        conversions supported by infer_bigquery_type(). In other words:
+
+        * arrays of mixed INTEGER and FLOAT: FLOAT
+        * arrays of mixed STRING, TIME, DATE, TIMESTAMP: STRING
+
+        Returns None if the array is not homogeneous.
         """
+        if len(elements) == 0:
+            raise Exception('Empty array, should never happen here.')
+
+        candidate_type = '__unknown__'
         for e in elements:
             etype = self.infer_value_type(e)
-            if etype != thetype:
-                raise Exception(
-                    "All array elements were expected to be type '%s': %s" %
-                    (thetype, elements))
+
+            if candidate_type == '__unknown__':
+                candidate_type = etype
+                continue
+
+            if candidate_type == etype:
+                continue
+
+            if candidate_type == 'INTEGER' and etype == 'FLOAT':
+                candidate_type = 'FLOAT'
+                continue
+
+            if candidate_type == 'FLOAT' and etype == 'INTEGER':
+                continue
+
+            if is_string_type(candidate_type) and is_string_type(etype):
+                candidate_type = 'STRING'
+                continue
+
+            return None
+
+        return candidate_type
 
     def flatten_schema(self, schema_map):
         """Converts the bookkeeping 'schema_map' into the format recognized by

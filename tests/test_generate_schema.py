@@ -129,11 +129,10 @@ class TestSchemaGenerator(unittest.TestCase):
                          generator.infer_bigquery_type(1))
         self.assertEqual(('NULLABLE', 'FLOAT'),
                          generator.infer_bigquery_type(2.0))
+        # yapf: disable
         self.assertEqual(('NULLABLE', 'RECORD'),
-                         generator.infer_bigquery_type({
-                             'a': 1,
-                             'b': 2
-                         }))
+                         generator.infer_bigquery_type({ 'a': 1, 'b': 2 }))
+        # yapf: enable
         self.assertEqual(('NULLABLE', '__null__'),
                          generator.infer_bigquery_type(None))
         self.assertEqual(('NULLABLE', '__empty_record__'),
@@ -158,13 +157,12 @@ class TestSchemaGenerator(unittest.TestCase):
                          generator.infer_bigquery_type([1, 2, 3]))
         self.assertEqual(('REPEATED', 'FLOAT'),
                          generator.infer_bigquery_type([1.0, 2.0]))
+        # yapf: disable
         self.assertEqual(('REPEATED', 'RECORD'),
-                         generator.infer_bigquery_type([{
-                             'a': 1,
-                             'b': 2
-                         }, {
-                             'c': 3
-                         }]))
+                         generator.infer_bigquery_type([
+                            { 'a': 1, 'b': 2 },
+                            { 'c': 3 }]))
+        # yapf: enable
         self.assertEqual(('REPEATED', '__empty_record__'),
                          generator.infer_bigquery_type([{}]))
 
@@ -180,27 +178,59 @@ class TestSchemaGenerator(unittest.TestCase):
         with self.assertRaises(Exception):
             generator.infer_bigquery_type([[1, 2], [2]])
 
-    def test_verify_homogeneous_array(self):
+    def test_infer_array_type(self):
         generator = SchemaGenerator()
 
-        generator.verify_homogeneous_array([1, 1], 'INTEGER')
-        generator.verify_homogeneous_array([1.0, 2.0], 'FLOAT')
-        generator.verify_homogeneous_array([True, False], 'BOOLEAN')
-        generator.verify_homogeneous_array(['a', 'b'], 'STRING')
-        generator.verify_homogeneous_array(['2018-02-09', '2018-02-10'], 'DATE')
-        generator.verify_homogeneous_array(['10:44:00', '10:44:01'], 'TIME')
-        generator.verify_homogeneous_array(
-            ['2018-02-09T11:00:00', '2018-02-10T11:00:01'], 'TIMESTAMP')
-        generator.verify_homogeneous_array([ {'a': 1} ], 'RECORD')
+        self.assertEqual('INTEGER', generator.infer_array_type([1, 1]))
+        self.assertEqual('FLOAT', generator.infer_array_type([1.0, 2.0]))
+        self.assertEqual('BOOLEAN', generator.infer_array_type([True, False]))
+        self.assertEqual('STRING', generator.infer_array_type(['a', 'b']))
+        self.assertEqual(
+            'DATE', generator.infer_array_type(['2018-02-09', '2018-02-10']))
+        self.assertEqual('TIME',
+                         generator.infer_array_type(['10:44:00', '10:44:01']))
+        self.assertEqual('TIMESTAMP',
+                         generator.infer_array_type(
+                             ['2018-02-09T11:00:00', '2018-02-10T11:00:01']))
+        self.assertEqual('RECORD', generator.infer_array_type([{'a': 1}]))
 
-        with self.assertRaises(Exception):
-            generator.verify_homogeneous_array([1, 1], 'STRING')
+        # Special types are supported
+        self.assertEqual('__null__', generator.infer_array_type([None]))
+        self.assertEqual('__empty_record__', generator.infer_array_type([{}]))
+        self.assertEqual('__empty_array__', generator.infer_array_type([[]]))
 
-        with self.assertRaises(Exception):
-            generator.verify_homogeneous_array([1, 1], 'RECORD')
+        # Mixed TIME, DATE, TIMESTAMP converts to STRING
+        self.assertEqual(
+            'STRING', generator.infer_array_type(['2018-02-09', '10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(
+                             ['2018-02-09T11:00:00', '10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(
+                             ['2018-02-09', '2018-02-09T10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(['time', '10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(['date', '2018-02-09']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(
+                             ['timestamp', '2018-02-09T10:44:00']))
 
-        with self.assertRaises(Exception):
-            generator.verify_homogeneous_array(['a', 1], 'INTEGER')
+        # Mixed FLOAT and INTEGER returns FLOAT
+        self.assertEqual('FLOAT', generator.infer_array_type([1, 2.0]))
+        self.assertEqual('FLOAT', generator.infer_array_type([1.0, 2]))
+
+        # Invalid mixed arrays
+        self.assertIsNone(generator.infer_array_type([None, 1]))
+        self.assertIsNone(generator.infer_array_type([1, True]))
+        self.assertIsNone(generator.infer_array_type([1, '2018-02-09']))
+        self.assertIsNone(generator.infer_array_type(['a', 1]))
+        self.assertIsNone(generator.infer_array_type(['a', []]))
+        self.assertIsNone(generator.infer_array_type(['a', {}]))
+        self.assertIsNone(generator.infer_array_type([{}, []]))
+        self.assertIsNone(generator.infer_array_type([{'a': 1}, []]))
+        self.assertIsNone(generator.infer_array_type([{'a': 1}, [2]]))
+        self.assertIsNone(generator.infer_array_type([{}, [2]]))
 
     def test_is_string_type(self):
         self.assertTrue(is_string_type('STRING'))
