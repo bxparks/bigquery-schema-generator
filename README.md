@@ -371,32 +371,6 @@ tested it on:
 * Ubuntu 16.04, Python 3.5.2
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 
-## Changelog
-
-* v0.1 (2018-01-02)
-  * Iniitial release to PyPI.
-* v0.1.1 (2018-01-03)
-  * Install 'generate-schema' script in `/usr/local/bin`
-* v0.1.2
-  * Attemp to fix exception during pip3 install.
-  * Didn't work. Pulled.
-* v0.1.3 (2018-01-23)
-  * Attempt #2 to fix exception during pip3 install.
-* v0.1.4 (2018-01-23)
-  * Attempt #3 to fix exception during pip3 install.
-* v0.1.5 (2018-01-25)
-  * Updated installation instructions for MacOS.
-* v0.1.6 (2018-01-26)
-  * Pass along command line arguments to `generate-schema`.
-* v0.2.0 (2018-02-10)
-  * Add support for `DATE` and `TIME` types.
-  * Update type conversion rules to be more compatible with **bq load**.
-    * Allow `DATE`, `TIME` and `TIMESTAMP` to gracefully degrade to `STRING`.
-    * Allow type conversions of elements within arrays
-      (e.g. array of `INTEGER` and `FLOAT`, or array of mixed `DATE`, `TIME, or
-      `TIMESTAMP` elements)
-    * Better detection of invalid values (e.g. arrays of arrays).
-
 ## Author
 
 Created by Brian T. Park (brian@xparks.net).
