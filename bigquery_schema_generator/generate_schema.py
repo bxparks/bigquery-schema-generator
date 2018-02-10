@@ -187,31 +187,11 @@ class SchemaGenerator:
                 'old_name (%s) != new_name(%s), should never happen' %
                 (old_name, new_name))
 
-        # Allow an INTEGER to be upgraded to a FLOAT.
-        if old_type == 'INTEGER' and new_type == 'FLOAT':
-            return new_schema_entry
-
-        # A FLOAT does not downgrade to an INTEGER.
-        if old_type == 'FLOAT' and new_type == 'INTEGER':
-            return old_schema_entry
-
-        # If there's a mismatch in one of the date/time/timestamp fields, then
-        # revert to the common type STRING.
-        if is_string_type(old_type) and is_string_type(new_type):
-            if old_type != new_type:
-                new_info['type'] = 'STRING'
-            return new_schema_entry
-
-        # No other type conversions are allowed.
-        if old_type != new_type:
-            raise Exception(
-                'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
-                (old_status, old_name, old_mode, old_type, new_status,
-                 new_name, new_mode, new_type))
-
-        # Allow NULLABLE RECORD to be upgraded to REPEATED RECORD because
-        # 'bq load' allows it.
-        if old_type == 'RECORD':
+        # Recursively merge in the subfields of a RECORD, allowing
+        # NULLABLE to become REPEATED (because 'bq load' allows it).
+        if old_type == 'RECORD' and new_type == 'RECORD':
+            # Allow NULLABLE RECORD to be upgraded to REPEATED RECORD because
+            # 'bq load' allows it.
             if old_mode == 'NULLABLE' and new_mode == 'REPEATED':
                 old_info['mode'] = 'REPEATED'
                 self.log_error(
@@ -223,7 +203,9 @@ class SchemaGenerator:
                 self.log_error('Leaving schema for "%s" as REPEATED RECORD' %
                                old_name)
 
-            # RECORD type needs a recursive merging of sub-fields.
+            # RECORD type needs a recursive merging of sub-fields. We merge into
+            # the 'old_schema_entry' which assumes that the 'old_schema_entry'
+            # can be modified in situ.
             old_fields = old_info['fields']
             new_fields = new_info['fields']
             for key, new_entry in new_fields.items():
@@ -232,20 +214,25 @@ class SchemaGenerator:
                 old_fields[key] = merged_entry
             return old_schema_entry
 
-        # For all other types, make sure that the old_mode is the same as the
-        # new_mode. It might seem reasonable to allow a NULLABLE
-        # {primitive_type} to be upgraded to a REPEATED {primitive_type}, but
-        # currently 'bq load' does not support that so we must also follow that
-        # rule.
+        # For all other types, the old_mode must be the same as the new_mode. It
+        # might seem reasonable to allow a NULLABLE {primitive_type} to be
+        # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
+        # not support that so we must also follow that rule.
         if old_mode != new_mode:
             raise Exception(('Mismatched mode for non-RECORD: '
                              'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
                             (old_status, old_name, old_mode, old_type,
                              new_status, new_name, new_mode, new_type))
 
-        # If we got to here, then the new record is the same as all previous
-        # records so just return the old_schema_entry.
-        return old_schema_entry
+        candidate_type = convert_type(old_type, new_type)
+        if not candidate_type:
+            raise Exception(
+                'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
+                (old_status, old_name, old_mode, old_type, new_status,
+                 new_name, new_mode, new_type))
+
+        new_info['type'] = candidate_type
+        return new_schema_entry
 
     def get_schema_entry(self, key, value):
         """Determines the 'schema_entry' of the JSON (key, value) pair. Calls
@@ -313,8 +300,8 @@ class SchemaGenerator:
         array_type = self.infer_array_type(node_value)
         if not array_type:
             raise Exception(
-                "All array elements must be the same compatible type '%s': %s" %
-                (thetype, elements))
+                "All array elements must be the same compatible type '%s': %s"
+                % (thetype, elements))
 
         # Disallow array of special types (with '__' not supported).
         # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
@@ -430,6 +417,7 @@ def convert_type(atype, btype):
     if is_string_type(atype) and is_string_type(btype):
         return 'STRING'
     return None
+
 
 def is_string_type(thetype):
     """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or
