@@ -281,9 +281,10 @@ class TestFromDataFile(unittest.TestCase):
                 error_map[line_number] = messages
             messages.append(error['msg'])
 
-        # Check that each entry in 'error_logs' is expected.
-        # Currently checks only that the number of errors matches on a per line basis.
-        # TODO: Look deeper and verify that the error message strings match as well.
+        # Check that each entry in 'error_logs' is expected. Currently checks
+        # only that the number of errors matches on a per line basis.
+        # TODO: Look deeper and verify that the error message strings match as
+        # well.
         for line_number, messages in sorted(error_map.items()):
             expected_entry = expected_error_map.get(line_number)
             self.assertIsNotNone(expected_entry)

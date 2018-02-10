@@ -20,7 +20,8 @@ uses all available records in the data file.
 
 Usage: generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
 
-* file.data.json is a newline-delimited JSON data file, one JSON object per line.
+* file.data.json is a newline-delimited JSON data file, one JSON object per
+  line.
 * file.schema.json is the schema definition of the table.
 """
 
@@ -168,8 +169,8 @@ class SchemaGenerator:
         # Verify that it's soft->soft or hard->hard
         if old_status != new_status:
             raise Exception(
-                'Unexpected schema_entry type, this should never happen: old (%s); new (%s)'
-                % (old_status, new_status))
+                ('Unexpected schema_entry type, this should never happen: '
+                 'old (%s); new (%s)') % (old_status, new_status))
 
         old_info = old_schema_entry['info']
         old_name = old_info['name']
@@ -215,8 +216,8 @@ class SchemaGenerator:
             if old_mode == 'NULLABLE' and new_mode == 'REPEATED':
                 old_info['mode'] = 'REPEATED'
                 self.log_error(
-                    'Converting schema for "%s" from NULLABLE RECORD into REPEATED RECORD'
-                    % old_name)
+                    ('Converting schema for "%s" from NULLABLE RECORD '
+                     'into REPEATED RECORD') % old_name)
             elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
                 # TODO: Maybe remove this warning output. It was helpful during
                 # development, but maybe it's just natural.
@@ -238,10 +239,10 @@ class SchemaGenerator:
         # currently 'bq load' does not support that so we must also follow that
         # rule.
         if old_mode != new_mode:
-            raise Exception(
-                'Mismatched mode for non-RECORD: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)'
-                % (old_status, old_name, old_mode, old_type, new_status,
-                   new_name, new_mode, new_type))
+            raise Exception(('Mismatched mode for non-RECORD: '
+                             'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
+                            (old_status, old_name, old_mode, old_type,
+                             new_status, new_name, new_mode, new_type))
 
         # If we got to here, then the new record is the same as all previous
         # records so just return the old_schema_entry.
@@ -327,8 +328,8 @@ class SchemaGenerator:
         If the value is '{}', the type '__empty_record__' is returned.
         If the value is '[]', the type '__empty_array__' is returned.
         If the value is 'null' (python None), the type '__null__' is returned.
-        Note that primitive types do not have the string '__' in the returned value,
-        which is a useful marker.
+        Note that primitive types do not have the string '__' in the returned
+        value, which is a useful marker.
         """
         if isinstance(value, str):
             if self.TIMESTAMP_MATCHER.match(value):
@@ -454,8 +455,8 @@ def flatten_schema_map(schema_map, keep_nulls=False):
 
 
 def sort_schema(schema):
-    """Sort the given BigQuery 'schema' and return a version that uses 'OrderedDict'
-    with the same sorting rules as BigQuery.
+    """Sort the given BigQuery 'schema' and return a version that uses
+    'OrderedDict' with the same sorting rules as BigQuery.
     """
     if not isinstance(schema, list):
         raise Exception('Unsupported type %s' % type(schema))
