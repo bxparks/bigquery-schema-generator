@@ -367,6 +367,7 @@ $ cat file.schema.json
 This project was developed on Ubuntu 17.04 using Python 3.5.3. I have
 tested it on:
 
+* Ubuntu 17.10, Python 3.6.3
 * Ubuntu 17.04, Python 3.5.3
 * Ubuntu 16.04, Python 3.5.2
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
