@@ -5,8 +5,8 @@
   * Update type conversion rules to be more compatible with **bq load**.
     * Allow `DATE`, `TIME` and `TIMESTAMP` to gracefully degrade to `STRING`.
     * Allow type conversions of elements within arrays
-      (e.g. array of `INTEGER` and `FLOAT`, or array of mixed `DATE`, `TIME, or
-      `TIMESTAMP` elements)
+      (e.g. array of `INTEGER` and `FLOAT`, or array of mixed `DATE`, `TIME`, or
+      `TIMESTAMP` elements).
     * Better detection of invalid values (e.g. arrays of arrays).
 * 0.1.6 (2018-01-26)
   * Pass along command line arguments to `generate-schema`.
