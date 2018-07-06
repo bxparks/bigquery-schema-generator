@@ -122,6 +122,7 @@ The resulting schema file can be given to the **bq load** command using the
 `--schema` flag:
 ```
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
+        --ignore_unknown_values \
         --schema file.schema.json \
         mydataset.mytable \
         file.data.json
@@ -237,7 +238,7 @@ $ generate-schema --debugging_interval 50 < file.data.json > file.schema.json
 
 Instead of printing out the BigQuery schema, the `--debugging_map` prints out
 the bookkeeping metadata map which is used internally to keep track of the
-various fields and theirs types that was inferred using the data file. This
+various fields and theirs types that were inferred using the data file. This
 flag is intended to be used for debugging.
 
 ```
@@ -272,7 +273,7 @@ all of the above types. The following types are _not_ supported:
 
 ### Type Inferrence Rules
 
-The `generate-schema` script attempt to emulate the various type conversion and
+The `generate-schema` script attempts to emulate the various type conversion and
 compatibility rules implemented by **bq load**:
 
 * `INTEGER` can upgrade to `FLOAT`
@@ -294,7 +295,7 @@ compatibility rules implemented by **bq load**:
     * there's no technical reason why this cannot be allowed, but **bq load**
       does not support it, so we follow the rule
 * a `DATETIME` field is always inferred to be a `TIMESTAMP`
-    * the format of these two fields are identical (in the absence of timezone)
+    * the format of these two fields is identical (in the absence of timezone)
     * we follow the same logic as **bq load** and always infer these as
       `TIMESTAMP`
 
