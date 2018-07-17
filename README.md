@@ -1,7 +1,5 @@
 # BigQuery Schema Generator
 
-## Summary
-
 This script generates the BigQuery schema from the newline-delimited JSON data
 records on the STDIN. The BigQuery data importer (`bq load`) uses only the
 first 100 lines when the schema auto-detection feature is enabled. In contrast,
@@ -11,6 +9,8 @@ Usage:
 ```
 $ generate-schema < file.data.json > file.schema.json
 ```
+
+Version: 0.2 (2018-02-10)
 
 ## Background
 
@@ -362,6 +362,25 @@ $ cat file.schema.json
   }
 ]
 ```
+
+## Benchmarks
+
+I wrote the `bigquery_schema_generator/anonymize.py` script to create an
+anonymized data file `tests/testdata/anon1.data.json.gz`:
+```
+$ ./bigquery_schema_generator/anonymize.py < original.data.json \
+    > anon1.data.json
+$ gzip anon1.data.json
+```
+This data file is 290MB (5.6MB compressed) with 103080 data records.
+
+Generating the schema using
+```
+$ bigquery_schema_generator/generate_schema.py < anon1.data.json \
+    > anon1.schema.json
+```
+took 77s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
+2.80GHz and 32GB of RAM.
 
 ## System Requirements
 
