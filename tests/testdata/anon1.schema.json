@@ -1,0 +1,619 @@
+[
+  {
+    "mode": "NULLABLE",
+    "name": "a.........",
+    "type": "FLOAT"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a.......",
+        "type": "STRING"
+      },
+      {
+        "fields": [
+          {
+            "mode": "NULLABLE",
+            "name": "a..........",
+            "type": "STRING"
+          },
+          {
+            "mode": "NULLABLE",
+            "name": "b...................",
+            "type": "STRING"
+          },
+          {
+            "mode": "NULLABLE",
+            "name": "c............",
+            "type": "INTEGER"
+          },
+          {
+            "mode": "NULLABLE",
+            "name": "d.......",
+            "type": "INTEGER"
+          },
+          {
+            "mode": "NULLABLE",
+            "name": "e..............",
+            "type": "STRING"
+          },
+          {
+            "mode": "NULLABLE",
+            "name": "f....",
+            "type": "FLOAT"
+          }
+        ],
+        "mode": "REPEATED",
+        "name": "b...........",
+        "type": "RECORD"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "c..........",
+        "type": "STRING"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "b...................",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "ba....",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bb.........",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bc.........",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bd..........",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "be......",
+    "type": "DATE"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bf...........",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bg........",
+    "type": "TIMESTAMP"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "b...",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "c..............",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "d.........",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "e......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "f....",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "g......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "h....",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "i......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "j..........",
+        "type": "BOOLEAN"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "k......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "l...",
+        "type": "STRING"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "bh....",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bi...................",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bj.........",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bk.........",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bl...........",
+    "type": "DATE"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a....",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "b..........",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "c....",
+        "type": "FLOAT"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "bm....",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bn.........",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "bo............",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "d........",
+    "type": "FLOAT"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a...........",
+        "type": "FLOAT"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "b.......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "c.............",
+        "type": "BOOLEAN"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "e...............",
+    "type": "RECORD"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a................",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "b..............",
+        "type": "BOOLEAN"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "c..........",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "d...................",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "e...........",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "f.......",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "g...............",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "h.....",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "i...........",
+        "type": "STRING"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "j........",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "k...............",
+        "type": "BOOLEAN"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "l............",
+        "type": "BOOLEAN"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "m..........",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "n...........",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "o......",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "p............",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "q............",
+        "type": "BOOLEAN"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "f..............",
+    "type": "RECORD"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a...",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "b........",
+        "type": "FLOAT"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "c..",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "d.......",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "e................",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "f.........",
+        "type": "TIMESTAMP"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "g..",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "h.........",
+        "type": "BOOLEAN"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "i..........",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "j..........",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "k........",
+        "type": "INTEGER"
+      },
+      {
+        "fields": [
+          {
+            "mode": "NULLABLE",
+            "name": "a...",
+            "type": "STRING"
+          },
+          {
+            "mode": "NULLABLE",
+            "name": "b....",
+            "type": "STRING"
+          }
+        ],
+        "mode": "REPEATED",
+        "name": "m......",
+        "type": "RECORD"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "n.............",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "o.........",
+        "type": "TIMESTAMP"
+      },
+      {
+        "fields": [
+          {
+            "mode": "NULLABLE",
+            "name": "a....",
+            "type": "STRING"
+          },
+          {
+            "mode": "NULLABLE",
+            "name": "b..........",
+            "type": "INTEGER"
+          },
+          {
+            "mode": "NULLABLE",
+            "name": "c....",
+            "type": "FLOAT"
+          }
+        ],
+        "mode": "NULLABLE",
+        "name": "p.....",
+        "type": "RECORD"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "r.......",
+        "type": "STRING"
+      }
+    ],
+    "mode": "REPEATED",
+    "name": "g....",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "h.........",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i............",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "j..................",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "k...............",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "l............",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "m.........",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "n..........",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "o......",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "p........",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "q..........",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "r............",
+    "type": "STRING"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "b...",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "d.........",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "e......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "f....",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "g......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "h....",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "i......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "k......",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "l...",
+        "type": "STRING"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "s.....",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "t.........",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "u.......................",
+    "type": "STRING"
+  },
+  {
+    "mode": "REPEATED",
+    "name": "v.....",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "w.......",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "x...",
+    "type": "BOOLEAN"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a.....",
+        "type": "FLOAT"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "b....",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "c.....",
+        "type": "FLOAT"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "d....",
+        "type": "FLOAT"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "y.........",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "z.........",
+    "type": "TIMESTAMP"
+  }
+]
