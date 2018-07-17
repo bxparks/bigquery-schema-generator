@@ -1,5 +1,7 @@
 # Tests
 
+## Unit Test for generate_schema.py
+
 Instead of embedding the input data records and the expected schema into
 the `test_generate_schema.py` file, we placed them into the `testdata.txt`
 file which is parsed by the unit test program.  This has two advantages:
@@ -28,4 +30,16 @@ Test chunk 10: First record: { "i": 3 }
 Test chunk 11: First record: { "i": [1, 2] }
 Test chunk 12: First record: { "r" : { "i": 3 } }
 Test chunk 13: First record: { "r" : [{ "i": 4 }] }
+```
+
+## Unit Test for anonymize.py
+
+The unit test for `anonymize.py` should look like this:
+```
+$ ./test_anonymize.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
 ```
