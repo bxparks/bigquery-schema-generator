@@ -380,11 +380,11 @@ $ bigquery_schema_generator/generate_schema.py < anon1.data.json \
     > anon1.schema.json
 ```
 took 77s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
-2.80GHz and 32GB of RAM.
+2.80GHz, 32GB of RAM, Ubuntu Linux 17.10, Python 3.6.3.
 
 ## System Requirements
 
-This project was developed on Ubuntu 17.04 using Python 3.5.3. I have
+This project was initially developed on Ubuntu 17.04 using Python 3.5.3. I have
 tested it on:
 
 * Ubuntu 17.10, Python 3.6.3
