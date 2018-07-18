@@ -1,7 +1,5 @@
 # BigQuery Schema Generator
 
-## Summary
-
 This script generates the BigQuery schema from the newline-delimited JSON data
 records on the STDIN. The BigQuery data importer (`bq load`) uses only the
 first 100 lines when the schema auto-detection feature is enabled. In contrast,
@@ -11,6 +9,8 @@ Usage:
 ```
 $ generate-schema < file.data.json > file.schema.json
 ```
+
+Version: 0.2.1 (2018-07-18)
 
 ## Background
 
@@ -122,6 +122,7 @@ The resulting schema file can be given to the **bq load** command using the
 `--schema` flag:
 ```
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
+        --ignore_unknown_values \
         --schema file.schema.json \
         mydataset.mytable \
         file.data.json
@@ -237,7 +238,7 @@ $ generate-schema --debugging_interval 50 < file.data.json > file.schema.json
 
 Instead of printing out the BigQuery schema, the `--debugging_map` prints out
 the bookkeeping metadata map which is used internally to keep track of the
-various fields and theirs types that was inferred using the data file. This
+various fields and theirs types that were inferred using the data file. This
 flag is intended to be used for debugging.
 
 ```
@@ -264,39 +265,39 @@ The supported types are:
 * `TIME`
 * `RECORD`
 
-The `generate-schema` script supports both `NULLABLE` and `REPEATED` modes of all
-of the above types. The following types are _not_ supported:
+The `generate-schema` script supports both `NULLABLE` and `REPEATED` modes of
+all of the above types. The following types are _not_ supported:
 
 * `BYTES`
 * `DATETIME` (unable to distinguish from `TIMESTAMP`)
 
 ### Type Inferrence Rules
 
-The `generate-schema` script attempt to emulate the various type conversion and
-compatibility rules implemented by *bq load*:
+The `generate-schema` script attempts to emulate the various type conversion and
+compatibility rules implemented by **bq load**:
 
 * `INTEGER` can upgrade to `FLOAT`
-  * if a field in an early record is an `INTEGER`, but a subsequent record shows
-    this field to have a `FLOAT` value, the type of the field will be upgraded to
-    a `FLOAT`
-  * the reverse does not happen, once a field is a `FLOAT`, it will remain a
-    `FLOAT`
+    * if a field in an early record is an `INTEGER`, but a subsequent record
+      shows this field to have a `FLOAT` value, the type of the field will be
+      upgraded to a `FLOAT`
+    * the reverse does not happen, once a field is a `FLOAT`, it will remain a
+      `FLOAT`
 * conflicting `TIME`, `DATE`, `TIMESTAMP` types downgrades to `STRING`
-  * if a field is determined to have one type of "time" in one record, then
-    subsequently a different "time" type, then the field will be assigned a
-    `STRING` type
+    * if a field is determined to have one type of "time" in one record, then
+      subsequently a different "time" type, then the field will be assigned a
+      `STRING` type
 * `NULLABLE RECORD` can upgrade to a `REPEATED RECORD`
-  * a field may be defined as `RECORD` (aka "Struct") type with `{ ... }`
-  * if the field is subsequently read as an array with a `[{ ... }]`, the field
-    is upgraded to a `REPEATED RECORD`
+    * a field may be defined as `RECORD` (aka "Struct") type with `{ ... }`
+    * if the field is subsequently read as an array with a `[{ ... }]`, the
+      field is upgraded to a `REPEATED RECORD`
 * a primitive type (`FLOAT`, `INTEGER`, `STRING`) cannot upgrade to a `REPEATED`
   primitive type
-  * there's no technical reason why this cannot be allowed, but *bq load*
-    does not support it, so we follow the rule
+    * there's no technical reason why this cannot be allowed, but **bq load**
+      does not support it, so we follow the rule
 * a `DATETIME` field is always inferred to be a `TIMESTAMP`
-  * the format of these two fields are identical (in the absence of timezone)
-  * we follow the same logic as *bq load* and always infer these as `TIMESTAMP`
-
+    * the format of these two fields is identical (in the absence of timezone)
+    * we follow the same logic as **bq load** and always infer these as
+      `TIMESTAMP`
 
 ## Examples
 
@@ -362,11 +363,31 @@ $ cat file.schema.json
 ]
 ```
 
+## Benchmarks
+
+I wrote the `bigquery_schema_generator/anonymize.py` script to create an
+anonymized data file `tests/testdata/anon1.data.json.gz`:
+```
+$ ./bigquery_schema_generator/anonymize.py < original.data.json \
+    > anon1.data.json
+$ gzip anon1.data.json
+```
+This data file is 290MB (5.6MB compressed) with 103080 data records.
+
+Generating the schema using
+```
+$ bigquery_schema_generator/generate_schema.py < anon1.data.json \
+    > anon1.schema.json
+```
+took 77s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
+2.80GHz, 32GB of RAM, Ubuntu Linux 17.10, Python 3.6.3.
+
 ## System Requirements
 
-This project was developed on Ubuntu 17.04 using Python 3.5.3. I have
+This project was initially developed on Ubuntu 17.04 using Python 3.5.3. I have
 tested it on:
 
+* Ubuntu 17.10, Python 3.6.3
 * Ubuntu 17.04, Python 3.5.3
 * Ubuntu 16.04, Python 3.5.2
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)

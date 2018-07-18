@@ -300,8 +300,8 @@ class SchemaGenerator:
         array_type = self.infer_array_type(node_value)
         if not array_type:
             raise Exception(
-                "All array elements must be the same compatible type '%s': %s"
-                % (thetype, elements))
+                "All array elements must be the same compatible type: %s"
+                % node_value)
 
         # Disallow array of special types (with '__' not supported).
         # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
@@ -338,12 +338,12 @@ class SchemaGenerator:
         elif value is None:
             return '__null__'
         elif isinstance(value, dict):
-            if len(value):
+            if value:
                 return 'RECORD'
             else:
                 return '__empty_record__'
         elif isinstance(value, list):
-            if len(value):
+            if value:
                 return '__array__'
             else:
                 return '__empty_array__'
@@ -359,7 +359,7 @@ class SchemaGenerator:
 
         Returns None if the array is not homogeneous.
         """
-        if len(elements) == 0:
+        if not elements:
             raise Exception('Empty array, should never happen here.')
 
         candidate_type = ''
@@ -453,7 +453,7 @@ def flatten_schema_map(schema_map, keep_nulls=False):
         new_info = OrderedDict()
         for key, value in sorted(info.items()):
             if key == 'fields':
-                if len(value) == 0:
+                if not value:
                     # Create a dummy attribute for an empty RECORD to make
                     # the BigQuery importer happy.
                     new_value = [
