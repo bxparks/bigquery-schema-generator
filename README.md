@@ -282,7 +282,7 @@ compatibility rules implemented by **bq load**:
       upgraded to a `FLOAT`
     * the reverse does not happen, once a field is a `FLOAT`, it will remain a
       `FLOAT`
-* conflicting `TIME`, `DATE`, `TIMESTAMP` types downgrades to `STRING`
+* conflicting `TIME`, `DATE`, `TIMESTAMP` types upgrades to `STRING`
     * if a field is determined to have one type of "time" in one record, then
       subsequently a different "time" type, then the field will be assigned a
       `STRING` type
