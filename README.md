@@ -238,7 +238,7 @@ $ generate-schema --debugging_interval 50 < file.data.json > file.schema.json
 
 Instead of printing out the BigQuery schema, the `--debugging_map` prints out
 the bookkeeping metadata map which is used internally to keep track of the
-various fields and theirs types that were inferred using the data file. This
+various fields and their types that were inferred using the data file. This
 flag is intended to be used for debugging.
 
 ```
