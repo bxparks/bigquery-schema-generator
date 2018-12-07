@@ -440,8 +440,7 @@ def convert_type(atype, btype):
 def is_string_type(thetype):
     """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or
     TIME."""
-    return (thetype == 'STRING' or thetype == 'TIMESTAMP' or
-            thetype == 'DATE' or thetype == 'TIME')
+    return thetype in ['STRING', 'TIMESTAMP', 'DATE', 'TIME', 'QINTEGER', 'QFLOAT', 'QBOOLEAN']
 
 
 def flatten_schema_map(schema_map, keep_nulls=False):
