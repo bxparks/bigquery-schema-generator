@@ -50,7 +50,7 @@ class SchemaGenerator:
         r'(([+-]\d{1,2}(:\d{1,2})?)|Z)?$')
 
     # Detect a DATE field of the form YYYY-[M]M-[D]D.
-    DATE_MATCHER = re.compile(r'^\d{4}-(?:0[1-9]|1[012])-(?:0[1-9]|[12][0-9]|3[01])$')
+    DATE_MATCHER = re.compile(r'^\d{4}-(?:[1-9]|0[1-9]|1[012])-(?:[1-9]|0[1-9]|[12][0-9]|3[01])$')
 
     # Detect a TIME field of the form [H]H:[M]M:[S]S[.DDDDDD]
     TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')

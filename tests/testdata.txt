@@ -477,3 +477,82 @@ SCHEMA
   }
 ]
 END
+
+# QINTEGER, QFLOAT, QBOOLEAN
+DATA
+{ "qi" : "1", "qf": "1", "qb": "true" }
+{ "qi" : "2", "qf": "1.1", "qb": "True" }
+{ "qi" : "3", "qf": "2", "qb": "false" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qi",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qf",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qb",
+    "type": "BOOLEAN"
+  }
+]
+END
+
+# From STRING to [QINTEGER, QFLOAT, QBOOLEAN] = STRING
+DATA
+{ "qi" : "foo", "qf": "bar", "qb": "foo2" }
+{ "qi" : "2", "qf": "1.1", "qb": "True" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qi",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qf",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qb",
+    "type": "STRING"
+  }
+]
+END
+
+# QINTEGER -> QFLOAT -> STRING
+DATA
+{ "qn" : "1" }
+{ "qn" : "1.1" }
+{ "qn" : "test" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qn",
+    "type": "STRING"
+  }
+]
+END
+
+# QBOOLEAN -> STRING
+DATA
+{ "qb" : "true" }
+{ "qb" : "False" }
+{ "qb" : "test" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qb",
+    "type": "STRING"
+  }
+]
+END

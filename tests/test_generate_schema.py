@@ -81,6 +81,7 @@ class TestSchemaGenerator(unittest.TestCase):
     def test_date_matcher_invalid(self):
         self.assertFalse(SchemaGenerator.DATE_MATCHER.match('17-05-22'))
         self.assertFalse(SchemaGenerator.DATE_MATCHER.match('2017-111-22'))
+        self.assertFalse(SchemaGenerator.DATE_MATCHER.match('1988-00-00'))
 
     def test_time_matcher_valid(self):
         self.assertTrue(SchemaGenerator.TIME_MATCHER.match('12:33:01'))
