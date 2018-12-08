@@ -480,9 +480,9 @@ END
 
 # QINTEGER, QFLOAT, QBOOLEAN
 DATA
-{ "qi" : "1", "qf": "1", "qb": "true" }
+{ "qi" : "1", "qf": "1.0", "qb": "true" }
 { "qi" : "2", "qf": "1.1", "qb": "True" }
-{ "qi" : "3", "qf": "2", "qb": "false" }
+{ "qi" : "3", "qf": "2.0", "qb": "false" }
 SCHEMA
 [
   {
@@ -499,6 +499,49 @@ SCHEMA
     "mode": "NULLABLE",
     "name": "qb",
     "type": "BOOLEAN"
+  }
+]
+END
+
+# QINTEGER, QFLOAT, QBOOLEAN -> INTEGER, FLOAT, BOOLEAN
+DATA
+{ "qi" : "1", "qf": "1.0", "qb": "true" }
+{ "qi" : 2, "qf": 2.0, "qb": false }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qi",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qf",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qb",
+    "type": "BOOLEAN"
+  }
+]
+END
+
+# mixed [Q]INTEGER, [Q]FLOAT
+DATA
+{ "qf_i" : "1.0", "qi_f": "2" }
+{ "qf_i" : 1.1, "qi_f": 2.1 }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qf_i",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qi_f",
+    "type": "FLOAT"
   }
 ]
 END
@@ -556,3 +599,51 @@ SCHEMA
   }
 ]
 END
+
+# DATE, TIME, DATETIME
+DATA
+{ "qd" : "2018-12-07", "qt": "21:52:00", "qdt": "2018-12-07T21:52:00-08:00" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qd",
+    "type": "DATE"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qt",
+    "type": "TIME"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qdt",
+    "type": "TIMESTAMP"
+  }
+]
+END
+
+# DATE, TIME, DATETIME + [QINTEGER, QFLOAT, QBOOLEAN] => STRING
+DATA
+{ "qd" : "2018-12-07", "qt": "21:52:00", "qdt": "2018-12-07T21:52:00-08:00" }
+{ "qd" : "1", "qt": "1.1", "qdt": "true" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qd",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qt",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qdt",
+    "type": "STRING"
+  }
+]
+END
+
