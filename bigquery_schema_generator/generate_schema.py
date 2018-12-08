@@ -413,34 +413,80 @@ class SchemaGenerator:
 
 def convert_type(atype, btype):
     """Return the compatible type between 'atype' and 'btype'. Return 'None'
-    if there is no compatible type. Type conversions are:
+    if there is no compatible type. Type conversions (in order of precedence)
+    are:
 
-    * INTEGER, FLOAT => FLOAT
-    * DATE, TIME, TIMESTAMP, STRING => STRING
+    * type + type => type
+    * [Q]BOOLEAN + [Q]BOOLEAN => BOOLEAN
+    * [Q]INTEGER + [Q]INTEGER => INTEGER
+    * [Q]FLOAT + [Q]FLOAT => FLOAT
+    * QINTEGER + QFLOAT = QFLOAT
+    * QFLOAT + QINTEGER = QFLOAT
+    * [Q]INTEGER + [Q]FLOAT => FLOAT (except QINTEGER + QFLOAT)
+    * [Q]FLOAT + [Q]INTEGER => FLOAT (except QFLOAT + QINTEGER)
+    * (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) +
+        (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) => STRING
     """
+    # type + type => type
     if atype == btype:
         return atype
-    if atype == 'INTEGER' and btype == 'FLOAT':
+
+    # [Q]BOOLEAN + [Q]BOOLEAN => BOOLEAN
+    if atype == 'BOOLEAN' and btype == 'QBOOLEAN':
+        return 'BOOLEAN'
+    if atype == 'QBOOLEAN' and btype == 'BOOLEAN':
+        return 'BOOLEAN'
+
+    # [Q]INTEGER + [Q]INTEGER => INTEGER
+    if atype == 'QINTEGER' and btype == 'INTEGER':
+        return 'INTEGER'
+    if atype == 'INTEGER' and btype == 'QINTEGER':
+        return 'INTEGER'
+
+    # [Q]FLOAT + [Q]FLOAT => FLOAT
+    if atype == 'QFLOAT' and btype == 'FLOAT':
         return 'FLOAT'
+    if atype == 'FLOAT' and btype == 'QFLOAT':
+        return 'FLOAT'
+
+    # QINTEGER + QFLOAT => QFLOAT
     if atype == 'QINTEGER' and btype == 'QFLOAT':
         return 'QFLOAT'
-    if atype == 'FLOAT' and btype == 'INTEGER':
-        return 'FLOAT'
+
+    # QFLOAT + QINTEGER => QFLOAT
     if atype == 'QFLOAT' and btype == 'QINTEGER':
         return 'QFLOAT'
-    if atype in ['QINTEGER', 'QFLOAT', 'QBOOLEAN'] and btype == 'STRING':
-        return 'STRING'
-    if atype == 'STRING' and btype in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
-        return 'STRING'
+
+    # [Q]INTEGER + [Q]FLOAT => FLOAT (except QINTEGER + QFLOAT => QFLOAT)
+    if atype == 'INTEGER' and btype == 'FLOAT':
+        return 'FLOAT'
+    if atype == 'INTEGER' and btype == 'QFLOAT':
+        return 'FLOAT'
+    if atype == 'QINTEGER' and btype == 'FLOAT':
+        return 'FLOAT'
+
+    # [Q]FLOAT + [Q]INTEGER => FLOAT (except # QFLOAT + QINTEGER => QFLOAT)
+    if atype == 'FLOAT' and btype == 'INTEGER':
+        return 'FLOAT'
+    if atype == 'FLOAT' and btype == 'QINTEGER':
+        return 'FLOAT'
+    if atype == 'QFLOAT' and btype == 'INTEGER':
+        return 'FLOAT'
+
+    # All remaining combination of:
+    # (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) +
+    #   (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) => STRING
     if is_string_type(atype) and is_string_type(btype):
         return 'STRING'
+
     return None
 
 
 def is_string_type(thetype):
     """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or
     TIME."""
-    return thetype in ['STRING', 'TIMESTAMP', 'DATE', 'TIME', 'QINTEGER', 'QFLOAT', 'QBOOLEAN']
+    return thetype in ['STRING', 'TIMESTAMP', 'DATE', 'TIME',
+        'QINTEGER', 'QFLOAT', 'QBOOLEAN']
 
 
 def flatten_schema_map(schema_map, keep_nulls=False):

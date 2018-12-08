@@ -103,8 +103,11 @@ class TestSchemaGenerator(unittest.TestCase):
                          generator.infer_value_type('2018-02-08T12:34:56'))
         self.assertEqual('STRING', generator.infer_value_type('abc'))
         self.assertEqual('BOOLEAN', generator.infer_value_type(True))
+        self.assertEqual('QBOOLEAN', generator.infer_value_type('True'))
         self.assertEqual('INTEGER', generator.infer_value_type(1))
+        self.assertEqual('QINTEGER', generator.infer_value_type('2'))
         self.assertEqual('FLOAT', generator.infer_value_type(2.0))
+        self.assertEqual('QFLOAT', generator.infer_value_type('3.0'))
         self.assertEqual('RECORD', generator.infer_value_type({
             'a': 1,
             'b': 2
@@ -236,16 +239,64 @@ class TestSchemaGenerator(unittest.TestCase):
 
     def test_convert_type(self):
         # no conversion needed
+        self.assertEqual('BOOLEAN', convert_type('BOOLEAN', 'BOOLEAN'))
         self.assertEqual('INTEGER', convert_type('INTEGER', 'INTEGER'))
         self.assertEqual('FLOAT', convert_type('FLOAT', 'FLOAT'))
         self.assertEqual('STRING', convert_type('STRING', 'STRING'))
-        self.assertEqual('BOOLEAN', convert_type('BOOLEAN', 'BOOLEAN'))
         self.assertEqual('DATE', convert_type('DATE', 'DATE'))
         self.assertEqual('RECORD', convert_type('RECORD', 'RECORD'))
 
-        # conversions
+        # quoted and unquoted versions of the same type
+        self.assertEqual('BOOLEAN', convert_type('BOOLEAN', 'QBOOLEAN'))
+        self.assertEqual('BOOLEAN', convert_type('QBOOLEAN', 'BOOLEAN'))
+        self.assertEqual('INTEGER', convert_type('INTEGER', 'QINTEGER'))
+        self.assertEqual('INTEGER', convert_type('QINTEGER', 'INTEGER'))
+        self.assertEqual('FLOAT', convert_type('FLOAT', 'QFLOAT'))
+        self.assertEqual('FLOAT', convert_type('QFLOAT', 'FLOAT'))
+
+        # [Q]INTEGER and [Q]FLOAT conversions
         self.assertEqual('FLOAT', convert_type('INTEGER', 'FLOAT'))
+        self.assertEqual('FLOAT', convert_type('INTEGER', 'QFLOAT'))
+        self.assertEqual('FLOAT', convert_type('QINTEGER', 'FLOAT'))
+        self.assertEqual('QFLOAT', convert_type('QINTEGER', 'QFLOAT'))
         self.assertEqual('FLOAT', convert_type('FLOAT', 'INTEGER'))
+        self.assertEqual('FLOAT', convert_type('FLOAT', 'QINTEGER'))
+        self.assertEqual('FLOAT', convert_type('QFLOAT', 'INTEGER'))
+        self.assertEqual('QFLOAT', convert_type('QFLOAT', 'QINTEGER'))
+
+        # quoted and STRING conversions
+        self.assertEqual('STRING', convert_type('STRING', 'QBOOLEAN'))
+        self.assertEqual('STRING', convert_type('STRING', 'QINTEGER'))
+        self.assertEqual('STRING', convert_type('STRING', 'QFLOAT'))
+        self.assertEqual('STRING', convert_type('QBOOLEAN', 'STRING'))
+        self.assertEqual('STRING', convert_type('QINTEGER', 'STRING'))
+        self.assertEqual('STRING', convert_type('QFLOAT', 'STRING'))
+
+        # quoted and DATE conversions
+        self.assertEqual('STRING', convert_type('DATE', 'QBOOLEAN'))
+        self.assertEqual('STRING', convert_type('DATE', 'QINTEGER'))
+        self.assertEqual('STRING', convert_type('DATE', 'QFLOAT'))
+        self.assertEqual('STRING', convert_type('QBOOLEAN', 'DATE'))
+        self.assertEqual('STRING', convert_type('QINTEGER', 'DATE'))
+        self.assertEqual('STRING', convert_type('QFLOAT', 'DATE'))
+
+        # quoted and TIME conversions
+        self.assertEqual('STRING', convert_type('TIME', 'QBOOLEAN'))
+        self.assertEqual('STRING', convert_type('TIME', 'QINTEGER'))
+        self.assertEqual('STRING', convert_type('TIME', 'QFLOAT'))
+        self.assertEqual('STRING', convert_type('QBOOLEAN', 'TIME'))
+        self.assertEqual('STRING', convert_type('QINTEGER', 'TIME'))
+        self.assertEqual('STRING', convert_type('QFLOAT', 'TIME'))
+
+        # quoted and TIMESTAMP conversions
+        self.assertEqual('STRING', convert_type('TIMESTAMP', 'QBOOLEAN'))
+        self.assertEqual('STRING', convert_type('TIMESTAMP', 'QINTEGER'))
+        self.assertEqual('STRING', convert_type('TIMESTAMP', 'QFLOAT'))
+        self.assertEqual('STRING', convert_type('QBOOLEAN', 'TIMESTAMP'))
+        self.assertEqual('STRING', convert_type('QINTEGER', 'TIMESTAMP'))
+        self.assertEqual('STRING', convert_type('QFLOAT', 'TIMESTAMP'))
+
+        # DATE, TIME, and TIMESTAMP conversions
         self.assertEqual('STRING', convert_type('DATE', 'TIME'))
         self.assertEqual('STRING', convert_type('DATE', 'TIMESTAMP'))
         self.assertEqual('STRING', convert_type('DATE', 'STRING'))
@@ -255,6 +306,11 @@ class TestSchemaGenerator(unittest.TestCase):
 
         # no conversion possible
         self.assertEqual(None, convert_type('INTEGER', 'BOOLEAN'))
+        self.assertEqual(None, convert_type('QINTEGER', 'BOOLEAN'))
+        self.assertEqual(None, convert_type('INTEGER', 'QBOOLEAN'))
+        self.assertEqual(None, convert_type('FLOAT', 'BOOLEAN'))
+        self.assertEqual(None, convert_type('QFLOAT', 'BOOLEAN'))
+        self.assertEqual(None, convert_type('FLOAT', 'QBOOLEAN'))
         self.assertEqual(None, convert_type('FLOAT', 'STRING'))
         self.assertEqual(None, convert_type('STRING', 'BOOLEAN'))
         self.assertEqual(None, convert_type('BOOLEAN', 'DATE'))
