@@ -109,9 +109,9 @@ This is essentially what the `generate-schema` command does.
 
 **3) Python script**
 
-If you retrieved this code from its [GitHub
-repository](https://github.com/bxparks/bigquery-schema-generator), then you can invoke
-the Python script directly:
+If you retrieved this code from its
+[GitHub repository](https://github.com/bxparks/bigquery-schema-generator),
+then you can invoke the Python script directly:
 ```
 $ ./generate_schema.py < file.data.json > file.schema.json
 ```
@@ -121,21 +121,33 @@ $ ./generate_schema.py < file.data.json > file.schema.json
 The resulting schema file can be given to the **bq load** command using the
 `--schema` flag:
 ```
+
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
         --ignore_unknown_values \
         --schema file.schema.json \
         mydataset.mytable \
         file.data.json
 ```
-
 where `mydataset.mytable` is the target table in BigQuery.
 
-A useful flag for **bq load** is `--ignore_unknown_values`, which causes **bq load**
-to ignore fields in the input data which are not defined in the schema. When
-`generate_schema.py` detects an inconsistency in the definition of a particular
-field in the input data, it removes the field from the schema definition.
-Without the `--ignore_unknown_values`, the **bq load** fails when the
-inconsistent data record is read.
+For debugging purposes, here is the equivalent `bq load` command using schema
+autodetection:
+
+```
+$ bq load --source_format NEWLINE_DELIMITED_JSON \
+    --ignore_unknown_values \
+    --autodetect
+    mydataset.mytable \
+    file.data.json
+```
+
+A useful flag for `bq load` is `--ignore_unknown_values`, which causes `bq
+load` to ignore fields in the input data which are not defined in the schema.
+When `generate_schema.py` detects an inconsistency in the definition of a
+particular field in the input data, it removes the field from the schema
+definition. Without the `--ignore_unknown_values`, the `bq load` fails when
+the inconsistent data record is read. Another useful flag during development and
+debugging is `--replace` which replaces any existing BigQuery table.
 
 After the BigQuery table is loaded, the schema can be retrieved using:
 
@@ -299,6 +311,10 @@ compatibility rules implemented by **bq load**:
     * we follow the same logic as **bq load** and always infer these as
       `TIMESTAMP`
 
+The BigQuery loader also looks inside strings to determine if they are actually
+INTEGER or FLOAT types instead. Luigi Mori (jtschichold@) added additional logic
+to replicate the type conversion logic used by `bq load` for these strings.
+
 ## Examples
 
 Here is an example of a single JSON data record on the STDIN (the `^D` below
@@ -392,9 +408,10 @@ tested it on:
 * Ubuntu 16.04, Python 3.5.2
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 
-## Author
+## Authors
 
-Created by Brian T. Park (brian@xparks.net).
+* Created by Brian T. Park (brian@xparks.net).
+* Additional type inferrence logic by Luigi Mori (jtschichold@).
 
 ## License
 
