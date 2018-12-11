@@ -104,10 +104,15 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual('STRING', generator.infer_value_type('abc'))
         self.assertEqual('BOOLEAN', generator.infer_value_type(True))
         self.assertEqual('QBOOLEAN', generator.infer_value_type('True'))
+        self.assertEqual('QBOOLEAN', generator.infer_value_type('False'))
+        self.assertEqual('QBOOLEAN', generator.infer_value_type('true'))
+        self.assertEqual('QBOOLEAN', generator.infer_value_type('false'))
         self.assertEqual('INTEGER', generator.infer_value_type(1))
         self.assertEqual('QINTEGER', generator.infer_value_type('2'))
+        self.assertEqual('QINTEGER', generator.infer_value_type('-1000'))
         self.assertEqual('FLOAT', generator.infer_value_type(2.0))
         self.assertEqual('QFLOAT', generator.infer_value_type('3.0'))
+        self.assertEqual('QFLOAT', generator.infer_value_type('-5.4'))
         self.assertEqual('RECORD', generator.infer_value_type({
             'a': 1,
             'b': 2

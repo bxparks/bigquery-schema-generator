@@ -55,8 +55,8 @@ class SchemaGenerator:
     # Detect a TIME field of the form [H]H:[M]M:[S]S[.DDDDDD]
     TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
 
-    INTEGER_MATCHER = re.compile(r'[-]?^\d+$')
-    FLOAT_MATCHER = re.compile(r'[-]?^\d+\.\d+$')
+    INTEGER_MATCHER = re.compile(r'^[-]?\d+$')
+    FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
     def __init__(self,
                  keep_nulls=False,
