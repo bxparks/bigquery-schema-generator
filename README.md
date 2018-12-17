@@ -311,9 +311,11 @@ compatibility rules implemented by **bq load**:
     * we follow the same logic as **bq load** and always infer these as
       `TIMESTAMP`
 
-The BigQuery loader also looks inside strings to determine if they are actually
-INTEGER or FLOAT types instead. Luigi Mori (jtschichold@) added additional logic
-to replicate the type conversion logic used by `bq load` for these strings.
+The BigQuery loader looks inside string values to determine if they are actually
+BOOLEAN, INTEGER or FLOAT types instead. In other words, `"True"` is considered
+a BOOLEAN type, `"1"` is considered an INTEGER type, and `"2.1"` is consiered a
+FLOAT type. Luigi Mori (jtschichold@) added additional logic to replicate the
+type conversion logic used by `bq load` for these strings.
 
 ## Examples
 
@@ -403,6 +405,7 @@ took 77s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
 This project was initially developed on Ubuntu 17.04 using Python 3.5.3. I have
 tested it on:
 
+* Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
 * Ubuntu 17.04, Python 3.5.3
 * Ubuntu 16.04, Python 3.5.2
