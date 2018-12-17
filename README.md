@@ -10,7 +10,7 @@ Usage:
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-Version: 0.2.1 (2018-07-18)
+Version: 0.3 (2018-12-17)
 
 ## Background
 

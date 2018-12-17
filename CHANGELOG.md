@@ -1,5 +1,11 @@
 # Changelog
 
+* 0.3 (2018-12-17)
+    * Tighten TIMESTAMP and DATE validation (thanks jtschichold@).
+    * Inspect the internals of STRING values to infer BOOLEAN, INTEGER or FLOAT
+      types (thanks jtschichold@).
+    * Handle conversion of these string types when mixed with their non-quoted
+      equivalents, matching the conversion logic followed by 'bq load'.
 * 0.2.1 (2018-07-18)
     * Add `anonymizer.py` script to create anonymized data files for
       benchmarking.
