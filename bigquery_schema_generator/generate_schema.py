@@ -50,7 +50,8 @@ class SchemaGenerator:
         r'(([+-]\d{1,2}(:\d{1,2})?)|Z)?$')
 
     # Detect a DATE field of the form YYYY-[M]M-[D]D.
-    DATE_MATCHER = re.compile(r'^\d{4}-(?:[1-9]|0[1-9]|1[012])-(?:[1-9]|0[1-9]|[12][0-9]|3[01])$')
+    DATE_MATCHER = re.compile(
+        r'^\d{4}-(?:[1-9]|0[1-9]|1[012])-(?:[1-9]|0[1-9]|[12][0-9]|3[01])$')
 
     # Detect a TIME field of the form [H]H:[M]M:[S]S[.DDDDDD]
     TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
@@ -139,8 +140,8 @@ class SchemaGenerator:
             schema_entry = schema_map.get(key)
             try:
                 new_schema_entry = self.get_schema_entry(key, value)
-                merged_schema_entry = self.merge_schema_entry(schema_entry,
-                                                              new_schema_entry)
+                merged_schema_entry = self.merge_schema_entry(
+                    schema_entry, new_schema_entry)
             except Exception as e:
                 self.log_error(str(e))
                 continue
@@ -203,8 +204,8 @@ class SchemaGenerator:
             elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
                 # TODO: Maybe remove this warning output. It was helpful during
                 # development, but maybe it's just natural.
-                self.log_error('Leaving schema for "%s" as REPEATED RECORD' %
-                               old_name)
+                self.log_error(
+                    'Leaving schema for "%s" as REPEATED RECORD' % old_name)
 
             # RECORD type needs a recursive merging of sub-fields. We merge into
             # the 'old_schema_entry' which assumes that the 'old_schema_entry'
@@ -244,6 +245,7 @@ class SchemaGenerator:
         """
         value_mode, value_type = self.infer_bigquery_type(value)
 
+        # yapf: disable
         if value_type == 'RECORD':
             # recursively figure out the RECORD
             fields = OrderedDict()
@@ -288,6 +290,7 @@ class SchemaGenerator:
                                             ('name', key),
                                             ('type', value_type),
                                         ]))])
+        # yapf: enable
         return schema_entry
 
     def infer_bigquery_type(self, node_value):
@@ -304,8 +307,8 @@ class SchemaGenerator:
         array_type = self.infer_array_type(node_value)
         if not array_type:
             raise Exception(
-                "All array elements must be the same compatible type: %s"
-                % node_value)
+                "All array elements must be the same compatible type: %s" %
+                node_value)
 
         # Disallow array of special types (with '__' not supported).
         # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
@@ -331,11 +334,11 @@ class SchemaGenerator:
             elif self.TIME_MATCHER.match(value):
                 return 'TIME'
             elif self.INTEGER_MATCHER.match(value):
-                return 'QINTEGER' # quoted integer
+                return 'QINTEGER'  # quoted integer
             elif self.FLOAT_MATCHER.match(value):
-                return 'QFLOAT' # quoted float
+                return 'QFLOAT'  # quoted float
             elif value.lower() in ['true', 'false']:
-                return 'QBOOLEAN' # quoted boolean
+                return 'QBOOLEAN'  # quoted boolean
             else:
                 return 'STRING'
         # Python 'bool' is a subclass of 'int' so we must check it first
@@ -485,8 +488,9 @@ def convert_type(atype, btype):
 def is_string_type(thetype):
     """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or
     TIME."""
-    return thetype in ['STRING', 'TIMESTAMP', 'DATE', 'TIME',
-        'QINTEGER', 'QFLOAT', 'QBOOLEAN']
+    return thetype in [
+        'STRING', 'TIMESTAMP', 'DATE', 'TIME', 'QINTEGER', 'QFLOAT', 'QBOOLEAN'
+    ]
 
 
 def flatten_schema_map(schema_map, keep_nulls=False):
@@ -496,8 +500,8 @@ def flatten_schema_map(schema_map, keep_nulls=False):
     data.
     """
     if not isinstance(schema_map, dict):
-        raise Exception("Unexpected type '%s' for schema_map" %
-                        type(schema_map))
+        raise Exception(
+            "Unexpected type '%s' for schema_map" % type(schema_map))
 
     # Build the BigQuery schema from the internal 'schema_map'.
     schema = []
@@ -575,7 +579,8 @@ def main():
         default=1000)
     parser.add_argument(
         '--debugging_map',
-        help='Print the metadata schema_map instead of the schema for debugging',
+        help=
+        'Print the metadata schema_map instead of the schema for debugging',
         action="store_true")
     args = parser.parse_args()
 

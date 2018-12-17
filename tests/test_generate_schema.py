@@ -195,8 +195,9 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual('FLOAT', generator.infer_array_type([1.0, 2.0]))
         self.assertEqual('BOOLEAN', generator.infer_array_type([True, False]))
         self.assertEqual('STRING', generator.infer_array_type(['a', 'b']))
-        self.assertEqual(
-            'DATE', generator.infer_array_type(['2018-02-09', '2018-02-10']))
+        self.assertEqual('DATE',
+                         generator.infer_array_type(
+                             ['2018-02-09', '2018-02-10']))
         self.assertEqual('TIME',
                          generator.infer_array_type(['10:44:00', '10:44:01']))
         self.assertEqual('TIMESTAMP',
@@ -210,8 +211,9 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual('__empty_array__', generator.infer_array_type([[]]))
 
         # Mixed TIME, DATE, TIMESTAMP converts to STRING
-        self.assertEqual(
-            'STRING', generator.infer_array_type(['2018-02-09', '10:44:00']))
+        self.assertEqual('STRING',
+                         generator.infer_array_type(['2018-02-09',
+                                                     '10:44:00']))
         self.assertEqual('STRING',
                          generator.infer_array_type(
                              ['2018-02-09T11:00:00', '10:44:00']))
@@ -328,6 +330,7 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertTrue(is_string_type('TIME'))
 
     def test_sort_schema(self):
+        # yapf: disable
         unsorted = [{
             "mode": "REPEATED",
             "name": "a",
@@ -347,7 +350,6 @@ class TestSchemaGenerator(unittest.TestCase):
             "type": "STRING"
         }]
 
-        # yapf: disable
         expected = [
             OrderedDict([
                 ("mode", "REPEATED"),
