@@ -50,10 +50,14 @@ class SchemaGenerator:
         r'(([+-]\d{1,2}(:\d{1,2})?)|Z)?$')
 
     # Detect a DATE field of the form YYYY-[M]M-[D]D.
-    DATE_MATCHER = re.compile(r'^\d{4}-\d{1,2}-\d{1,2}$')
+    DATE_MATCHER = re.compile(
+        r'^\d{4}-(?:[1-9]|0[1-9]|1[012])-(?:[1-9]|0[1-9]|[12][0-9]|3[01])$')
 
     # Detect a TIME field of the form [H]H:[M]M:[S]S[.DDDDDD]
     TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
+
+    INTEGER_MATCHER = re.compile(r'^[-]?\d+$')
+    FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
     def __init__(self,
                  keep_nulls=False,
@@ -136,8 +140,8 @@ class SchemaGenerator:
             schema_entry = schema_map.get(key)
             try:
                 new_schema_entry = self.get_schema_entry(key, value)
-                merged_schema_entry = self.merge_schema_entry(schema_entry,
-                                                              new_schema_entry)
+                merged_schema_entry = self.merge_schema_entry(
+                    schema_entry, new_schema_entry)
             except Exception as e:
                 self.log_error(str(e))
                 continue
@@ -200,8 +204,8 @@ class SchemaGenerator:
             elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
                 # TODO: Maybe remove this warning output. It was helpful during
                 # development, but maybe it's just natural.
-                self.log_error('Leaving schema for "%s" as REPEATED RECORD' %
-                               old_name)
+                self.log_error(
+                    'Leaving schema for "%s" as REPEATED RECORD' % old_name)
 
             # RECORD type needs a recursive merging of sub-fields. We merge into
             # the 'old_schema_entry' which assumes that the 'old_schema_entry'
@@ -240,6 +244,8 @@ class SchemaGenerator:
         object, instead of a primitive.
         """
         value_mode, value_type = self.infer_bigquery_type(value)
+
+        # yapf: disable
         if value_type == 'RECORD':
             # recursively figure out the RECORD
             fields = OrderedDict()
@@ -284,6 +290,7 @@ class SchemaGenerator:
                                             ('name', key),
                                             ('type', value_type),
                                         ]))])
+        # yapf: enable
         return schema_entry
 
     def infer_bigquery_type(self, node_value):
@@ -300,8 +307,8 @@ class SchemaGenerator:
         array_type = self.infer_array_type(node_value)
         if not array_type:
             raise Exception(
-                "All array elements must be the same compatible type: %s"
-                % node_value)
+                "All array elements must be the same compatible type: %s" %
+                node_value)
 
         # Disallow array of special types (with '__' not supported).
         # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
@@ -326,6 +333,12 @@ class SchemaGenerator:
                 return 'DATE'
             elif self.TIME_MATCHER.match(value):
                 return 'TIME'
+            elif self.INTEGER_MATCHER.match(value):
+                return 'QINTEGER'  # quoted integer
+            elif self.FLOAT_MATCHER.match(value):
+                return 'QFLOAT'  # quoted float
+            elif value.lower() in ['true', 'false']:
+                return 'QBOOLEAN'  # quoted boolean
             else:
                 return 'STRING'
         # Python 'bool' is a subclass of 'int' so we must check it first
@@ -403,27 +416,81 @@ class SchemaGenerator:
 
 def convert_type(atype, btype):
     """Return the compatible type between 'atype' and 'btype'. Return 'None'
-    if there is no compatible type. Type conversions are:
+    if there is no compatible type. Type conversions (in order of precedence)
+    are:
 
-    * INTEGER, FLOAT => FLOAT
-    * DATE, TIME, TIMESTAMP, STRING => STRING
+    * type + type => type
+    * [Q]BOOLEAN + [Q]BOOLEAN => BOOLEAN
+    * [Q]INTEGER + [Q]INTEGER => INTEGER
+    * [Q]FLOAT + [Q]FLOAT => FLOAT
+    * QINTEGER + QFLOAT = QFLOAT
+    * QFLOAT + QINTEGER = QFLOAT
+    * [Q]INTEGER + [Q]FLOAT => FLOAT (except QINTEGER + QFLOAT)
+    * [Q]FLOAT + [Q]INTEGER => FLOAT (except QFLOAT + QINTEGER)
+    * (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) +
+        (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) => STRING
     """
+    # type + type => type
     if atype == btype:
         return atype
+
+    # [Q]BOOLEAN + [Q]BOOLEAN => BOOLEAN
+    if atype == 'BOOLEAN' and btype == 'QBOOLEAN':
+        return 'BOOLEAN'
+    if atype == 'QBOOLEAN' and btype == 'BOOLEAN':
+        return 'BOOLEAN'
+
+    # [Q]INTEGER + [Q]INTEGER => INTEGER
+    if atype == 'QINTEGER' and btype == 'INTEGER':
+        return 'INTEGER'
+    if atype == 'INTEGER' and btype == 'QINTEGER':
+        return 'INTEGER'
+
+    # [Q]FLOAT + [Q]FLOAT => FLOAT
+    if atype == 'QFLOAT' and btype == 'FLOAT':
+        return 'FLOAT'
+    if atype == 'FLOAT' and btype == 'QFLOAT':
+        return 'FLOAT'
+
+    # QINTEGER + QFLOAT => QFLOAT
+    if atype == 'QINTEGER' and btype == 'QFLOAT':
+        return 'QFLOAT'
+
+    # QFLOAT + QINTEGER => QFLOAT
+    if atype == 'QFLOAT' and btype == 'QINTEGER':
+        return 'QFLOAT'
+
+    # [Q]INTEGER + [Q]FLOAT => FLOAT (except QINTEGER + QFLOAT => QFLOAT)
     if atype == 'INTEGER' and btype == 'FLOAT':
         return 'FLOAT'
+    if atype == 'INTEGER' and btype == 'QFLOAT':
+        return 'FLOAT'
+    if atype == 'QINTEGER' and btype == 'FLOAT':
+        return 'FLOAT'
+
+    # [Q]FLOAT + [Q]INTEGER => FLOAT (except # QFLOAT + QINTEGER => QFLOAT)
     if atype == 'FLOAT' and btype == 'INTEGER':
         return 'FLOAT'
+    if atype == 'FLOAT' and btype == 'QINTEGER':
+        return 'FLOAT'
+    if atype == 'QFLOAT' and btype == 'INTEGER':
+        return 'FLOAT'
+
+    # All remaining combination of:
+    # (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) +
+    #   (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) => STRING
     if is_string_type(atype) and is_string_type(btype):
         return 'STRING'
+
     return None
 
 
 def is_string_type(thetype):
     """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or
     TIME."""
-    return (thetype == 'STRING' or thetype == 'TIMESTAMP' or
-            thetype == 'DATE' or thetype == 'TIME')
+    return thetype in [
+        'STRING', 'TIMESTAMP', 'DATE', 'TIME', 'QINTEGER', 'QFLOAT', 'QBOOLEAN'
+    ]
 
 
 def flatten_schema_map(schema_map, keep_nulls=False):
@@ -433,8 +500,8 @@ def flatten_schema_map(schema_map, keep_nulls=False):
     data.
     """
     if not isinstance(schema_map, dict):
-        raise Exception("Unexpected type '%s' for schema_map" %
-                        type(schema_map))
+        raise Exception(
+            "Unexpected type '%s' for schema_map" % type(schema_map))
 
     # Build the BigQuery schema from the internal 'schema_map'.
     schema = []
@@ -466,6 +533,8 @@ def flatten_schema_map(schema_map, keep_nulls=False):
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
                     new_value = flatten_schema_map(value, keep_nulls)
+            elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
+                new_value = value[1:]
             else:
                 new_value = value
             new_info[key] = new_value
@@ -510,7 +579,8 @@ def main():
         default=1000)
     parser.add_argument(
         '--debugging_map',
-        help='Print the metadata schema_map instead of the schema for debugging',
+        help=
+        'Print the metadata schema_map instead of the schema for debugging',
         action="store_true")
     args = parser.parse_args()
 

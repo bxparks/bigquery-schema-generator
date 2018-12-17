@@ -10,7 +10,7 @@ Usage:
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-Version: 0.2.1 (2018-07-18)
+Version: 0.3 (2018-12-17)
 
 ## Background
 
@@ -109,9 +109,9 @@ This is essentially what the `generate-schema` command does.
 
 **3) Python script**
 
-If you retrieved this code from its [GitHub
-repository](https://github.com/bxparks/bigquery-schema-generator), then you can invoke
-the Python script directly:
+If you retrieved this code from its
+[GitHub repository](https://github.com/bxparks/bigquery-schema-generator),
+then you can invoke the Python script directly:
 ```
 $ ./generate_schema.py < file.data.json > file.schema.json
 ```
@@ -121,21 +121,33 @@ $ ./generate_schema.py < file.data.json > file.schema.json
 The resulting schema file can be given to the **bq load** command using the
 `--schema` flag:
 ```
+
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
         --ignore_unknown_values \
         --schema file.schema.json \
         mydataset.mytable \
         file.data.json
 ```
-
 where `mydataset.mytable` is the target table in BigQuery.
 
-A useful flag for **bq load** is `--ignore_unknown_values`, which causes **bq load**
-to ignore fields in the input data which are not defined in the schema. When
-`generate_schema.py` detects an inconsistency in the definition of a particular
-field in the input data, it removes the field from the schema definition.
-Without the `--ignore_unknown_values`, the **bq load** fails when the
-inconsistent data record is read.
+For debugging purposes, here is the equivalent `bq load` command using schema
+autodetection:
+
+```
+$ bq load --source_format NEWLINE_DELIMITED_JSON \
+    --ignore_unknown_values \
+    --autodetect
+    mydataset.mytable \
+    file.data.json
+```
+
+A useful flag for `bq load` is `--ignore_unknown_values`, which causes `bq
+load` to ignore fields in the input data which are not defined in the schema.
+When `generate_schema.py` detects an inconsistency in the definition of a
+particular field in the input data, it removes the field from the schema
+definition. Without the `--ignore_unknown_values`, the `bq load` fails when
+the inconsistent data record is read. Another useful flag during development and
+debugging is `--replace` which replaces any existing BigQuery table.
 
 After the BigQuery table is loaded, the schema can be retrieved using:
 
@@ -238,7 +250,7 @@ $ generate-schema --debugging_interval 50 < file.data.json > file.schema.json
 
 Instead of printing out the BigQuery schema, the `--debugging_map` prints out
 the bookkeeping metadata map which is used internally to keep track of the
-various fields and theirs types that were inferred using the data file. This
+various fields and their types that were inferred using the data file. This
 flag is intended to be used for debugging.
 
 ```
@@ -282,7 +294,7 @@ compatibility rules implemented by **bq load**:
       upgraded to a `FLOAT`
     * the reverse does not happen, once a field is a `FLOAT`, it will remain a
       `FLOAT`
-* conflicting `TIME`, `DATE`, `TIMESTAMP` types downgrades to `STRING`
+* conflicting `TIME`, `DATE`, `TIMESTAMP` types upgrades to `STRING`
     * if a field is determined to have one type of "time" in one record, then
       subsequently a different "time" type, then the field will be assigned a
       `STRING` type
@@ -298,6 +310,12 @@ compatibility rules implemented by **bq load**:
     * the format of these two fields is identical (in the absence of timezone)
     * we follow the same logic as **bq load** and always infer these as
       `TIMESTAMP`
+
+The BigQuery loader looks inside string values to determine if they are actually
+BOOLEAN, INTEGER or FLOAT types instead. In other words, `"True"` is considered
+a BOOLEAN type, `"1"` is considered an INTEGER type, and `"2.1"` is consiered a
+FLOAT type. Luigi Mori (jtschichold@) added additional logic to replicate the
+type conversion logic used by `bq load` for these strings.
 
 ## Examples
 
@@ -387,14 +405,16 @@ took 77s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
 This project was initially developed on Ubuntu 17.04 using Python 3.5.3. I have
 tested it on:
 
+* Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
 * Ubuntu 17.04, Python 3.5.3
 * Ubuntu 16.04, Python 3.5.2
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 
-## Author
+## Authors
 
-Created by Brian T. Park (brian@xparks.net).
+* Created by Brian T. Park (brian@xparks.net).
+* Additional type inferrence logic by Luigi Mori (jtschichold@).
 
 ## License
 
