@@ -136,7 +136,7 @@ autodetection:
 ```
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
     --ignore_unknown_values \
-    --autodetect
+    --autodetect \
     mydataset.mytable \
     file.data.json
 ```
