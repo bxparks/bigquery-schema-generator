@@ -56,7 +56,16 @@ class SchemaGenerator:
     # Detect a TIME field of the form [H]H:[M]M:[S]S[.DDDDDD]
     TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
 
+    # Detect integers inside quotes.
     INTEGER_MATCHER = re.compile(r'^[-]?\d+$')
+
+    # Max INTEGER value supported by 'bq load'.
+    INTEGER_MAX_VALUE = 2**63 - 1
+
+    # Min INTEGER value supported by 'bq load'
+    INTEGER_MIN_VALUE = -2**63
+
+    # Detect floats inside quotes.
     FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
     def __init__(self,
@@ -320,11 +329,16 @@ class SchemaGenerator:
 
     def infer_value_type(self, value):
         """Infers the type of the given JSON value.
-        If the value is '{}', the type '__empty_record__' is returned.
-        If the value is '[]', the type '__empty_array__' is returned.
-        If the value is 'null' (python None), the type '__null__' is returned.
+
+        * If the value is '{}', the type '__empty_record__' is returned.
+        * If the value is '[]', the type '__empty_array__' is returned.
+        * If the value is 'null' (python None), the type '__null__' is returned.
+        * Integers and floats are inspected inside quotes.
+        * Integers which overflow signed 64-bit are considered to be floats, for
+          consistency with 'bq load'.
+
         Note that primitive types do not have the string '__' in the returned
-        value, which is a useful marker.
+        type string, which is a useful marker.
         """
         if isinstance(value, str):
             if self.TIMESTAMP_MATCHER.match(value):
@@ -334,7 +348,11 @@ class SchemaGenerator:
             elif self.TIME_MATCHER.match(value):
                 return 'TIME'
             elif self.INTEGER_MATCHER.match(value):
-                return 'QINTEGER'  # quoted integer
+                if int(value) < self.INTEGER_MIN_VALUE or \
+                    self.INTEGER_MAX_VALUE < int(value):
+                    return 'QFLOAT'  # quoted float
+                else:
+                    return 'QINTEGER'  # quoted integer
             elif self.FLOAT_MATCHER.match(value):
                 return 'QFLOAT'  # quoted float
             elif value.lower() in ['true', 'false']:
@@ -345,7 +363,10 @@ class SchemaGenerator:
         elif isinstance(value, bool):
             return 'BOOLEAN'
         elif isinstance(value, int):
-            return 'INTEGER'
+            if value < self.INTEGER_MIN_VALUE or self.INTEGER_MAX_VALUE < value:
+                return 'FLOAT'
+            else:
+                return 'INTEGER'
         elif isinstance(value, float):
             return 'FLOAT'
         elif value is None:

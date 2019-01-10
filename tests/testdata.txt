@@ -647,3 +647,46 @@ SCHEMA
 ]
 END
 
+# Integers in quoted strings that fit inside a signed 64-bit -> INTEGER
+# See https://github.com/bxparks/bigquery-schema-generator/issues/18.
+DATA
+{"name": "9223372036854775807"}
+{"name": "-9223372036854775808"}
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "INTEGER"
+  }
+]
+END
+
+# Integers in quoted strings that overflow a signed 64-bit -> FLOAT
+# See https://github.com/bxparks/bigquery-schema-generator/issues/18.
+DATA
+{"name": "9223372036854775808"}
+{"name": "-9223372036854775809"}
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "FLOAT"
+  }
+]
+END
+
+# (Overflowing integer inside quotes) + STRING -> STRING
+DATA
+{"name": "9223372036854775808"}
+{"name": "hello"}
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  }
+]
+END
