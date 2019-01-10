@@ -1,5 +1,8 @@
 # Changelog
 
+* Unreleased
+    * Integers that overflow signed 64-bits are inferred to be `FLOAT` for
+      consistency with `bq load`.
 * 0.3 (2018-12-17)
     * Tighten TIMESTAMP and DATE validation (thanks jtschichold@).
     * Inspect the internals of STRING values to infer BOOLEAN, INTEGER or FLOAT

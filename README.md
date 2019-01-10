@@ -305,17 +305,20 @@ compatibility rules implemented by **bq load**:
 * a primitive type (`FLOAT`, `INTEGER`, `STRING`) cannot upgrade to a `REPEATED`
   primitive type
     * there's no technical reason why this cannot be allowed, but **bq load**
-      does not support it, so we follow the rule
+      does not support it, so we follow its behavior
 * a `DATETIME` field is always inferred to be a `TIMESTAMP`
     * the format of these two fields is identical (in the absence of timezone)
     * we follow the same logic as **bq load** and always infer these as
       `TIMESTAMP`
-
-The BigQuery loader looks inside string values to determine if they are actually
-BOOLEAN, INTEGER or FLOAT types instead. In other words, `"True"` is considered
-a BOOLEAN type, `"1"` is considered an INTEGER type, and `"2.1"` is consiered a
-FLOAT type. Luigi Mori (jtschichold@) added additional logic to replicate the
-type conversion logic used by `bq load` for these strings.
+* `BOOLEAN`, `INTEGER`, and `FLOAT` can appear inside quoted strings
+  * In other words, `"True"` is considered a BOOLEAN type, `"1"` is considered
+    an INTEGER type, and `"2.1"` is considered a FLOAT type. Luigi Mori
+    (jtschichold@) added additional logic to replicate the type conversion
+    logic used by `bq load` for these strings.
+* `INTEGER` values overflowing a 64-bit signed integer upgrade to `FLOAT`
+    * integers greater than `2^63-1` (9223372036854775807)
+    * integers less than `-2^63` (-9223372036854775808)
+    * (See [Issue #18](https://github.com/bxparks/bigquery-schema-generator/issues/18) for more details)
 
 ## Examples
 
