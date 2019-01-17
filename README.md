@@ -278,7 +278,29 @@ The supported types are:
 * `RECORD`
 
 The `generate-schema` script supports both `NULLABLE` and `REPEATED` modes of
-all of the above types. The following types are _not_ supported:
+all of the above types.
+
+The supported format of `TIMESTAMP` is as close as practical to the
+[bq load format](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#timestamp-type):
+```
+YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
+```
+which appears to be an extension of the
+[ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601).
+The difference from `bq load` is that the `[time zone]` component can be only
+* `Z`
+* `UTC` (same as `Z`)
+* `(+|-)H[H][:M[M]]`
+
+The suffix `UTC` is not standard ISO 8601 nor
+[documented by Google](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#time-zones)
+but the `UTC` suffix is used by `bq extract` and the web interface. (See
+[Issue 19](https://github.com/bxparks/bigquery-schema-generator/issues/19).
+
+Timezone names from the [tz database](http://www.iana.org/time-zones) (e.g.
+"America/Los_Angeles") are _not_ supported by `generate-schema`.
+
+The following types are _not_ supported at all:
 
 * `BYTES`
 * `DATETIME` (unable to distinguish from `TIMESTAMP`)

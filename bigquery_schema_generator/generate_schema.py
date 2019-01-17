@@ -47,7 +47,7 @@ class SchemaGenerator:
     # YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
     TIMESTAMP_MATCHER = re.compile(
         r'^\d{4}-\d{1,2}-\d{1,2}[T ]\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?'
-        r'(([+-]\d{1,2}(:\d{1,2})?)|Z)?$')
+        r' *(([+-]\d{1,2}(:\d{1,2})?)|Z|UTC)?$')
 
     # Detect a DATE field of the form YYYY-[M]M-[D]D.
     DATE_MATCHER = re.compile(
