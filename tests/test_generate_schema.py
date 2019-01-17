@@ -39,6 +39,12 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertTrue(
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01Z'))
         self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01 Z'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01UTC'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01 UTC'))
+        self.assertTrue(
             SchemaGenerator.TIMESTAMP_MATCHER.match(
                 '2017-05-22 12:33:01-7:00'))
         self.assertTrue(
@@ -73,6 +79,8 @@ class TestSchemaGenerator(unittest.TestCase):
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-5-2A2:3:0'))
         self.assertFalse(
             SchemaGenerator.TIMESTAMP_MATCHER.match('17-05-22T12:33:01'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01 UT'))
 
     def test_date_matcher_valid(self):
         self.assertTrue(SchemaGenerator.DATE_MATCHER.match('2017-05-22'))
