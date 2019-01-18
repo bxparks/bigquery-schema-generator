@@ -43,3 +43,12 @@ Ran 1 test in 0.000s
 
 OK
 ```
+
+## Running All Tests
+
+Use the
+[discovery mode](https://docs.python.org/3/library/unittest.html)
+for `unittest` which runs all tests with the `test_` prefix:
+```
+$ python3 -m unittest
+```
