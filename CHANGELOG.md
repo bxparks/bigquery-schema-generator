@@ -1,9 +1,9 @@
 # Changelog
 
-* Unreleased
-    * Integers that overflow signed 64-bits are inferred to be `FLOAT` for
-      consistency with `bq load`.
-    * Support 'UTC' suffix in TIMESTAMP fields, in addition to 'Z'.
+* 0.3.1 (2019-01-18)
+    * Infer integers that overflow signed 64-bits to be `FLOAT` for
+      consistency with `bq load`. (Fixes #18)
+    * Support 'UTC' suffix in TIMESTAMP fields, in addition to 'Z'. (Fixes #19)
 * 0.3 (2018-12-17)
     * Tighten TIMESTAMP and DATE validation (thanks jtschichold@).
     * Inspect the internals of STRING values to infer BOOLEAN, INTEGER or FLOAT

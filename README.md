@@ -10,7 +10,7 @@ Usage:
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-Version: 0.3 (2018-12-17)
+Version: 0.3.1 (2019-01-18)
 
 ## Background
 
@@ -295,7 +295,7 @@ The difference from `bq load` is that the `[time zone]` component can be only
 The suffix `UTC` is not standard ISO 8601 nor
 [documented by Google](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#time-zones)
 but the `UTC` suffix is used by `bq extract` and the web interface. (See
-[Issue 19](https://github.com/bxparks/bigquery-schema-generator/issues/19).
+[Issue 19](https://github.com/bxparks/bigquery-schema-generator/issues/19).)
 
 Timezone names from the [tz database](http://www.iana.org/time-zones) (e.g.
 "America/Los_Angeles") are _not_ supported by `generate-schema`.
@@ -333,10 +333,10 @@ compatibility rules implemented by **bq load**:
     * we follow the same logic as **bq load** and always infer these as
       `TIMESTAMP`
 * `BOOLEAN`, `INTEGER`, and `FLOAT` can appear inside quoted strings
-  * In other words, `"True"` is considered a BOOLEAN type, `"1"` is considered
-    an INTEGER type, and `"2.1"` is considered a FLOAT type. Luigi Mori
-    (jtschichold@) added additional logic to replicate the type conversion
-    logic used by `bq load` for these strings.
+  * In other words, `"true"` (or `"True"` or `"false"`, etc) is considered a
+    BOOLEAN type, `"1"` is considered an INTEGER type, and `"2.1"` is considered
+    a FLOAT type. Luigi Mori (jtschichold@) added additional logic to replicate
+    the type conversion logic used by `bq load` for these strings.
 * `INTEGER` values overflowing a 64-bit signed integer upgrade to `FLOAT`
     * integers greater than `2^63-1` (9223372036854775807)
     * integers less than `-2^63` (-9223372036854775808)
@@ -434,7 +434,12 @@ tested it on:
 * Ubuntu 17.10, Python 3.6.3
 * Ubuntu 17.04, Python 3.5.3
 * Ubuntu 16.04, Python 3.5.2
+* MacOS 10.14.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## Authors
 
