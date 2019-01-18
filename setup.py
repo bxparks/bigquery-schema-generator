@@ -14,7 +14,7 @@ except:
         long_description = 'BigQuery schema generator.'
 
 setup(name='bigquery-schema-generator',
-      version='0.3',
+      version='0.3.1',
       description='BigQuery schema generator',
       long_description=long_description,
       url='https://github.com/bxparks/bigquery-schema-generator',

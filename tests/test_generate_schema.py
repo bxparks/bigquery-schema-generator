@@ -39,6 +39,12 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertTrue(
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01Z'))
         self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01 Z'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01UTC'))
+        self.assertTrue(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22 12:33:01 UTC'))
+        self.assertTrue(
             SchemaGenerator.TIMESTAMP_MATCHER.match(
                 '2017-05-22 12:33:01-7:00'))
         self.assertTrue(
@@ -73,6 +79,8 @@ class TestSchemaGenerator(unittest.TestCase):
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-5-2A2:3:0'))
         self.assertFalse(
             SchemaGenerator.TIMESTAMP_MATCHER.match('17-05-22T12:33:01'))
+        self.assertFalse(
+            SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01 UT'))
 
     def test_date_matcher_valid(self):
         self.assertTrue(SchemaGenerator.DATE_MATCHER.match('2017-05-22'))
@@ -97,26 +105,58 @@ class TestSchemaGenerator(unittest.TestCase):
 
     def test_infer_value_type(self):
         generator = SchemaGenerator()
+
+        # STRING and date/time
+        self.assertEqual('STRING', generator.infer_value_type('abc'))
         self.assertEqual('TIME', generator.infer_value_type('12:34:56'))
         self.assertEqual('DATE', generator.infer_value_type('2018-02-08'))
         self.assertEqual('TIMESTAMP',
                          generator.infer_value_type('2018-02-08T12:34:56'))
-        self.assertEqual('STRING', generator.infer_value_type('abc'))
+
+        # BOOLEAN
         self.assertEqual('BOOLEAN', generator.infer_value_type(True))
         self.assertEqual('QBOOLEAN', generator.infer_value_type('True'))
         self.assertEqual('QBOOLEAN', generator.infer_value_type('False'))
         self.assertEqual('QBOOLEAN', generator.infer_value_type('true'))
         self.assertEqual('QBOOLEAN', generator.infer_value_type('false'))
+
+        # INTEGER
         self.assertEqual('INTEGER', generator.infer_value_type(1))
+        self.assertEqual('INTEGER',
+                         generator.infer_value_type(9223372036854775807))
+        self.assertEqual('INTEGER',
+                         generator.infer_value_type(-9223372036854775808))
+        self.assertEqual('FLOAT',
+                         generator.infer_value_type(9223372036854775808))
+        self.assertEqual('FLOAT',
+                         generator.infer_value_type(-9223372036854775809))
+
+        # Quoted INTEGER
         self.assertEqual('QINTEGER', generator.infer_value_type('2'))
         self.assertEqual('QINTEGER', generator.infer_value_type('-1000'))
+        self.assertEqual('QINTEGER',
+                         generator.infer_value_type('9223372036854775807'))
+        self.assertEqual('QINTEGER',
+                         generator.infer_value_type('-9223372036854775808'))
+        self.assertEqual('QFLOAT',
+                         generator.infer_value_type('9223372036854775808'))
+        self.assertEqual('QFLOAT',
+                         generator.infer_value_type('-9223372036854775809'))
+
+        # FLOAT
         self.assertEqual('FLOAT', generator.infer_value_type(2.0))
+
+        # Quoted FLOAT
         self.assertEqual('QFLOAT', generator.infer_value_type('3.0'))
         self.assertEqual('QFLOAT', generator.infer_value_type('-5.4'))
+
+        # RECORD
         self.assertEqual('RECORD', generator.infer_value_type({
             'a': 1,
             'b': 2
         }))
+
+        # Special
         self.assertEqual('__null__', generator.infer_value_type(None))
         self.assertEqual('__empty_record__', generator.infer_value_type({}))
         self.assertEqual('__empty_array__', generator.infer_value_type([]))

@@ -10,7 +10,7 @@ Usage:
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-Version: 0.3 (2018-12-17)
+Version: 0.3.1 (2019-01-18)
 
 ## Background
 
@@ -136,7 +136,7 @@ autodetection:
 ```
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
     --ignore_unknown_values \
-    --autodetect
+    --autodetect \
     mydataset.mytable \
     file.data.json
 ```
@@ -278,7 +278,29 @@ The supported types are:
 * `RECORD`
 
 The `generate-schema` script supports both `NULLABLE` and `REPEATED` modes of
-all of the above types. The following types are _not_ supported:
+all of the above types.
+
+The supported format of `TIMESTAMP` is as close as practical to the
+[bq load format](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#timestamp-type):
+```
+YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
+```
+which appears to be an extension of the
+[ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601).
+The difference from `bq load` is that the `[time zone]` component can be only
+* `Z`
+* `UTC` (same as `Z`)
+* `(+|-)H[H][:M[M]]`
+
+The suffix `UTC` is not standard ISO 8601 nor
+[documented by Google](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#time-zones)
+but the `UTC` suffix is used by `bq extract` and the web interface. (See
+[Issue 19](https://github.com/bxparks/bigquery-schema-generator/issues/19).)
+
+Timezone names from the [tz database](http://www.iana.org/time-zones) (e.g.
+"America/Los_Angeles") are _not_ supported by `generate-schema`.
+
+The following types are _not_ supported at all:
 
 * `BYTES`
 * `DATETIME` (unable to distinguish from `TIMESTAMP`)
@@ -305,17 +327,20 @@ compatibility rules implemented by **bq load**:
 * a primitive type (`FLOAT`, `INTEGER`, `STRING`) cannot upgrade to a `REPEATED`
   primitive type
     * there's no technical reason why this cannot be allowed, but **bq load**
-      does not support it, so we follow the rule
+      does not support it, so we follow its behavior
 * a `DATETIME` field is always inferred to be a `TIMESTAMP`
     * the format of these two fields is identical (in the absence of timezone)
     * we follow the same logic as **bq load** and always infer these as
       `TIMESTAMP`
-
-The BigQuery loader looks inside string values to determine if they are actually
-BOOLEAN, INTEGER or FLOAT types instead. In other words, `"True"` is considered
-a BOOLEAN type, `"1"` is considered an INTEGER type, and `"2.1"` is consiered a
-FLOAT type. Luigi Mori (jtschichold@) added additional logic to replicate the
-type conversion logic used by `bq load` for these strings.
+* `BOOLEAN`, `INTEGER`, and `FLOAT` can appear inside quoted strings
+  * In other words, `"true"` (or `"True"` or `"false"`, etc) is considered a
+    BOOLEAN type, `"1"` is considered an INTEGER type, and `"2.1"` is considered
+    a FLOAT type. Luigi Mori (jtschichold@) added additional logic to replicate
+    the type conversion logic used by `bq load` for these strings.
+* `INTEGER` values overflowing a 64-bit signed integer upgrade to `FLOAT`
+    * integers greater than `2^63-1` (9223372036854775807)
+    * integers less than `-2^63` (-9223372036854775808)
+    * (See [Issue #18](https://github.com/bxparks/bigquery-schema-generator/issues/18) for more details)
 
 ## Examples
 
@@ -409,7 +434,12 @@ tested it on:
 * Ubuntu 17.10, Python 3.6.3
 * Ubuntu 17.04, Python 3.5.3
 * Ubuntu 16.04, Python 3.5.2
+* MacOS 10.14.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## Authors
 
