@@ -162,10 +162,18 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual('__empty_array__', generator.infer_value_type([]))
         self.assertEqual('__array__', generator.infer_value_type([1, 2, 3]))
 
-    def test_should_not_infer_integer_if_quoted_and_disabled(self):
-        generator = SchemaGenerator(no_quoted_integer=True)
+    def test_quoted_values_are_strings(self):
+        generator = SchemaGenerator(quoted_values_are_strings=True)
+        self.assertEqual('STRING', generator.infer_value_type('abcd'))
+
         self.assertEqual('INTEGER', generator.infer_value_type(1))
         self.assertEqual('STRING', generator.infer_value_type('1'))
+
+        self.assertEqual('FLOAT', generator.infer_value_type(1.0))
+        self.assertEqual('STRING', generator.infer_value_type('1.0'))
+
+        self.assertEqual('BOOLEAN', generator.infer_value_type(True))
+        self.assertEqual('STRING', generator.infer_value_type('True'))
 
     def test_infer_bigquery_type(self):
         generator = SchemaGenerator()
@@ -447,6 +455,7 @@ class TestFromDataFile(unittest.TestCase):
     def verify_data_chunk(self, chunk_count, chunk):
         data_flags = chunk['data_flags']
         keep_nulls = ('keep_nulls' in data_flags)
+        quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']
@@ -455,7 +464,8 @@ class TestFromDataFile(unittest.TestCase):
         print("Test chunk %s: First record: %s" % (chunk_count, records[0]))
 
         # Generate schema.
-        generator = SchemaGenerator(keep_nulls)
+        generator = SchemaGenerator(keep_nulls=keep_nulls,
+            quoted_values_are_strings=quoted_values_are_strings)
         schema_map, error_logs = generator.deduce_schema(records)
         schema = generator.flatten_schema(schema_map)
 
