@@ -162,6 +162,11 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual('__empty_array__', generator.infer_value_type([]))
         self.assertEqual('__array__', generator.infer_value_type([1, 2, 3]))
 
+    def test_should_not_infer_integer_if_quoted_and_disabled(self):
+        generator = SchemaGenerator(no_quoted_integer=True)
+        self.assertEqual('INTEGER', generator.infer_value_type(1))
+        self.assertEqual('STRING', generator.infer_value_type('1'))
+
     def test_infer_bigquery_type(self):
         generator = SchemaGenerator()
 
