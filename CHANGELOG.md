@@ -1,5 +1,9 @@
 # Changelog
 
+* Unreleased
+    * Add `--quoted_values_are_strings` flag to force quoted values (integers,
+      floats, booleans) to be interpreted as a `STRING`. (Thanks de-code@,
+      see #22).
 * 0.3.1 (2019-01-18)
     * Infer integers that overflow signed 64-bits to be `FLOAT` for
       consistency with `bq load`. (Fixes #18)

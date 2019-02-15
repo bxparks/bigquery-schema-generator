@@ -707,3 +707,29 @@ SCHEMA
   }
 ]
 END
+
+# Quoted values are forced to be strings if --quoted_values_are_strings flag
+# given
+DATA quoted_values_are_strings
+{ "qi" : "1", "qf": "1.0", "qb": "true" }
+{ "qi" : "2", "qf": "1.1", "qb": "True" }
+{ "qi" : "3", "qf": "2.0", "qb": "false" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qi",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qf",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "qb",
+    "type": "STRING"
+  }
+]
+END
