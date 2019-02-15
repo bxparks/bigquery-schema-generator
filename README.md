@@ -242,9 +242,11 @@ INFO:root:Processed 1 lines
 #### Quoted Values Are Strings (`--quoted_values_are_strings`)
 
 By default, quoted values are inspected to determine if they can be interpreted
-as integers, floats or booleans. This is consistent with the algorithm used by
-`bq load`. However, sometimes this is not the desired behavior. This flag forces
-the `generate-schema` script to always interpret quoted values as a `STRING`.
+as `DATE`, `TIME`, `TIMESTAMP`, `BOOLEAN`, `INTEGER` or `FLOAT`. This is
+consistent with the algorithm used by `bq load`. However, for the `BOOLEAN`,
+`INTEGER`, or `FLOAT` types, it is sometimes more useful to interpret those as
+normal strings instead. This flag disables type inference for `BOOLEAN`,
+`INTEGER` and `FLOAT` types inside quoted strings.
 
 ```
 $ generate-schema
@@ -372,7 +374,7 @@ compatibility rules implemented by **bq load**:
       considered a FLOAT type. Luigi Mori (jtschichold@) added additional logic
       to replicate the type conversion logic used by `bq load` for these
       strings.
-    * This type inferrence inside quoted strings can be disabled using the
+    * This type inference inside quoted strings can be disabled using the
       `--quoted_values_are_strings` flag
     * (See [Issue #22](https://github.com/bxparks/bigquery-schema-generator/issues/22) for more details.)
 * `INTEGER` values overflowing a 64-bit signed integer upgrade to `FLOAT`
@@ -482,7 +484,9 @@ See [CHANGELOG.md](CHANGELOG.md).
 ## Authors
 
 * Created by Brian T. Park (brian@xparks.net).
-* Additional type inferrence logic by Luigi Mori (jtschichold@).
+* Additional type inference logic by Luigi Mori (jtschichold@).
+* Flag to disable type inference inside quoted strings by Daniel Ecer
+  (de-code@).
 
 ## License
 
