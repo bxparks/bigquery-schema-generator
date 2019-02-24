@@ -10,7 +10,7 @@ Usage:
 $ generate-schema < file.data.json > file.schema.json
 ```
 
-Version: 0.3.1 (2019-01-18)
+Version: 0.3.2 (2019-02-24)
 
 ## Background
 
@@ -164,6 +164,7 @@ The `generate_schema.py` script supports a handful of command line flags:
 
 * `--help` Prints the usage with the list of supported flags.
 * `--keep_nulls` Print the schema for null values, empty arrays or empty records.
+* `--quoted_values_are_strings` Quoted values should be interpreted as strings
 * `--debugging_interval lines` Number of lines between heartbeat debugging messages. Default 1000.
 * `--debugging_map` Print the metadata schema map for debugging purposes
 
@@ -183,6 +184,8 @@ optional arguments:
   -h, --help            show this help message and exit
   --keep_nulls          Print the schema for null values, empty arrays or
                         empty records.
+  --quoted_values_are_strings
+                        Quoted values should be interpreted as strings
   --debugging_interval DEBUGGING_INTERVAL
                         Number of lines between heartbeat debugging messages.
   --debugging_map       Print the metadata schema_map instead of the schema
@@ -232,6 +235,39 @@ INFO:root:Processed 1 lines
     "mode": "NULLABLE",
     "type": "STRING",
     "name": "s"
+  }
+]
+```
+
+#### Quoted Values Are Strings (`--quoted_values_are_strings`)
+
+By default, quoted values are inspected to determine if they can be interpreted
+as `DATE`, `TIME`, `TIMESTAMP`, `BOOLEAN`, `INTEGER` or `FLOAT`. This is
+consistent with the algorithm used by `bq load`. However, for the `BOOLEAN`,
+`INTEGER`, or `FLOAT` types, it is sometimes more useful to interpret those as
+normal strings instead. This flag disables type inference for `BOOLEAN`,
+`INTEGER` and `FLOAT` types inside quoted strings.
+
+```
+$ generate-schema
+{ "name": "1" }
+^D
+[
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "INTEGER"
+  }
+]
+
+$ generate-schema --quoted_values_are_strings
+{ "name": "1" }
+^D
+[
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
   }
 ]
 ```
@@ -333,10 +369,14 @@ compatibility rules implemented by **bq load**:
     * we follow the same logic as **bq load** and always infer these as
       `TIMESTAMP`
 * `BOOLEAN`, `INTEGER`, and `FLOAT` can appear inside quoted strings
-  * In other words, `"true"` (or `"True"` or `"false"`, etc) is considered a
-    BOOLEAN type, `"1"` is considered an INTEGER type, and `"2.1"` is considered
-    a FLOAT type. Luigi Mori (jtschichold@) added additional logic to replicate
-    the type conversion logic used by `bq load` for these strings.
+    * In other words, `"true"` (or `"True"` or `"false"`, etc) is considered a
+      BOOLEAN type, `"1"` is considered an INTEGER type, and `"2.1"` is
+      considered a FLOAT type. Luigi Mori (jtschichold@) added additional logic
+      to replicate the type conversion logic used by `bq load` for these
+      strings.
+    * This type inference inside quoted strings can be disabled using the
+      `--quoted_values_are_strings` flag
+    * (See [Issue #22](https://github.com/bxparks/bigquery-schema-generator/issues/22) for more details.)
 * `INTEGER` values overflowing a 64-bit signed integer upgrade to `FLOAT`
     * integers greater than `2^63-1` (9223372036854775807)
     * integers less than `-2^63` (-9223372036854775808)
@@ -444,7 +484,9 @@ See [CHANGELOG.md](CHANGELOG.md).
 ## Authors
 
 * Created by Brian T. Park (brian@xparks.net).
-* Additional type inferrence logic by Luigi Mori (jtschichold@).
+* Additional type inference logic by Luigi Mori (jtschichold@).
+* Flag to disable type inference inside quoted strings by Daniel Ecer
+  (de-code@).
 
 ## License
 

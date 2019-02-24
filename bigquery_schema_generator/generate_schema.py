@@ -70,10 +70,12 @@ class SchemaGenerator:
 
     def __init__(self,
                  keep_nulls=False,
+                 quoted_values_are_strings=False,
                  debugging_interval=1000,
                  debugging_map=False):
-        self.debugging_interval = debugging_interval
         self.keep_nulls = keep_nulls
+        self.quoted_values_are_strings = quoted_values_are_strings
+        self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
         self.line_number = 0
         self.error_logs = []
@@ -347,16 +349,21 @@ class SchemaGenerator:
                 return 'DATE'
             elif self.TIME_MATCHER.match(value):
                 return 'TIME'
-            elif self.INTEGER_MATCHER.match(value):
-                if int(value) < self.INTEGER_MIN_VALUE or \
-                    self.INTEGER_MAX_VALUE < int(value):
+            elif not self.quoted_values_are_strings:
+                # Implement the same type inference algorithm as 'bq load' for
+                # quoted values that look like ints, floats or bools.
+                if self.INTEGER_MATCHER.match(value):
+                    if int(value) < self.INTEGER_MIN_VALUE or \
+                        self.INTEGER_MAX_VALUE < int(value):
+                        return 'QFLOAT'  # quoted float
+                    else:
+                        return 'QINTEGER'  # quoted integer
+                elif self.FLOAT_MATCHER.match(value):
                     return 'QFLOAT'  # quoted float
+                elif value.lower() in ['true', 'false']:
+                    return 'QBOOLEAN'  # quoted boolean
                 else:
-                    return 'QINTEGER'  # quoted integer
-            elif self.FLOAT_MATCHER.match(value):
-                return 'QFLOAT'  # quoted float
-            elif value.lower() in ['true', 'false']:
-                return 'QBOOLEAN'  # quoted boolean
+                    return 'STRING'
             else:
                 return 'STRING'
         # Python 'bool' is a subclass of 'int' so we must check it first
@@ -594,6 +601,10 @@ def main():
         help='Print the schema for null values, empty arrays or empty records.',
         action="store_true")
     parser.add_argument(
+        '--quoted_values_are_strings',
+        help='Quoted values should be interpreted as strings',
+        action="store_true")
+    parser.add_argument(
         '--debugging_interval',
         help='Number of lines between heartbeat debugging messages.',
         type=int,
@@ -608,8 +619,11 @@ def main():
     # Configure logging.
     logging.basicConfig(level=logging.INFO)
 
-    generator = SchemaGenerator(args.keep_nulls, args.debugging_interval,
-                                args.debugging_map)
+    generator = SchemaGenerator(
+        keep_nulls=args.keep_nulls,
+        quoted_values_are_strings=args.quoted_values_are_strings,
+        debugging_interval=args.debugging_interval,
+        debugging_map=args.debugging_map)
     generator.run()
 
 
