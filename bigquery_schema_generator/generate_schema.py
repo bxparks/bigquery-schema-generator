@@ -26,6 +26,8 @@ Usage: generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
 """
 
 from collections import OrderedDict
+from io import StringIO
+import csv
 import argparse
 import json
 import logging
@@ -68,7 +70,7 @@ class SchemaGenerator:
     # Detect floats inside quotes.
     FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
-    def __init__(self,
+    def __init__(self, input_format,
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
@@ -79,6 +81,7 @@ class SchemaGenerator:
         self.debugging_map = debugging_map
         self.line_number = 0
         self.error_logs = []
+        self.input_format = input_format
 
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
@@ -120,12 +123,19 @@ class SchemaGenerator:
           * a list of possible errors containing a map of 'line' and 'msg'
         """
         schema_map = OrderedDict()
+        first_line = next(file)
         for line in file:
             self.line_number += 1
             if self.line_number % self.debugging_interval == 0:
                 logging.info("Processing line %s", self.line_number)
             # TODO: Add support for other input formats, like CSV?
-            json_object = json.loads(line)
+            if self.input_format == 'csv':
+                logging.info('first line: %s' % first_line)
+                logging.info('line: %s' % line)
+                json_object = dict(zip(next(csv.reader(StringIO(first_line))), next(csv.reader(StringIO(line)))))
+                logging.info('Our object: %s' % json_object)
+            else:
+                json_object = json.loads(line)
 
             # Deduce the schema from this given data record.
             try:
@@ -628,7 +638,8 @@ def main():
         keep_nulls=args.keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
-        debugging_map=args.debugging_map)
+        debugging_map=args.debugging_map,
+        input_format=args.input_format)
     generator.run()
 
 
