@@ -614,6 +614,11 @@ def main():
         help=
         'Print the metadata schema_map instead of the schema for debugging',
         action="store_true")
+    parser.add_argument(
+        '--input_format',
+        help='Specify an alternative input format.',
+        default='json'
+    )
     args = parser.parse_args()
 
     # Configure logging.
