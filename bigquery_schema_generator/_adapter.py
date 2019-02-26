@@ -37,8 +37,6 @@ class _CsvAdapter:
 
 
 class _DefaultAdapter:
-    def __init__(self):
-        super().__init__()
 
     @staticmethod
     def to_json_object(line):
