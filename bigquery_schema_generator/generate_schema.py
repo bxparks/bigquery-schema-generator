@@ -28,6 +28,7 @@ Usage: generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
 from collections import OrderedDict
 import argparse
 import json
+import csv
 import logging
 import re
 import sys
@@ -72,13 +73,15 @@ class SchemaGenerator:
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
-                 debugging_map=False):
+                 debugging_map=False,
+                 input_format='json'):
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
         self.line_number = 0
         self.error_logs = []
+        self.input_format = input_format
 
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
@@ -119,13 +122,19 @@ class SchemaGenerator:
           * an OrderedDict which is sorted by the 'key' of the column name
           * a list of possible errors containing a map of 'line' and 'msg'
         """
+
+        if self.input_format == 'csv':
+            reader = csv.DictReader(file)
+        elif self.input_format == 'json' or self.input_format is None:
+            reader = json_reader(file)
+        else:
+            raise Exception("Unknown input_format '%s'" % self.input_format)
+
         schema_map = OrderedDict()
-        for line in file:
+        for json_object in reader:
             self.line_number += 1
             if self.line_number % self.debugging_interval == 0:
                 logging.info("Processing line %s", self.line_number)
-            # TODO: Add support for other input formats, like CSV?
-            json_object = json.loads(line)
 
             # Deduce the schema from this given data record.
             try:
@@ -442,6 +451,15 @@ class SchemaGenerator:
             print()
 
 
+def json_reader(file):
+    """A generator that converts an iterable of newline-delimited JSON objects
+    ('file' could be a 'list' for testing purposes) and returns a Python dict
+    object representing the JSON object on the line.
+    """
+    for line in file:
+        yield json.loads(line)
+
+
 def convert_type(atype, btype):
     """Return the compatible type between 'atype' and 'btype'. Return 'None'
     if there is no compatible type. Type conversions (in order of precedence)
@@ -614,6 +632,10 @@ def main():
         help=
         'Print the metadata schema_map instead of the schema for debugging',
         action="store_true")
+    parser.add_argument(
+        '--input_format',
+        help='Specify an alternative input format.',
+        default='json')
     args = parser.parse_args()
 
     # Configure logging.
@@ -623,7 +645,8 @@ def main():
         keep_nulls=args.keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
-        debugging_map=args.debugging_map)
+        debugging_map=args.debugging_map,
+        input_format=args.input_format)
     generator.run()
 
 

@@ -1,5 +1,5 @@
 # Data with only null values should produce empty schema.
-DATA 
+DATA
 { "s": null, "a": [], "m": {} }
 SCHEMA
 []
@@ -729,6 +729,75 @@ SCHEMA
   {
     "mode": "NULLABLE",
     "name": "qb",
+    "type": "STRING"
+  }
+]
+END
+
+# Simple CSV file
+DATA csv
+name,surname,age
+John,Smith,23
+Michael,Johnson,27
+Maria,Smith,30
+Joanna,Anders,21
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "age",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "surname",
+    "type": "STRING"
+  }
+]
+END
+
+# CSV file requiring more complex type inference
+DATA csv
+name,surname,age,is_student,registration_date,score
+John,Smith,23,true,2019-02-26 13:20:00,1
+Michael,Johnson,27,True,2019-02-26T13:21:00,2.0
+Maria,Smith,30,false,2019-02-26 13:22:00 UTC,3.1
+Joanna,Anders,21,"False",2019-02-26 13:23:00,4
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "age",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "is_student",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "registration_date",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "score",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "surname",
     "type": "STRING"
   }
 ]
