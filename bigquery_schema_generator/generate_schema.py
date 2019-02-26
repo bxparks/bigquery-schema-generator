@@ -26,13 +26,13 @@ Usage: generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
 """
 
 from collections import OrderedDict
-from io import StringIO
-import csv
 import argparse
 import json
 import logging
 import re
 import sys
+
+from bigquery_schema_generator._adapter import _CsvAdapter, _DefaultAdapter
 
 
 class SchemaGenerator:
@@ -122,20 +122,19 @@ class SchemaGenerator:
           * an OrderedDict which is sorted by the 'key' of the column name
           * a list of possible errors containing a map of 'line' and 'msg'
         """
+
+        if self.input_format == 'csv':
+            adapter = _CsvAdapter(file)
+        else:
+            adapter = _DefaultAdapter()
+
         schema_map = OrderedDict()
-        first_line = next(file)
         for line in file:
             self.line_number += 1
             if self.line_number % self.debugging_interval == 0:
                 logging.info("Processing line %s", self.line_number)
             # TODO: Add support for other input formats, like CSV?
-            if self.input_format == 'csv':
-                logging.info('first line: %s' % first_line)
-                logging.info('line: %s' % line)
-                json_object = dict(zip(next(csv.reader(StringIO(first_line))), next(csv.reader(StringIO(line)))))
-                logging.info('Our object: %s' % json_object)
-            else:
-                json_object = json.loads(line)
+            json_object = adapter.to_json_object(line)
 
             # Deduce the schema from this given data record.
             try:
