@@ -70,11 +70,13 @@ class SchemaGenerator:
     # Detect floats inside quotes.
     FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
-    def __init__(self, input_format,
+    def __init__(self,
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
-                 debugging_map=False):
+                 debugging_map=False,
+                 input_format='json'
+                 ):
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
