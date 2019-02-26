@@ -174,9 +174,9 @@ Print the built-in help strings:
 
 ```
 $ generate-schema --help
-usage: generate_schema.py [-h] [--keep_nulls]
-                          [--debugging_interval DEBUGGING_INTERVAL]
-                          [--debugging_map]
+usage: generate-schema [-h] [--keep_nulls] [--quoted_values_are_strings]
+                       [--debugging_interval DEBUGGING_INTERVAL]
+                       [--debugging_map] [--input_format INPUT_FORMAT]
 
 Generate BigQuery schema.
 
@@ -190,6 +190,8 @@ optional arguments:
                         Number of lines between heartbeat debugging messages.
   --debugging_map       Print the metadata schema_map instead of the schema
                         for debugging
+  --input_format INPUT_FORMAT
+                        Specify an alternative input format.
 ```
 
 #### Keep Nulls (`--keep_nulls`)
