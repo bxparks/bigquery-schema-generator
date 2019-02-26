@@ -44,6 +44,18 @@ Ran 1 test in 0.000s
 OK
 ```
 
+## Unit Test for _adapter.py
+
+The unit test for `_adapter.py` should look like this:
+```
+$ ./test_adapter.py
+.
+----------------------------------------------------------------------
+Ran 2 tests in 0.003s
+
+OK
+```
+
 ## Running All Tests
 
 Use the
