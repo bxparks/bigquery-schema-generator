@@ -182,19 +182,26 @@ class SchemaGenerator:
         old_status = old_schema_entry['status']
         new_status = new_schema_entry['status']
 
-        # new 'soft' does not clobber old 'hard'
-        if old_status == 'hard' and new_status == 'soft':
-            return old_schema_entry
-
-        # new 'hard' clobbers old 'soft'
-        if old_status == 'soft' and new_status == 'hard':
+        if self.input_format == 'csv':
+            if old_status == 'hard' and new_status == 'soft':
+                new_schema_entry['info']['type'] = old_schema_entry['info']['type']
+            elif old_status == 'soft' and new_status == 'hard':
+                new_schema_entry['status'] = old_status
             return new_schema_entry
+        else:
+            # new 'soft' does not clobber old 'hard'
+            if old_status == 'hard' and new_status == 'soft':
+                return old_schema_entry
 
-        # Verify that it's soft->soft or hard->hard
-        if old_status != new_status:
-            raise Exception(
-                ('Unexpected schema_entry type, this should never happen: '
-                 'old (%s); new (%s)') % (old_status, new_status))
+            # new 'hard' clobbers old 'soft'
+            if old_status == 'soft' and new_status == 'hard':
+                return new_schema_entry
+
+            # Verify that it's soft->soft or hard->hard
+            if old_status != new_status:
+                raise Exception(
+                    ('Unexpected schema_entry type, this should never happen: '
+                     'old (%s); new (%s)') % (old_status, new_status))
 
         old_info = old_schema_entry['info']
         old_name = old_info['name']
@@ -531,6 +538,8 @@ def convert_type(atype, btype):
     # All remaining combination of:
     # (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) +
     #   (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) => STRING
+    logging.info(atype)
+    logging.info(btype)
     if is_string_type(atype) and is_string_type(btype):
         return 'STRING'
 

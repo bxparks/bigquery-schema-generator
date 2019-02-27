@@ -764,7 +764,7 @@ END
 # A missing field (no comma-separator) is read as a 'null'. An empty field is
 # read as an empty string ("") but should be interpreted to be a 'null' to
 # allow subsequent non-null fields to determine the type.
-DATA csv
+DATA csv keep_nulls
 name,surname,age
 John
 Michael,,
@@ -791,7 +791,7 @@ SCHEMA
 END
 
 # CSV file requiring more complex type inference
-DATA csv
+DATA csv keep_nulls
 name,surname,age,is_student,registration_date,score
 John
 Michael,Johnson,27,True,,2.0
@@ -822,7 +822,7 @@ SCHEMA
   {
     "mode": "NULLABLE",
     "name": "score",
-    "type": "FLOAT"
+    "type": "INTEGER"
   },
   {
     "mode": "NULLABLE",
