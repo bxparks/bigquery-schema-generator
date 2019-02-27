@@ -304,7 +304,13 @@ class SchemaGenerator:
                                             ('type', 'RECORD'),
                                         ]))])
         else:
-            schema_entry = OrderedDict([('status', 'hard'),
+            # Empty fields are returned as empty strings, and must be treated as
+            # a (soft String) to allow clobbering by subsquent non-empty fields.
+            if value == "" and self.input_format == 'csv':
+                status = 'soft'
+            else:
+                status = 'hard'
+            schema_entry = OrderedDict([('status', status),
                                         ('info', OrderedDict([
                                             ('mode', value_mode),
                                             ('name', key),

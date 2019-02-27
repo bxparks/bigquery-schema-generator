@@ -761,12 +761,41 @@ SCHEMA
 ]
 END
 
+# A missing field (no comma-separator) is read as a 'null'. An empty field is
+# read as an empty string ("") but should be interpreted to be a 'null' to
+# allow subsequent non-null fields to determine the type.
+DATA csv
+name,surname,age
+John
+Michael,,
+Maria,Smith,30
+Joanna,Anders,21
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "age",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "surname",
+    "type": "STRING"
+  }
+]
+END
+
 # CSV file requiring more complex type inference
 DATA csv
 name,surname,age,is_student,registration_date,score
-John,Smith,23,true,2019-02-26 13:20:00,1
-Michael,Johnson,27,True,2019-02-26T13:21:00,2.0
-Maria,Smith,30,false,2019-02-26 13:22:00 UTC,3.1
+John
+Michael,Johnson,27,True,,2.0
+Maria,"","",false,2019-02-26 13:22:00 UTC,
 Joanna,Anders,21,"False",2019-02-26 13:23:00,4
 SCHEMA
 [
