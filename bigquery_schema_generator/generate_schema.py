@@ -18,10 +18,14 @@ Generate the BigQuery schema of the data file given on the standard input.
 Unlike the BigQuery importer which uses only the first 100 records, this script
 uses all available records in the data file.
 
-Usage: generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
+Usage: 
+    $ generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
+    $ generate_schema.py [-h] [flags ...] --input_format csv < file.data.csv \
+        > file.schema.json
 
 * file.data.json is a newline-delimited JSON data file, one JSON object per
   line.
+* file.data.csv is a CSV file with the column names on the first line
 * file.schema.json is the schema definition of the table.
 """
 
@@ -87,7 +91,7 @@ class SchemaGenerator:
         self.error_logs.append({'line': self.line_number, 'msg': msg})
 
     def deduce_schema(self, file):
-        """Loop through each newlined-delimitered JSON line of 'file' and
+        """Loop through each newlined-delimited line of 'file' and
         deduce the BigQuery schema. The schema is returned as a recursive map
         that contains both the database schema and some additional metadata
         about each entry. It has the following form:
@@ -110,13 +114,14 @@ class SchemaGenerator:
           }
 
         The status of 'hard' or 'soft' refers the reliability of the type
-        inference that we made for a particular JSON element. If the element
-        value is a 'null', we assume that it's a 'soft' STRING. If the element
-        value is an empty [] or {}, we assume that the element type is a 'soft'
-        REPEATED STRING or a 'soft' NULLABLE RECORD, respectively. When we come
-        across a subsequent entry with non-null or non-empty values, we are
-        able infer the type definitively, and we change the status to 'hard'.
-        The status can transition from 'soft' to 'hard' but not the reverse.
+        inference that we made for a particular column element value. If the
+        element value is a 'null', we assume that it's a 'soft' STRING. If the
+        element value is an empty [] or {}, we assume that the element type is a
+        'soft' REPEATED STRING or a 'soft' NULLABLE RECORD, respectively. When
+        we come across a subsequent entry with non-null or non-empty values, we
+        are able infer the type definitively, and we change the status to
+        'hard'. The status can transition from 'soft' to 'hard' but not the
+        reverse.
 
         The function returns a tuple of 2 things:
           * an OrderedDict which is sorted by the 'key' of the column name
@@ -259,9 +264,9 @@ class SchemaGenerator:
         return new_schema_entry
 
     def get_schema_entry(self, key, value):
-        """Determines the 'schema_entry' of the JSON (key, value) pair. Calls
-        deduce_schema_for_line() recursively if the value is another JSON
-        object, instead of a primitive.
+        """Determines the 'schema_entry' of the (key, value) pair. Calls
+        deduce_schema_for_line() recursively if the value is another object
+        instead of a primitive (this will happen only for JSON input file).
         """
         value_mode, value_type = self.infer_bigquery_type(value)
 
@@ -321,7 +326,7 @@ class SchemaGenerator:
 
     def infer_bigquery_type(self, node_value):
         """Determines the BigQuery (mode, type) tuple of the right hand side of
-        the JSON value.
+        the node value.
         """
         node_type = self.infer_value_type(node_value)
         if node_type != '__array__':
@@ -345,7 +350,7 @@ class SchemaGenerator:
         return ('REPEATED', array_type)
 
     def infer_value_type(self, value):
-        """Infers the type of the given JSON value.
+        """Infers the type of the given node value.
 
         * If the value is '{}', the type '__empty_record__' is returned.
         * If the value is '[]', the type '__empty_array__' is returned.
@@ -459,8 +464,8 @@ class SchemaGenerator:
 
 def json_reader(file):
     """A generator that converts an iterable of newline-delimited JSON objects
-    ('file' could be a 'list' for testing purposes) and returns a Python dict
-    object representing the JSON object on the line.
+    ('file' could be a 'list' for testing purposes) into an iterable of Python
+    dict objects.
     """
     for line in file:
         yield json.loads(line)
@@ -619,10 +624,15 @@ def sort_schema(schema):
 
 def main():
     # Configure command line flags.
-    parser = argparse.ArgumentParser(description='Generate BigQuery schema.')
+    parser = argparse.ArgumentParser(
+		description='Generate BigQuery schema from JSON or CSV file.')
+    parser.add_argument(
+        '--input_format',
+        help="Specify an alternative input format ('csv', 'json')",
+        default='json')
     parser.add_argument(
         '--keep_nulls',
-        help='Print the schema for null values, empty arrays or empty records.',
+        help='Print the schema for null values, empty arrays or empty records',
         action="store_true")
     parser.add_argument(
         '--quoted_values_are_strings',
@@ -630,7 +640,7 @@ def main():
         action="store_true")
     parser.add_argument(
         '--debugging_interval',
-        help='Number of lines between heartbeat debugging messages.',
+        help='Number of lines between heartbeat debugging messages',
         type=int,
         default=1000)
     parser.add_argument(
@@ -638,10 +648,6 @@ def main():
         help=
         'Print the metadata schema_map instead of the schema for debugging',
         action="store_true")
-    parser.add_argument(
-        '--input_format',
-        help='Specify an alternative input format.',
-        default='json')
     args = parser.parse_args()
 
     # Configure logging.
