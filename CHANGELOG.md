@@ -1,6 +1,8 @@
 # Changelog
 
 * Unreleased
+    * Support CSV input files using `--input_format` flag. Preserve
+      the ordering of fields in the schema file for CSV.
 * 0.3.2 (2019-02-24)
     * Add `--quoted_values_are_strings` flag to force quoted values (integers,
       floats, booleans) to be interpreted as a `STRING`. (Thanks de-code@,

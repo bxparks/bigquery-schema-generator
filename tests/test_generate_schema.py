@@ -19,7 +19,6 @@ import os
 import json
 from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
-from bigquery_schema_generator.generate_schema import sort_schema
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import convert_type
 from data_reader import DataReader
@@ -382,50 +381,6 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertTrue(is_string_type('DATE'))
         self.assertTrue(is_string_type('TIME'))
 
-    def test_sort_schema(self):
-        # yapf: disable
-        unsorted = [{
-            "mode": "REPEATED",
-            "name": "a",
-            "type": "STRING"
-        }, {
-            "fields": [{
-                "mode": "NULLABLE",
-                "name": "__unknown__",
-                "type": "STRING"
-            }],
-            "mode": "NULLABLE",
-            "name": "m",
-            "type": "RECORD"
-        }, {
-            "mode": "NULLABLE",
-            "name": "s",
-            "type": "STRING"
-        }]
-
-        expected = [
-            OrderedDict([
-                ("mode", "REPEATED"),
-                ("name", "a"),
-                ("type", "STRING")]),
-            OrderedDict([
-                ("fields", [
-                    OrderedDict([
-                        ("mode", "NULLABLE"),
-                        ("name", "__unknown__"),
-                        ("type", "STRING")])
-                ]),
-                ("mode", "NULLABLE"),
-                ("name", "m"),
-                ("type", "RECORD")]),
-            OrderedDict([
-                ("mode", "NULLABLE"),
-                ("name", "s"),
-                ("type", "STRING")])
-        ]
-        # yapf: enable
-        self.assertEqual(expected, sort_schema(unsorted))
-
 
 class TestFromDataFile(unittest.TestCase):
     """Read the test case data from TESTDATA_FILE and verify that the expected
@@ -454,6 +409,7 @@ class TestFromDataFile(unittest.TestCase):
 
     def verify_data_chunk(self, chunk_count, chunk):
         data_flags = chunk['data_flags']
+        input_format = 'csv' if ('csv' in data_flags) else 'json'
         keep_nulls = ('keep_nulls' in data_flags)
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         records = chunk['records']
@@ -464,13 +420,15 @@ class TestFromDataFile(unittest.TestCase):
         print("Test chunk %s: First record: %s" % (chunk_count, records[0]))
 
         # Generate schema.
-        generator = SchemaGenerator(keep_nulls=keep_nulls,
+        generator = SchemaGenerator(
+            input_format=input_format,
+            keep_nulls=keep_nulls,
             quoted_values_are_strings=quoted_values_are_strings)
         schema_map, error_logs = generator.deduce_schema(records)
         schema = generator.flatten_schema(schema_map)
 
-        # Check the schema
-        expected = sort_schema(json.loads(expected_schema))
+        # Check the schema, preserving order
+        expected = json.loads(expected_schema, object_pairs_hook=OrderedDict)
         self.assertEqual(expected, schema)
 
         # Check the error messages

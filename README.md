@@ -1,13 +1,15 @@
 # BigQuery Schema Generator
 
-This script generates the BigQuery schema from the newline-delimited JSON data
-records on the STDIN. The BigQuery data importer (`bq load`) uses only the
-first 100 lines when the schema auto-detection feature is enabled. In contrast,
-this script uses all data records to generate the schema.
+This script generates the BigQuery schema from the newline-delimited data
+records on the STDIN. The records can be in JSON format or CSV format. The
+BigQuery data importer (`bq load`) uses only the first 100 lines when the schema
+auto-detection feature is enabled. In contrast, this script uses all data
+records to generate the schema.
 
 Usage:
 ```
 $ generate-schema < file.data.json > file.schema.json
+$ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
 Version: 0.3.2 (2019-02-24)
@@ -24,7 +26,8 @@ schema can be defined manually or the schema can be
 [auto-detected](https://cloud.google.com/bigquery/docs/schema-detect#auto-detect).
 
 When the auto-detect feature is used, the BigQuery data importer examines only
-the first 100 records of the input data. In many cases, this is sufficient
+the [first 100 records](https://cloud.google.com/bigquery/docs/schema-detect)
+of the input data. In many cases, this is sufficient
 because the data records were dumped from another database and the exact schema
 of the source table was known. However, for data extracted from a service
 (e.g. using a REST API) the record fields could have been organically added
@@ -53,11 +56,12 @@ the `sudo` coommand, and you can just type:
 $ pip3 install bigquery_schema_generator
 ```
 
-A successful install should print out the following:
+A successful install should print out something the following (the version
+number may be different):
 ```
 Collecting bigquery-schema-generator
 Installing collected packages: bigquery-schema-generator
-Successfully installed bigquery-schema-generator-0.1.4
+Successfully installed bigquery-schema-generator-0.3.2
 ```
 
 The shell script `generate-schema` is installed in the same directory as
@@ -84,8 +88,14 @@ command without typing in the full path.
 
 ## Usage
 
-The `generate_schema.py` script accepts a newline-delimited JSON data file on
-the STDIN. (CSV is not supported currently.) It scans every record in the
+The `generate_schema.py` script accepts a newline-delimited data file on
+the STDIN. JSON input format has been tested and supported robustly.
+CSV input format was added more recently (in v0.4) using the `--input_format
+csv` flag. The support is not as robust as JSON file. For example, CSV format
+supports only the comma-separator, and does not support the pipe (`|`) or tab
+(`\t`) character.
+
+Unlike `bq load`, the `generate_schema.py` script reads every record in the
 input data file to deduce the table's schema. It prints the JSON formatted
 schema file on the STDOUT. There are at least 3 ways to run this script:
 
@@ -116,17 +126,17 @@ then you can invoke the Python script directly:
 $ ./generate_schema.py < file.data.json > file.schema.json
 ```
 
-### Schema Output
+### Using the Schema Output
 
 The resulting schema file can be given to the **bq load** command using the
 `--schema` flag:
 ```
 
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
-        --ignore_unknown_values \
-        --schema file.schema.json \
-        mydataset.mytable \
-        file.data.json
+    --ignore_unknown_values \
+    --schema file.schema.json \
+    mydataset.mytable \
+    file.data.json
 ```
 where `mydataset.mytable` is the target table in BigQuery.
 
@@ -135,37 +145,64 @@ autodetection:
 
 ```
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
-    --ignore_unknown_values \
     --autodetect \
     mydataset.mytable \
     file.data.json
 ```
 
-A useful flag for `bq load` is `--ignore_unknown_values`, which causes `bq
-load` to ignore fields in the input data which are not defined in the schema.
-When `generate_schema.py` detects an inconsistency in the definition of a
-particular field in the input data, it removes the field from the schema
-definition. Without the `--ignore_unknown_values`, the `bq load` fails when
-the inconsistent data record is read. Another useful flag during development and
-debugging is `--replace` which replaces any existing BigQuery table.
+If the input file is in CSV format, the first line will be the header line which
+is needed to generate the schema. But this header line must be skipped when
+importing the file into the BigQuery table. We accomplish this using
+`--skip_leading_rows` flag:
+```
+$ bq load --source_format CSV \
+    --schema file.schema.json \
+    --skip_leading_rows 1 \
+    mydataset.mytable \
+    file.data.csv
+```
+
+Here is the equivalent `bq load` command for CSV files using autodetection:
+```
+$ bq load --source_format CSV \
+    --autodetect \
+    mydataset.mytable \
+    file.data.csv
+```
+
+A useful flag for `bq load`, particularly for JSON files,  is
+`--ignore_unknown_values`, which causes `bq load` to ignore fields in the input
+data which are not defined in the schema. When `generate_schema.py` detects an
+inconsistency in the definition of a particular field in the input data, it
+removes the field from the schema definition. Without the
+`--ignore_unknown_values`, the `bq load` fails when the inconsistent data record
+is read.
+
+Another useful flag during development and debugging is `--replace` which
+replaces any existing BigQuery table.
 
 After the BigQuery table is loaded, the schema can be retrieved using:
 
 ```
-$ bq show --schema mydataset.mytable | python -m json.tool
+$ bq show --schema mydataset.mytable | python3 -m json.tool
 ```
 
 (The `python -m json.tool` command will pretty-print the JSON formatted schema
-file.) This schema file should be identical to `file.schema.json`.
+file. Another alternative is the [jq command](https://stedolan.github.io/jq/).)
+The resulting schema file should be identical to `file.schema.json`.
 
 ### Flag Options
 
 The `generate_schema.py` script supports a handful of command line flags:
 
 * `--help` Prints the usage with the list of supported flags.
-* `--keep_nulls` Print the schema for null values, empty arrays or empty records.
+* `--input_format` Specifies the input file format ('csv' or 'json') with 'json'
+  as the default.
+* `--keep_nulls` Print the schema for null values, empty arrays or empty
+  records.
 * `--quoted_values_are_strings` Quoted values should be interpreted as strings
-* `--debugging_interval lines` Number of lines between heartbeat debugging messages. Default 1000.
+* `--debugging_interval lines` Number of lines between heartbeat debugging
+  messages. Default 1000.
 * `--debugging_map` Print the metadata schema map for debugging purposes
 
 #### Help (`--help`)
@@ -174,23 +211,35 @@ Print the built-in help strings:
 
 ```
 $ generate-schema --help
-usage: generate_schema.py [-h] [--keep_nulls]
-                          [--debugging_interval DEBUGGING_INTERVAL]
-                          [--debugging_map]
+usage: generate-schema [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
+                       [--quoted_values_are_strings]
+                       [--debugging_interval DEBUGGING_INTERVAL]
+                       [--debugging_map]
 
-Generate BigQuery schema.
+Generate BigQuery schema from JSON or CSV file.
 
 optional arguments:
   -h, --help            show this help message and exit
+  --input_format INPUT_FORMAT
+                        Specify an alternative input format ('csv', 'json')
   --keep_nulls          Print the schema for null values, empty arrays or
-                        empty records.
+                        empty records
   --quoted_values_are_strings
                         Quoted values should be interpreted as strings
   --debugging_interval DEBUGGING_INTERVAL
-                        Number of lines between heartbeat debugging messages.
+                        Number of lines between heartbeat debugging messages
   --debugging_map       Print the metadata schema_map instead of the schema
                         for debugging
 ```
+
+#### Input Format (`--input_format`)
+
+Specifies the format of the input file, either `json` (default) or `csv`.
+
+If `csv` file is specified, the `--keep_nulls` flag is automatically activated.
+This is required because CSV columns are defined positionally, so the schema
+file must contain all the columns specified by the CSV file, in the same
+order, even if the column contains an empty value for every record.
 
 #### Keep Nulls (`--keep_nulls`)
 
