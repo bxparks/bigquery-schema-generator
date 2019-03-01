@@ -655,7 +655,7 @@ def main():
 
     generator = SchemaGenerator(
         input_format=args.input_format,
-        keep_nulls=keep_nulls,
+        keep_nulls=args.keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
         debugging_map=args.debugging_map)

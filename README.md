@@ -56,7 +56,7 @@ the `sudo` coommand, and you can just type:
 $ pip3 install bigquery_schema_generator
 ```
 
-A successful install should print out something the following (the version
+A successful install should print out something like the following (the version
 number may be different):
 ```
 Collecting bigquery-schema-generator
@@ -88,8 +88,8 @@ command without typing in the full path.
 
 ## Usage
 
-The `generate_schema.py` script accepts a newline-delimited data file on
-the STDIN. JSON input format has been tested and supported robustly.
+The `generate_schema.py` script accepts a newline-delimited JSON or
+CSV data file on the STDIN. JSON input format has been tested extensively.
 CSV input format was added more recently (in v0.4) using the `--input_format
 csv` flag. The support is not as robust as JSON file. For example, CSV format
 supports only the comma-separator, and does not support the pipe (`|`) or tab
@@ -97,7 +97,9 @@ supports only the comma-separator, and does not support the pipe (`|`) or tab
 
 Unlike `bq load`, the `generate_schema.py` script reads every record in the
 input data file to deduce the table's schema. It prints the JSON formatted
-schema file on the STDOUT. There are at least 3 ways to run this script:
+schema file on the STDOUT.
+
+There are at least 3 ways to run this script:
 
 **1) Shell script**
 
@@ -151,7 +153,7 @@ $ bq load --source_format NEWLINE_DELIMITED_JSON \
 ```
 
 If the input file is in CSV format, the first line will be the header line which
-is needed to generate the schema. But this header line must be skipped when
+enumerates the names of the columns. But this header line must be skipped when
 importing the file into the BigQuery table. We accomplish this using
 `--skip_leading_rows` flag:
 ```
@@ -188,7 +190,7 @@ $ bq show --schema mydataset.mytable | python3 -m json.tool
 ```
 
 (The `python -m json.tool` command will pretty-print the JSON formatted schema
-file. Another alternative is the [jq command](https://stedolan.github.io/jq/).)
+file. An alternative is the [jq command](https://stedolan.github.io/jq/).)
 The resulting schema file should be identical to `file.schema.json`.
 
 ### Flag Options
@@ -491,6 +493,46 @@ $ cat file.schema.json
     "mode": "NULLABLE",
     "name": "i",
     "type": "INTEGER"
+  }
+]
+```
+
+Here is the schema generated from a CSV input file. The first line is the header
+containing the names of the columns, and the schema lists the columns in the
+same order as the header:
+```
+$ generate-schema --input_format csv
+e,b,c,d,a
+1,x,true,,2.0
+2,x,,,4
+3,,,,
+^D
+INFO:root:Processed 3 lines
+[
+  {
+    "mode": "NULLABLE",
+    "name": "e",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "b",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "c",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "d",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "a",
+    "type": "FLOAT"
   }
 ]
 ```
