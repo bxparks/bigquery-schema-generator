@@ -126,17 +126,17 @@ then you can invoke the Python script directly:
 $ ./generate_schema.py < file.data.json > file.schema.json
 ```
 
-### Schema Output
+### Using the Schema Output
 
 The resulting schema file can be given to the **bq load** command using the
 `--schema` flag:
 ```
 
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
-        --ignore_unknown_values \
-        --schema file.schema.json \
-        mydataset.mytable \
-        file.data.json
+    --ignore_unknown_values \
+    --schema file.schema.json \
+    mydataset.mytable \
+    file.data.json
 ```
 where `mydataset.mytable` is the target table in BigQuery.
 
@@ -145,41 +145,65 @@ autodetection:
 
 ```
 $ bq load --source_format NEWLINE_DELIMITED_JSON \
-    --ignore_unknown_values \
     --autodetect \
     mydataset.mytable \
     file.data.json
 ```
 
-A useful flag for `bq load` is `--ignore_unknown_values`, which causes `bq
-load` to ignore fields in the input data which are not defined in the schema.
-When `generate_schema.py` detects an inconsistency in the definition of a
-particular field in the input data, it removes the field from the schema
-definition. Without the `--ignore_unknown_values`, the `bq load` fails when
-the inconsistent data record is read. Another useful flag during development and
-debugging is `--replace` which replaces any existing BigQuery table.
+If the input file is in CSV format, the first line will be the header line which
+is needed to generate the schema. But this header line must be skipped when
+importing the file into the BigQuery table. We accomplish this using
+`--skip_leading_rows` flag:
+```
+$ bq load --source_format CSV \
+    --schema file.schema.json \
+    --skip_leading_rows 1 \
+    mydataset.mytable \
+    file.data.csv
+```
+
+Here is the equivalent `bq load` command for CSV files using autodetection:
+```
+$ bq load --source_format CSV \
+    --autodetect \
+    mydataset.mytable \
+    file.data.csv
+```
+
+A useful flag for `bq load`, particularly for JSON files,  is
+`--ignore_unknown_values`, which causes `bq load` to ignore fields in the input
+data which are not defined in the schema. When `generate_schema.py` detects an
+inconsistency in the definition of a particular field in the input data, it
+removes the field from the schema definition. Without the
+`--ignore_unknown_values`, the `bq load` fails when the inconsistent data record
+is read.
+
+Another useful flag during development and debugging is `--replace` which
+replaces any existing BigQuery table.
 
 After the BigQuery table is loaded, the schema can be retrieved using:
 
 ```
-$ bq show --schema mydataset.mytable | python -m json.tool
+$ bq show --schema mydataset.mytable | python3 -m json.tool
 ```
 
 (The `python -m json.tool` command will pretty-print the JSON formatted schema
-file.) This schema file should be identical to `file.schema.json`.
+file. Another alternative is the [jq command](https://stedolan.github.io/jq/).)
+The resulting schema file should be identical to `file.schema.json`.
 
 ### Flag Options
 
 The `generate_schema.py` script supports a handful of command line flags:
 
 * `--help` Prints the usage with the list of supported flags.
-* `--keep_nulls` Print the schema for null values, empty arrays or empty records.
+* `--input_format` Specifies the input file format ('csv' or 'json') with 'json'
+  as the default.
+* `--keep_nulls` Print the schema for null values, empty arrays or empty
+  records.
 * `--quoted_values_are_strings` Quoted values should be interpreted as strings
 * `--debugging_interval lines` Number of lines between heartbeat debugging
   messages. Default 1000.
 * `--debugging_map` Print the metadata schema map for debugging purposes
-* `--input_format` Specifies the input file format ('csv' or 'json') with 'json'
-  as the default.
 
 #### Help (`--help`)
 
@@ -211,6 +235,11 @@ optional arguments:
 #### Input Format (`--input_format`)
 
 Specifies the format of the input file, either `json` (default) or `csv`.
+
+If `csv` file is specified, the `--keep_nulls` flag is automatically activated.
+This is required because CSV columns are defined positionally, so the schema
+file must contain all the columns specified by the CSV file, in the same
+order, even if the column contains an empty value for every record.
 
 #### Keep Nulls (`--keep_nulls`)
 

@@ -410,10 +410,7 @@ class TestFromDataFile(unittest.TestCase):
     def verify_data_chunk(self, chunk_count, chunk):
         data_flags = chunk['data_flags']
         input_format = 'csv' if ('csv' in data_flags) else 'json'
-        if input_format == 'csv':
-            keep_nulls = True
-        else:
-            keep_nulls = ('keep_nulls' in data_flags)
+        keep_nulls = ('keep_nulls' in data_flags)
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
@@ -424,9 +421,9 @@ class TestFromDataFile(unittest.TestCase):
 
         # Generate schema.
         generator = SchemaGenerator(
+            input_format=input_format,
             keep_nulls=keep_nulls,
-            quoted_values_are_strings=quoted_values_are_strings,
-            input_format=input_format)
+            quoted_values_are_strings=quoted_values_are_strings)
         schema_map, error_logs = generator.deduce_schema(records)
         schema = generator.flatten_schema(schema_map)
 

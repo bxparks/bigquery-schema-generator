@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Generate the BigQuery schema of the data file given on the standard input.
-Unlike the BigQuery importer which uses only the first 100 records, this script
-uses all available records in the data file.
+Generate the BigQuery schema of the data file (JSON or CSV) given on the
+standard input. Unlike the BigQuery importer which uses only the first 100
+records, this script uses all available records in the data file.
 
-Usage: 
+Usage:
     $ generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
     $ generate_schema.py [-h] [flags ...] --input_format csv < file.data.csv \
         > file.schema.json
@@ -85,9 +85,14 @@ class SchemaGenerator:
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
 
-        # If JSON, sort the schema by the name of the column. If CSV, preserve
-        # the original ordering because 'bq load` matches the CSV column with
-        # the respective schema entry based on the order in the schema.
+        # If CSV, force keep_nulls = True
+        self.keep_nulls = True if (input_format == 'csv') else keep_nulls
+
+        # If JSON, sort the schema using the name of the column to be
+        # consistent with 'bq load'.
+        # If CSV, preserve the original ordering because 'bq load` matches the
+        # CSV column with the respective schema entry using the position of the
+        # column in the schema.
         self.sorted_schema = (input_format == 'json')
 
         self.line_number = 0
@@ -559,9 +564,15 @@ def is_string_type(thetype):
 
 def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
     """Converts the 'schema_map' into a more flatten version which is
-    compatible with BigQuery schema. If 'keep_nulls' is True then the resulting
-    schema contains entries for nulls, empty arrays or empty records in the
-    data.
+    compatible with BigQuery schema.
+
+    If 'keep_nulls' is True then the resulting schema contains entries for
+    nulls, empty arrays or empty records in the data.
+
+    If 'sorted_schema' is True, the schema is sorted using the name of the
+    columns. This seems to be the behavior for `bq load` using JSON data. For
+    CSV files, sorting must not happen because the position of schema column mus
+    match the position of the column value in the CSV file.
     """
     if not isinstance(schema_map, dict):
         raise Exception(
@@ -581,10 +592,12 @@ def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
         if status == 'soft' and not keep_nulls:
             continue
 
-        # Copy the 'info' dictionary ordered alphabetically to match the output
-        # of BigQuery.
+        # Copy the 'info' dictionary into the schema dict, preserving the
+        # ordering of the 'field', 'mode', 'name', 'type' elements. 'bq load'
+        # keeps these sorted, so we created them in sorted order using an
+        # OrderedDict, so they should preserve order here too.
         new_info = OrderedDict()
-        for key, value in sorted(info.items()):
+        for key, value in info.items():
             if key == 'fields':
                 if not value:
                     # Create a dummy attribute for an empty RECORD to make
@@ -640,15 +653,12 @@ def main():
     # Configure logging.
     logging.basicConfig(level=logging.INFO)
 
-    # If CSV, automatically set keep_nulls
-    keep_nulls = True if (args.input_format == 'csv') else args.keep_nulls
-
     generator = SchemaGenerator(
+        input_format=args.input_format,
         keep_nulls=keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
-        debugging_map=args.debugging_map,
-        input_format=args.input_format)
+        debugging_map=args.debugging_map)
     generator.run()
 
 
