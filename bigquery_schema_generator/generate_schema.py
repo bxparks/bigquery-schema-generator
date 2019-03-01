@@ -451,7 +451,7 @@ class SchemaGenerator:
         BigQuery using the same sorting order as BigQuery.
         """
         return flatten_schema_map(schema_map, self.keep_nulls,
-            self.sorted_schema)
+                                  self.sorted_schema)
 
     def run(self):
         """Read the data records from the STDIN and print out the BigQuery
@@ -611,8 +611,8 @@ def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
                     ]
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
-                    new_value = flatten_schema_map(
-                        value, keep_nulls, sorted_schema)
+                    new_value = flatten_schema_map(value, keep_nulls,
+                                                   sorted_schema)
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 new_value = value[1:]
             else:
@@ -625,7 +625,7 @@ def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
 def main():
     # Configure command line flags.
     parser = argparse.ArgumentParser(
-		description='Generate BigQuery schema from JSON or CSV file.')
+        description='Generate BigQuery schema from JSON or CSV file.')
     parser.add_argument(
         '--input_format',
         help="Specify an alternative input format ('csv', 'json')",
