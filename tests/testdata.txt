@@ -13,25 +13,25 @@ SCHEMA
 [
   {
     "mode": "REPEATED",
-    "type": "STRING",
-    "name": "a"
+    "name": "a",
+    "type": "STRING"
   },
   {
-    "mode": "NULLABLE",
     "fields": [
       {
         "mode": "NULLABLE",
-        "type": "STRING",
-        "name": "__unknown__"
+        "name": "__unknown__",
+        "type": "STRING"
       }
     ],
-    "type": "RECORD",
-    "name": "m"
+    "mode": "NULLABLE",
+    "name": "m",
+    "type": "RECORD"
   },
   {
     "mode": "NULLABLE",
-    "type": "STRING",
-    "name": "s"
+    "name": "s",
+    "type": "STRING"
   }
 ]
 END
@@ -487,8 +487,8 @@ SCHEMA
 [
   {
     "mode": "NULLABLE",
-    "name": "qi",
-    "type": "INTEGER"
+    "name": "qb",
+    "type": "BOOLEAN"
   },
   {
     "mode": "NULLABLE",
@@ -497,8 +497,8 @@ SCHEMA
   },
   {
     "mode": "NULLABLE",
-    "name": "qb",
-    "type": "BOOLEAN"
+    "name": "qi",
+    "type": "INTEGER"
   }
 ]
 END
@@ -511,8 +511,8 @@ SCHEMA
 [
   {
     "mode": "NULLABLE",
-    "name": "qi",
-    "type": "INTEGER"
+    "name": "qb",
+    "type": "BOOLEAN"
   },
   {
     "mode": "NULLABLE",
@@ -521,8 +521,8 @@ SCHEMA
   },
   {
     "mode": "NULLABLE",
-    "name": "qb",
-    "type": "BOOLEAN"
+    "name": "qi",
+    "type": "INTEGER"
   }
 ]
 END
@@ -554,7 +554,7 @@ SCHEMA
 [
   {
     "mode": "NULLABLE",
-    "name": "qi",
+    "name": "qb",
     "type": "STRING"
   },
   {
@@ -564,7 +564,7 @@ SCHEMA
   },
   {
     "mode": "NULLABLE",
-    "name": "qb",
+    "name": "qi",
     "type": "STRING"
   }
 ]
@@ -612,13 +612,13 @@ SCHEMA
   },
   {
     "mode": "NULLABLE",
-    "name": "qt",
-    "type": "TIME"
+    "name": "qdt",
+    "type": "TIMESTAMP"
   },
   {
     "mode": "NULLABLE",
-    "name": "qdt",
-    "type": "TIMESTAMP"
+    "name": "qt",
+    "type": "TIME"
   }
 ]
 END
@@ -636,12 +636,12 @@ SCHEMA
   },
   {
     "mode": "NULLABLE",
-    "name": "qt",
+    "name": "qdt",
     "type": "STRING"
   },
   {
     "mode": "NULLABLE",
-    "name": "qdt",
+    "name": "qt",
     "type": "STRING"
   }
 ]
@@ -718,7 +718,7 @@ SCHEMA
 [
   {
     "mode": "NULLABLE",
-    "name": "qi",
+    "name": "qb",
     "type": "STRING"
   },
   {
@@ -728,7 +728,7 @@ SCHEMA
   },
   {
     "mode": "NULLABLE",
-    "name": "qb",
+    "name": "qi",
     "type": "STRING"
   }
 ]
@@ -745,11 +745,6 @@ SCHEMA
 [
   {
     "mode": "NULLABLE",
-    "name": "age",
-    "type": "INTEGER"
-  },
-  {
-    "mode": "NULLABLE",
     "name": "name",
     "type": "STRING"
   },
@@ -757,6 +752,11 @@ SCHEMA
     "mode": "NULLABLE",
     "name": "surname",
     "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "age",
+    "type": "INTEGER"
   }
 ]
 END
@@ -774,11 +774,6 @@ SCHEMA
 [
   {
     "mode": "NULLABLE",
-    "name": "age",
-    "type": "INTEGER"
-  },
-  {
-    "mode": "NULLABLE",
     "name": "name",
     "type": "STRING"
   },
@@ -786,6 +781,11 @@ SCHEMA
     "mode": "NULLABLE",
     "name": "surname",
     "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "age",
+    "type": "INTEGER"
   }
 ]
 END
@@ -795,10 +795,20 @@ DATA csv
 name,surname,age,is_student,registration_date,score
 John
 Michael,Johnson,27,True,,2.0
-Maria,"","",false,2019-02-26 13:22:00 UTC,
+Maria,"",,false,2019-02-26 13:22:00 UTC,
 Joanna,Anders,21,"False",2019-02-26 13:23:00,4
 SCHEMA
 [
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "surname",
+    "type": "STRING"
+  },
   {
     "mode": "NULLABLE",
     "name": "age",
@@ -811,11 +821,6 @@ SCHEMA
   },
   {
     "mode": "NULLABLE",
-    "name": "name",
-    "type": "STRING"
-  },
-  {
-    "mode": "NULLABLE",
     "name": "registration_date",
     "type": "TIMESTAMP"
   },
@@ -823,11 +828,6 @@ SCHEMA
     "mode": "NULLABLE",
     "name": "score",
     "type": "FLOAT"
-  },
-  {
-    "mode": "NULLABLE",
-    "name": "surname",
-    "type": "STRING"
   }
 ]
 END

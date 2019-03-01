@@ -454,9 +454,12 @@ class TestFromDataFile(unittest.TestCase):
 
     def verify_data_chunk(self, chunk_count, chunk):
         data_flags = chunk['data_flags']
-        keep_nulls = ('keep_nulls' in data_flags)
-        quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         input_format = 'csv' if ('csv' in data_flags) else 'json'
+        if input_format == 'csv':
+            keep_nulls = True
+        else:
+            keep_nulls = ('keep_nulls' in data_flags)
+        quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']
@@ -472,8 +475,8 @@ class TestFromDataFile(unittest.TestCase):
         schema_map, error_logs = generator.deduce_schema(records)
         schema = generator.flatten_schema(schema_map)
 
-        # Check the schema
-        expected = sort_schema(json.loads(expected_schema))
+        # Check the schema, preserving order
+        expected = json.loads(expected_schema, object_pairs_hook=OrderedDict)
         self.assertEqual(expected, schema)
 
         # Check the error messages

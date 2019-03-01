@@ -74,18 +74,24 @@ class SchemaGenerator:
     FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
     def __init__(self,
+                 input_format='json',
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
-                 debugging_map=False,
-                 input_format='json'):
+                 debugging_map=False):
+        self.input_format = input_format
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
+
+        # If JSON, sort the schema by the name of the column. If CSV, preserve
+        # the original ordering because 'bq load` matches the CSV column with
+        # the respective schema entry based on the order in the schema.
+        self.sorted_schema = (input_format == 'json')
+
         self.line_number = 0
         self.error_logs = []
-        self.input_format = input_format
 
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
@@ -439,7 +445,8 @@ class SchemaGenerator:
         """Converts the bookkeeping 'schema_map' into the format recognized by
         BigQuery using the same sorting order as BigQuery.
         """
-        return flatten_schema_map(schema_map, self.keep_nulls)
+        return flatten_schema_map(schema_map, self.keep_nulls,
+            self.sorted_schema)
 
     def run(self):
         """Read the data records from the STDIN and print out the BigQuery
@@ -550,7 +557,7 @@ def is_string_type(thetype):
     ]
 
 
-def flatten_schema_map(schema_map, keep_nulls=False):
+def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema. If 'keep_nulls' is True then the resulting
     schema contains entries for nulls, empty arrays or empty records in the
@@ -562,7 +569,9 @@ def flatten_schema_map(schema_map, keep_nulls=False):
 
     # Build the BigQuery schema from the internal 'schema_map'.
     schema = []
-    for name, meta in sorted(schema_map.items()):
+    map_items = sorted(schema_map.items()) if sorted_schema \
+        else schema_map.items()
+    for name, meta in map_items:
         status = meta['status']
         info = meta['info']
 
@@ -589,7 +598,8 @@ def flatten_schema_map(schema_map, keep_nulls=False):
                     ]
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
-                    new_value = flatten_schema_map(value, keep_nulls)
+                    new_value = flatten_schema_map(
+                        value, keep_nulls, sorted_schema)
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 new_value = value[1:]
             else:
@@ -653,8 +663,11 @@ def main():
     # Configure logging.
     logging.basicConfig(level=logging.INFO)
 
+    # If CSV, automatically set keep_nulls
+    keep_nulls = True if (args.input_format == 'csv') else args.keep_nulls
+
     generator = SchemaGenerator(
-        keep_nulls=args.keep_nulls,
+        keep_nulls=keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
         debugging_map=args.debugging_map,
