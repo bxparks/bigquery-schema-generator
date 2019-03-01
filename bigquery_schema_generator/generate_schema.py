@@ -609,29 +609,6 @@ def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
     return schema
 
 
-def sort_schema(schema):
-    """Sort the given BigQuery 'schema' and return a version that uses
-    'OrderedDict' with the same sorting rules as BigQuery.
-    """
-    if not isinstance(schema, list):
-        raise Exception('Unsupported type %s' % type(schema))
-
-    old_sorted = sorted(schema, key=lambda x: x['name'])
-    new_sorted = []
-    for old_elem in old_sorted:
-        if not isinstance(old_elem, dict):
-            raise Exception('Unsupported type %s' % type(schema))
-
-        new_elem = OrderedDict()
-        for key, value in sorted(old_elem.items()):
-            if key == 'fields':
-                new_elem[key] = sort_schema(value)
-            else:
-                new_elem[key] = value
-        new_sorted.append(new_elem)
-    return new_sorted
-
-
 def main():
     # Configure command line flags.
     parser = argparse.ArgumentParser(

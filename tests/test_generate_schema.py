@@ -19,7 +19,6 @@ import os
 import json
 from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
-from bigquery_schema_generator.generate_schema import sort_schema
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import convert_type
 from data_reader import DataReader
@@ -381,50 +380,6 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertTrue(is_string_type('TIMESTAMP'))
         self.assertTrue(is_string_type('DATE'))
         self.assertTrue(is_string_type('TIME'))
-
-    def test_sort_schema(self):
-        # yapf: disable
-        unsorted = [{
-            "mode": "REPEATED",
-            "name": "a",
-            "type": "STRING"
-        }, {
-            "fields": [{
-                "mode": "NULLABLE",
-                "name": "__unknown__",
-                "type": "STRING"
-            }],
-            "mode": "NULLABLE",
-            "name": "m",
-            "type": "RECORD"
-        }, {
-            "mode": "NULLABLE",
-            "name": "s",
-            "type": "STRING"
-        }]
-
-        expected = [
-            OrderedDict([
-                ("mode", "REPEATED"),
-                ("name", "a"),
-                ("type", "STRING")]),
-            OrderedDict([
-                ("fields", [
-                    OrderedDict([
-                        ("mode", "NULLABLE"),
-                        ("name", "__unknown__"),
-                        ("type", "STRING")])
-                ]),
-                ("mode", "NULLABLE"),
-                ("name", "m"),
-                ("type", "RECORD")]),
-            OrderedDict([
-                ("mode", "NULLABLE"),
-                ("name", "s"),
-                ("type", "STRING")])
-        ]
-        # yapf: enable
-        self.assertEqual(expected, sort_schema(unsorted))
 
 
 class TestFromDataFile(unittest.TestCase):
