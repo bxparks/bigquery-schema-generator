@@ -75,11 +75,13 @@ class SchemaGenerator:
 
     def __init__(self,
                  input_format='json',
+                 infer_mode=False,
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
                  debugging_map=False):
         self.input_format = input_format
+        self.infer_mode = infer_mode
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
@@ -271,6 +273,10 @@ class SchemaGenerator:
                              'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
                             (old_status, old_name, old_mode, old_type,
                              new_status, new_name, new_mode, new_type))
+
+        if new_schema_entry.get('info').get('mode') == 'NULLABLE':
+            if new_schema_entry.get('is_always_filled_in') == 'yes' and self.infer_mode == 'true':
+                    new_schema_entry.get('info').update({'mode': 'REQUIRED'})
 
         candidate_type = convert_type(old_type, new_type)
         if not candidate_type:
@@ -669,6 +675,7 @@ def main():
 
     generator = SchemaGenerator(
         input_format=args.input_format,
+        infer_mode=args.infer_mode,
         keep_nulls=args.keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
