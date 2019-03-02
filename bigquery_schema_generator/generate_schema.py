@@ -75,6 +75,7 @@ class SchemaGenerator:
 
     def __init__(self,
                  input_format='json',
+                 infer_mode=False,
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
@@ -84,6 +85,7 @@ class SchemaGenerator:
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
+        self.infer_mode = infer_mode
 
         # If CSV, force keep_nulls = True
         self.keep_nulls = True if (input_format == 'csv') else keep_nulls
@@ -198,6 +200,13 @@ class SchemaGenerator:
         old_status = old_schema_entry['status']
         new_status = new_schema_entry['status']
 
+        if old_status == 'soft' or new_status == 'soft':
+            old_schema_entry['is_likely_required'] = 'no'
+            new_schema_entry['is_likely_required'] = 'no'
+
+        if old_schema_entry['is_likely_required'] == 'undetermined' and new_status == 'hard':
+            new_schema_entry['is_likely_required'] = 'yes'
+
         # new 'soft' does not clobber old 'hard'
         if old_status == 'hard' and new_status == 'soft':
             return old_schema_entry
@@ -258,11 +267,14 @@ class SchemaGenerator:
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
         # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
         # not support that so we must also follow that rule.
-        if old_mode != new_mode:
+        if old_mode != new_mode and self.infer_mode:
             raise Exception(('Mismatched mode for non-RECORD: '
                              'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
                             (old_status, old_name, old_mode, old_type,
                              new_status, new_name, new_mode, new_type))
+
+        if new_schema_entry['is_likely_required'] == 'yes' and self.infer_mode == 'true':
+            new_schema_entry['info']['mode'] = 'REQUIRED'
 
         candidate_type = convert_type(old_type, new_type)
         if not candidate_type:
@@ -327,6 +339,7 @@ class SchemaGenerator:
             else:
                 status = 'hard'
             schema_entry = OrderedDict([('status', status),
+                                        ('is_likely_required', 'undetermined'),
                                         ('info', OrderedDict([
                                             ('mode', value_mode),
                                             ('name', key),
@@ -660,6 +673,7 @@ def main():
 
     generator = SchemaGenerator(
         input_format=args.input_format,
+        infer_mode=args.infer_mode,
         keep_nulls=args.keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
