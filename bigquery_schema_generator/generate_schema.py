@@ -268,14 +268,14 @@ class SchemaGenerator:
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
         # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
         # not support that so we must also follow that rule.
-        if old_mode != new_mode and self.infer_mode == 'false':
+        if old_mode != new_mode and not self.infer_mode:
             raise Exception(('Mismatched mode for non-RECORD: '
                              'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
                             (old_status, old_name, old_mode, old_type,
                              new_status, new_name, new_mode, new_type))
 
         if new_schema_entry.get('info').get('mode') == 'NULLABLE':
-            if new_schema_entry.get('is_always_filled_in') == 'yes' and self.infer_mode == 'true':
+            if new_schema_entry.get('is_always_filled_in') == 'yes' and self.infer_mode:
                     new_schema_entry.get('info').update({'mode': 'REQUIRED'})
 
         candidate_type = convert_type(old_type, new_type)
@@ -656,7 +656,7 @@ def main():
     parser.add_argument(
         '--infer_mode',
         help="If set to 'true', keys consistently having non-null values will gain 'REQUIRED' mode in the schema.",
-        default='false'
+        action='store_false'
     )
     parser.add_argument(
         '--debugging_interval',

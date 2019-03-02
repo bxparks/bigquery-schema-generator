@@ -411,7 +411,7 @@ class TestFromDataFile(unittest.TestCase):
         data_flags = chunk['data_flags']
         input_format = 'csv' if ('csv' in data_flags) else 'json'
         keep_nulls = ('keep_nulls' in data_flags)
-        infer_mode = 'true' if ('infer_mode' in data_flags) else 'false'
+        infer_mode = ('infer_mode' in data_flags)
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
