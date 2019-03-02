@@ -639,6 +639,11 @@ def main():
         help='Quoted values should be interpreted as strings',
         action="store_true")
     parser.add_argument(
+        '--infer_mode',
+        help="If set to 'true', keys consistently having non-null values will gain 'REQUIRED' mode in the schema.",
+        default='false'
+    )
+    parser.add_argument(
         '--debugging_interval',
         help='Number of lines between heartbeat debugging messages',
         type=int,
