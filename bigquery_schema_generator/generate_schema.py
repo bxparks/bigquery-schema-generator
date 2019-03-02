@@ -268,7 +268,7 @@ class SchemaGenerator:
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
         # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
         # not support that so we must also follow that rule.
-        if old_mode != new_mode:
+        if old_mode != new_mode and self.infer_mode == 'false':
             raise Exception(('Mismatched mode for non-RECORD: '
                              'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
                             (old_status, old_name, old_mode, old_type,

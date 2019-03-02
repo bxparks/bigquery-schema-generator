@@ -411,6 +411,7 @@ class TestFromDataFile(unittest.TestCase):
         data_flags = chunk['data_flags']
         input_format = 'csv' if ('csv' in data_flags) else 'json'
         keep_nulls = ('keep_nulls' in data_flags)
+        infer_mode = 'true' if ('infer_mode' in data_flags) else 'false'
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
@@ -422,6 +423,7 @@ class TestFromDataFile(unittest.TestCase):
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,
+            infer_mode=infer_mode,
             keep_nulls=keep_nulls,
             quoted_values_are_strings=quoted_values_are_strings)
         schema_map, error_logs = generator.deduce_schema(records)
