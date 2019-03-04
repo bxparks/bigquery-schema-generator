@@ -195,17 +195,8 @@ The resulting schema file should be identical to `file.schema.json`.
 
 ### Flag Options
 
-The `generate_schema.py` script supports a handful of command line flags:
-
-* `--help` Prints the usage with the list of supported flags.
-* `--input_format` Specifies the input file format ('csv' or 'json') with 'json'
-  as the default.
-* `--keep_nulls` Print the schema for null values, empty arrays or empty
-  records.
-* `--quoted_values_are_strings` Quoted values should be interpreted as strings
-* `--debugging_interval lines` Number of lines between heartbeat debugging
-  messages. Default 1000.
-* `--debugging_map` Print the metadata schema map for debugging purposes
+The `generate_schema.py` script supports a handful of command line flags
+as shown by the `--help` flag below.
 
 #### Help (`--help`)
 
@@ -214,7 +205,7 @@ Print the built-in help strings:
 ```
 $ generate-schema --help
 usage: generate-schema [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
-                       [--quoted_values_are_strings]
+                       [--quoted_values_are_strings] [--infer_mode]
                        [--debugging_interval DEBUGGING_INTERVAL]
                        [--debugging_map]
 
@@ -228,6 +219,7 @@ optional arguments:
                         empty records
   --quoted_values_are_strings
                         Quoted values should be interpreted as strings
+  --infer_mode          Determine if mode can be 'NULLABLE' or 'REQUIRED'
   --debugging_interval DEBUGGING_INTERVAL
                         Number of lines between heartbeat debugging messages
   --debugging_map       Print the metadata schema_map instead of the schema
@@ -322,6 +314,16 @@ $ generate-schema --quoted_values_are_strings
   }
 ]
 ```
+
+#### Infer Mode (`--infer_mode`)
+
+Set the schema `mode` of a field to `REQUIRED` instead of the default
+`NULLABLE` if the field contains a non-null or non-empty value for every data
+record in the input file. This option is available only for CSV
+(`--input_format csv`) files. It is theoretically possible to implement this
+feature for JSON files, but too difficult to implement in practice because
+fields are often completely missing from a given JSON record (instead of
+explicitly being defined to be `null`).
 
 #### Debugging Interval (`--debugging_interval`)
 
@@ -537,6 +539,35 @@ INFO:root:Processed 3 lines
 ]
 ```
 
+Here is an example of the schema generated with the `--infer_mode` flag:
+```
+$ generate-schema --input_format csv --infer_mode
+name,surname,age
+John
+Michael,,
+Maria,Smith,30
+Joanna,Anders,21
+^D
+INFO:root:Processed 4 lines
+[
+  {
+    "mode": "REQUIRED",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "surname",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "age",
+    "type": "INTEGER"
+  }
+]
+```
+
 ## Benchmarks
 
 I wrote the `bigquery_schema_generator/anonymize.py` script to create an
@@ -575,9 +606,11 @@ See [CHANGELOG.md](CHANGELOG.md).
 ## Authors
 
 * Created by Brian T. Park (brian@xparks.net).
-* Additional type inference logic by Luigi Mori (jtschichold@).
+* Type inference inside quoted strings by Luigi Mori (jtschichold@).
 * Flag to disable type inference inside quoted strings by Daniel Ecer
   (de-code@).
+* Support for CSV files and detection of `REQUIRED` fields by Sandor Korotkevics
+  (korotkevics@).
 
 ## License
 
