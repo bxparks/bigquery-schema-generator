@@ -235,6 +235,9 @@ This is required because CSV columns are defined positionally, so the schema
 file must contain all the columns specified by the CSV file, in the same
 order, even if the column contains an empty value for every record.
 
+See [Issue #26](https://github.com/bxparks/bigquery-schema-generator/issues/26)
+for implementation details.
+
 #### Keep Nulls (`--keep_nulls`)
 
 Normally when the input data file contains a field which has a null, empty
@@ -325,6 +328,9 @@ feature for JSON files, but too difficult to implement in practice because
 fields are often completely missing from a given JSON record (instead of
 explicitly being defined to be `null`).
 
+See [Issue #28](https://github.com/bxparks/bigquery-schema-generator/issues/28)
+for implementation details.
+
 #### Debugging Interval (`--debugging_interval`)
 
 By default, the `generate_schema.py` script prints a short progress message
@@ -380,6 +386,11 @@ The difference from `bq load` is that the `[time zone]` component can be only
 * `Z`
 * `UTC` (same as `Z`)
 * `(+|-)H[H][:M[M]]`
+
+Note that BigQuery supports up to 6 decimal places after the integer 'second'
+component. `generate-schema` follows the same restriction for compatibility. If
+your input file contains more than 6 decimal places, you need to write a data
+cleansing filter to fix this.
 
 The suffix `UTC` is not standard ISO 8601 nor
 [documented by Google](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#time-zones)
