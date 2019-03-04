@@ -595,7 +595,9 @@ def is_string_type(thetype):
     ]
 
 
-def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True,
+def flatten_schema_map(schema_map,
+                       keep_nulls=False,
+                       sorted_schema=True,
                        infer_mode=False):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema.
