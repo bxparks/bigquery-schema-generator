@@ -3,6 +3,9 @@
 * Unreleased
     * Support CSV input files using `--input_format` flag. Preserve
       the ordering of fields in the schema file for CSV.
+    * Implement `--infer_mode` flag for CSV files so that fields that are
+      present in all input records are marked as `REQUIRED` in the schema
+      (Thanks korotkevics@, see #28).
 * 0.3.2 (2019-02-24)
     * Add `--quoted_values_are_strings` flag to force quoted values (integers,
       floats, booleans) to be interpreted as a `STRING`. (Thanks de-code@,
