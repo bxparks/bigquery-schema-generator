@@ -203,23 +203,22 @@ class SchemaGenerator:
 
     def merge_schema_entry(self, old_schema_entry, new_schema_entry):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
-        a merged schema entry. Recursivesly merges in sub-fields as well.
+        a merged schema entry. Recursively merges in sub-fields as well.
 
-        Returns the merged schema_entry. This method assumes that the
-        'old_schema_entry' is no longer used by the calling code, so it often
-        modifies the old_schema_entry in-place to generate the merged
-        schema_entry.
+        Returns the merged schema_entry. This method assumes that both
+        'old_schema_entry' and 'new_schema_entry' can be modified in place and
+        returned as the new schema_entry.
         """
         if not old_schema_entry:
             return new_schema_entry
 
-        old_status = old_schema_entry['status']
-        new_status = new_schema_entry['status']
-
-        # If new or old record is 'soft', permanently set 'filled' to False
-        if new_status == 'soft' or not old_schema_entry['filled']:
+        # If a field value is missing, permanently set 'filled' to False.
+        if not new_schema_entry['filled'] or not old_schema_entry['filled']:
             old_schema_entry['filled'] = False
             new_schema_entry['filled'] = False
+
+        old_status = old_schema_entry['status']
+        new_status = new_schema_entry['status']
 
         # new 'soft' does not clobber old 'hard'
         if old_status == 'hard' and new_status == 'soft':
