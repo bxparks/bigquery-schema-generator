@@ -163,8 +163,8 @@ class DataReader:
         return (data_flags, records)
 
     def read_errors_section(self):
-        """Return a dictionary of errors which are expected from the parsing of the
-        DATA section. The dict has the form:
+        """Return a dictionary of errors which are expected from the parsing of
+        the DATA section. The dict has the form:
             {
                 'line': line,
                 'msg': [ messages ...]
