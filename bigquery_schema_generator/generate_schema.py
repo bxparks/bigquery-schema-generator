@@ -87,6 +87,17 @@ class SchemaGenerator:
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
 
+        # 'infer_mode' is supported for only input_format = 'csv' because
+        # the header line gives us the complete list of fields to be expected in
+        # the CSV file. In JSON data files, certain fields will often be
+        # completely missing instead of being set to 'null' or "". If the field
+        # is not even present, then it becomes incredibly difficult (not
+        # impossible, but more effort than I want to expend right now) to figure
+        # out which fields are missing so that we can mark the appropriate
+        # schema entries with 'filled=False'.
+        if infer_mode and input_format != 'csv':
+            raise Exception("infer_mode requires input_format=='csv'")
+
         # If CSV, force keep_nulls = True
         self.keep_nulls = True if (input_format == 'csv') else keep_nulls
 
@@ -117,6 +128,7 @@ class SchemaGenerator:
 
           schema_entry := {
             'status': 'hard | soft',
+            'filled': True | False,
             'info': {
               'name': key,
               'type': 'STRING | TIMESTAMP | DATE | TIME
@@ -135,6 +147,10 @@ class SchemaGenerator:
         are able infer the type definitively, and we change the status to
         'hard'. The status can transition from 'soft' to 'hard' but not the
         reverse.
+
+        The 'filled' entry indicates whether all input data records contained
+        the given field. If the --infer_mode flag is given, the 'filled' entry
+        is used to convert a NULLABLE schema entry to a REQUIRED schema entry.
 
         The function returns a tuple of 2 things:
           * an OrderedDict which is sorted by the 'key' of the column name
@@ -200,13 +216,10 @@ class SchemaGenerator:
         old_status = old_schema_entry['status']
         new_status = new_schema_entry['status']
 
-        if old_status == 'soft' or new_status == 'soft':
-            update = {'is_always_filled_in': 'no'}
-            old_schema_entry.update(update)
-            new_schema_entry.update(update)
-
-        if old_schema_entry.get('is_always_filled_in') == 'undetermined' and new_status == 'hard':
-            new_schema_entry.update({'is_always_filled_in': 'yes'})
+        # If new or old record is 'soft', permanently set 'filled' to False
+        if new_status == 'soft' or not old_schema_entry['filled']:
+            old_schema_entry['filled'] = False
+            new_schema_entry['filled'] = False
 
         # new 'soft' does not clobber old 'hard'
         if old_status == 'hard' and new_status == 'soft':
@@ -268,24 +281,21 @@ class SchemaGenerator:
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
         # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
         # not support that so we must also follow that rule.
-        if old_mode != new_mode and not self.infer_mode:
+        if old_mode != new_mode:
             raise Exception(('Mismatched mode for non-RECORD: '
                              'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
                             (old_status, old_name, old_mode, old_type,
                              new_status, new_name, new_mode, new_type))
 
-        if new_schema_entry.get('info').get('mode') == 'NULLABLE':
-            if new_schema_entry.get('is_always_filled_in') == 'yes' and self.infer_mode:
-                    new_schema_entry.get('info').update({'mode': 'REQUIRED'})
-
+        # Infer the best matching type.
         candidate_type = convert_type(old_type, new_type)
         if not candidate_type:
             raise Exception(
                 'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
                 (old_status, old_name, old_mode, old_type, new_status,
                  new_name, new_mode, new_type))
-
         new_info['type'] = candidate_type
+
         return new_schema_entry
 
     def get_schema_entry(self, key, value):
@@ -305,6 +315,7 @@ class SchemaGenerator:
                 for val in value:
                     self.deduce_schema_for_line(val, fields)
             schema_entry = OrderedDict([('status', 'hard'),
+                                        ('filled', True),
                                         ('info', OrderedDict([
                                             ('fields', fields),
                                             ('mode', value_mode),
@@ -313,6 +324,7 @@ class SchemaGenerator:
                                         ]))])
         elif value_type == '__null__':
             schema_entry = OrderedDict([('status', 'soft'),
+                                        ('filled', False),
                                         ('info', OrderedDict([
                                             ('mode', 'NULLABLE'),
                                             ('name', key),
@@ -320,6 +332,7 @@ class SchemaGenerator:
                                         ]))])
         elif value_type == '__empty_array__':
             schema_entry = OrderedDict([('status', 'soft'),
+                                        ('filled', False),
                                         ('info', OrderedDict([
                                             ('mode', 'REPEATED'),
                                             ('name', key),
@@ -327,6 +340,7 @@ class SchemaGenerator:
                                         ]))])
         elif value_type == '__empty_record__':
             schema_entry = OrderedDict([('status', 'soft'),
+                                        ('filled', False),
                                         ('info', OrderedDict([
                                             ('fields', OrderedDict()),
                                             ('mode', value_mode),
@@ -338,10 +352,12 @@ class SchemaGenerator:
             # a (soft String) to allow clobbering by subsquent non-empty fields.
             if value == "" and self.input_format == 'csv':
                 status = 'soft'
+                filled = False
             else:
                 status = 'hard'
+                filled = True
             schema_entry = OrderedDict([('status', status),
-                                        ('is_always_filled_in', 'undetermined'),
+                                        ('filled', filled),
                                         ('info', OrderedDict([
                                             ('mode', value_mode),
                                             ('name', key),
@@ -465,8 +481,11 @@ class SchemaGenerator:
         """Converts the bookkeeping 'schema_map' into the format recognized by
         BigQuery using the same sorting order as BigQuery.
         """
-        return flatten_schema_map(schema_map, self.keep_nulls,
-                                  self.sorted_schema)
+        return flatten_schema_map(
+            schema_map=schema_map,
+            keep_nulls=self.keep_nulls,
+            sorted_schema=self.sorted_schema,
+            infer_mode=self.infer_mode)
 
     def run(self):
         """Read the data records from the STDIN and print out the BigQuery
@@ -577,7 +596,8 @@ def is_string_type(thetype):
     ]
 
 
-def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
+def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True,
+                       infer_mode=False):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema.
 
@@ -588,6 +608,9 @@ def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
     columns. This seems to be the behavior for `bq load` using JSON data. For
     CSV files, sorting must not happen because the position of schema column mus
     match the position of the column value in the CSV file.
+
+    If 'infer_mode' is True, set the schema 'mode' to be 'REQUIRED' instead of
+    'NULLABLE' if the field contains a value for all data records.
     """
     if not isinstance(schema_map, dict):
         raise Exception(
@@ -599,6 +622,7 @@ def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
         else schema_map.items()
     for name, meta in map_items:
         status = meta['status']
+        filled = meta['filled']
         info = meta['info']
 
         # Schema entries with a status of 'soft' are caused by 'null' or
@@ -630,6 +654,11 @@ def flatten_schema_map(schema_map, keep_nulls=False, sorted_schema=True):
                                                    sorted_schema)
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 new_value = value[1:]
+            elif key == 'mode':
+                if infer_mode and value == 'NULLABLE' and filled:
+                    new_value = 'REQUIRED'
+                else:
+                    new_value = value
             else:
                 new_value = value
             new_info[key] = new_value
@@ -655,9 +684,8 @@ def main():
         action="store_true")
     parser.add_argument(
         '--infer_mode',
-        help="If set to 'true', keys consistently having non-null values will gain 'REQUIRED' mode in the schema.",
-        action='store_false'
-    )
+        help="Determine if mode can be 'NULLABLE' or 'REQUIRED'",
+        action='store_true')
     parser.add_argument(
         '--debugging_interval',
         help='Number of lines between heartbeat debugging messages',
