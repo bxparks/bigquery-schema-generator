@@ -831,3 +831,66 @@ SCHEMA
   }
 ]
 END
+
+# Infer 'REQUIRED' mode for a consistently filled in value - simple
+DATA csv infer_mode
+a,b,c,d,e
+,ho,hi,true
+3,hu,he,
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "a",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "REQUIRED",
+    "name": "b",
+    "type": "STRING"
+  },
+  {
+    "mode": "REQUIRED",
+    "name": "c",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "d",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "e",
+    "type": "STRING"
+  }
+]
+END
+
+# Infer 'REQUIRED' mode for a consistently filled in value - complex
+DATA csv infer_mode
+name,surname,age
+John
+Michael,,
+Maria,Smith,30
+Joanna,Anders,21
+SCHEMA
+[
+  {
+    "mode": "REQUIRED",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "surname",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "age",
+    "type": "INTEGER"
+  }
+]
+END
+

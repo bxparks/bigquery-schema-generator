@@ -75,11 +75,13 @@ class SchemaGenerator:
 
     def __init__(self,
                  input_format='json',
+                 infer_mode=False,
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
                  debugging_map=False):
         self.input_format = input_format
+        self.infer_mode = infer_mode
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
@@ -198,6 +200,14 @@ class SchemaGenerator:
         old_status = old_schema_entry['status']
         new_status = new_schema_entry['status']
 
+        if old_status == 'soft' or new_status == 'soft':
+            update = {'is_always_filled_in': 'no'}
+            old_schema_entry.update(update)
+            new_schema_entry.update(update)
+
+        if old_schema_entry.get('is_always_filled_in') == 'undetermined' and new_status == 'hard':
+            new_schema_entry.update({'is_always_filled_in': 'yes'})
+
         # new 'soft' does not clobber old 'hard'
         if old_status == 'hard' and new_status == 'soft':
             return old_schema_entry
@@ -258,11 +268,15 @@ class SchemaGenerator:
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
         # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
         # not support that so we must also follow that rule.
-        if old_mode != new_mode:
+        if old_mode != new_mode and not self.infer_mode:
             raise Exception(('Mismatched mode for non-RECORD: '
                              'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
                             (old_status, old_name, old_mode, old_type,
                              new_status, new_name, new_mode, new_type))
+
+        if new_schema_entry.get('info').get('mode') == 'NULLABLE':
+            if new_schema_entry.get('is_always_filled_in') == 'yes' and self.infer_mode:
+                    new_schema_entry.get('info').update({'mode': 'REQUIRED'})
 
         candidate_type = convert_type(old_type, new_type)
         if not candidate_type:
@@ -327,6 +341,7 @@ class SchemaGenerator:
             else:
                 status = 'hard'
             schema_entry = OrderedDict([('status', status),
+                                        ('is_always_filled_in', 'undetermined'),
                                         ('info', OrderedDict([
                                             ('mode', value_mode),
                                             ('name', key),
@@ -639,6 +654,11 @@ def main():
         help='Quoted values should be interpreted as strings',
         action="store_true")
     parser.add_argument(
+        '--infer_mode',
+        help="If set to 'true', keys consistently having non-null values will gain 'REQUIRED' mode in the schema.",
+        action='store_false'
+    )
+    parser.add_argument(
         '--debugging_interval',
         help='Number of lines between heartbeat debugging messages',
         type=int,
@@ -655,6 +675,7 @@ def main():
 
     generator = SchemaGenerator(
         input_format=args.input_format,
+        infer_mode=args.infer_mode,
         keep_nulls=args.keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
