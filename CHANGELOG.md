@@ -1,6 +1,7 @@
 # Changelog
 
 * Unreleased
+* 0.4 (2019-03-06)
     * Support CSV input files using `--input_format` flag. Preserve
       the ordering of fields in the schema file for CSV.
     * Implement `--infer_mode` flag for CSV files so that fields that are
