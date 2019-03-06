@@ -142,15 +142,16 @@ class DataReader:
             return (None, None)
         (tag, data_flags) = self.parse_tag_line(tag_line)
         if tag != 'DATA':
-            raise Exception("Unrecoginized tag line '%s', should be DATA" %
-                            tag_line)
+            raise Exception(
+                "Unrecoginized tag line '%s', should be DATA" % tag_line)
 
         # Read the DATA records until the next TAG_TOKEN.
         records = []
         while True:
             line = self.read_line()
             if line is None:
-                raise Exception("Unexpected EOF, should be ERRORS or SCHEMA tag")
+                raise Exception(
+                    "Unexpected EOF, should be ERRORS or SCHEMA tag")
             (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
                 if tag == 'DATA':
@@ -162,8 +163,8 @@ class DataReader:
         return (data_flags, records)
 
     def read_errors_section(self):
-        """Return a dictionary of errors which are expected from the parsing of the
-        DATA section. The dict has the form:
+        """Return a dictionary of errors which are expected from the parsing of
+        the DATA section. The dict has the form:
             {
                 'line': line,
                 'msg': [ messages ...]
@@ -204,8 +205,8 @@ class DataReader:
             raise Exception("Unexpected EOF, should be SCHEMA tag")
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'SCHEMA':
-            raise Exception("Unrecoginized tag line '%s', should be SCHEMA" %
-                            tag_line)
+            raise Exception(
+                "Unrecoginized tag line '%s', should be SCHEMA" % tag_line)
 
         # Read the SCHEMA records until the next TAG_TOKEN
         schema_lines = []
@@ -230,8 +231,8 @@ class DataReader:
             raise Exception("Unexpected EOF, should be END tag")
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'END':
-            raise Exception("Unrecoginized tag line '%s', should be END" %
-                            tag_line)
+            raise Exception(
+                "Unrecoginized tag line '%s', should be END" % tag_line)
 
     def parse_tag_line(self, line):
         """Parses a potential tag line of the form 'TAG [flags...]' where

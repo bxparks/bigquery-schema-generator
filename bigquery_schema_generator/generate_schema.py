@@ -14,20 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Generate the BigQuery schema of the data file given on the standard input.
-Unlike the BigQuery importer which uses only the first 100 records, this script
-uses all available records in the data file.
+Generate the BigQuery schema of the data file (JSON or CSV) given on the
+standard input. Unlike the BigQuery importer which uses only the first 100
+records, this script uses all available records in the data file.
 
-Usage: generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
+Usage:
+    $ generate_schema.py [-h] [flags ...] < file.data.json > file.schema.json
+    $ generate_schema.py [-h] [flags ...] --input_format csv < file.data.csv \
+        > file.schema.json
 
 * file.data.json is a newline-delimited JSON data file, one JSON object per
   line.
+* file.data.csv is a CSV file with the column names on the first line
 * file.schema.json is the schema definition of the table.
 """
 
 from collections import OrderedDict
 import argparse
 import json
+import csv
 import logging
 import re
 import sys
@@ -69,14 +74,40 @@ class SchemaGenerator:
     FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
     def __init__(self,
+                 input_format='json',
+                 infer_mode=False,
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
                  debugging_map=False):
+        self.input_format = input_format
+        self.infer_mode = infer_mode
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
+
+        # 'infer_mode' is supported for only input_format = 'csv' because
+        # the header line gives us the complete list of fields to be expected in
+        # the CSV file. In JSON data files, certain fields will often be
+        # completely missing instead of being set to 'null' or "". If the field
+        # is not even present, then it becomes incredibly difficult (not
+        # impossible, but more effort than I want to expend right now) to figure
+        # out which fields are missing so that we can mark the appropriate
+        # schema entries with 'filled=False'.
+        if infer_mode and input_format != 'csv':
+            raise Exception("infer_mode requires input_format=='csv'")
+
+        # If CSV, force keep_nulls = True
+        self.keep_nulls = True if (input_format == 'csv') else keep_nulls
+
+        # If JSON, sort the schema using the name of the column to be
+        # consistent with 'bq load'.
+        # If CSV, preserve the original ordering because 'bq load` matches the
+        # CSV column with the respective schema entry using the position of the
+        # column in the schema.
+        self.sorted_schema = (input_format == 'json')
+
         self.line_number = 0
         self.error_logs = []
 
@@ -84,7 +115,7 @@ class SchemaGenerator:
         self.error_logs.append({'line': self.line_number, 'msg': msg})
 
     def deduce_schema(self, file):
-        """Loop through each newlined-delimitered JSON line of 'file' and
+        """Loop through each newlined-delimited line of 'file' and
         deduce the BigQuery schema. The schema is returned as a recursive map
         that contains both the database schema and some additional metadata
         about each entry. It has the following form:
@@ -97,6 +128,7 @@ class SchemaGenerator:
 
           schema_entry := {
             'status': 'hard | soft',
+            'filled': True | False,
             'info': {
               'name': key,
               'type': 'STRING | TIMESTAMP | DATE | TIME
@@ -107,25 +139,36 @@ class SchemaGenerator:
           }
 
         The status of 'hard' or 'soft' refers the reliability of the type
-        inference that we made for a particular JSON element. If the element
-        value is a 'null', we assume that it's a 'soft' STRING. If the element
-        value is an empty [] or {}, we assume that the element type is a 'soft'
-        REPEATED STRING or a 'soft' NULLABLE RECORD, respectively. When we come
-        across a subsequent entry with non-null or non-empty values, we are
-        able infer the type definitively, and we change the status to 'hard'.
-        The status can transition from 'soft' to 'hard' but not the reverse.
+        inference that we made for a particular column element value. If the
+        element value is a 'null', we assume that it's a 'soft' STRING. If the
+        element value is an empty [] or {}, we assume that the element type is a
+        'soft' REPEATED STRING or a 'soft' NULLABLE RECORD, respectively. When
+        we come across a subsequent entry with non-null or non-empty values, we
+        are able infer the type definitively, and we change the status to
+        'hard'. The status can transition from 'soft' to 'hard' but not the
+        reverse.
+
+        The 'filled' entry indicates whether all input data records contained
+        the given field. If the --infer_mode flag is given, the 'filled' entry
+        is used to convert a NULLABLE schema entry to a REQUIRED schema entry.
 
         The function returns a tuple of 2 things:
           * an OrderedDict which is sorted by the 'key' of the column name
           * a list of possible errors containing a map of 'line' and 'msg'
         """
+
+        if self.input_format == 'csv':
+            reader = csv.DictReader(file)
+        elif self.input_format == 'json' or self.input_format is None:
+            reader = json_reader(file)
+        else:
+            raise Exception("Unknown input_format '%s'" % self.input_format)
+
         schema_map = OrderedDict()
-        for line in file:
+        for json_object in reader:
             self.line_number += 1
             if self.line_number % self.debugging_interval == 0:
                 logging.info("Processing line %s", self.line_number)
-            # TODO: Add support for other input formats, like CSV?
-            json_object = json.loads(line)
 
             # Deduce the schema from this given data record.
             try:
@@ -160,15 +203,19 @@ class SchemaGenerator:
 
     def merge_schema_entry(self, old_schema_entry, new_schema_entry):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
-        a merged schema entry. Recursivesly merges in sub-fields as well.
+        a merged schema entry. Recursively merges in sub-fields as well.
 
-        Returns the merged schema_entry. This method assumes that the
-        'old_schema_entry' is no longer used by the calling code, so it often
-        modifies the old_schema_entry in-place to generate the merged
-        schema_entry.
+        Returns the merged schema_entry. This method assumes that both
+        'old_schema_entry' and 'new_schema_entry' can be modified in place and
+        returned as the new schema_entry.
         """
         if not old_schema_entry:
             return new_schema_entry
+
+        # If a field value is missing, permanently set 'filled' to False.
+        if not new_schema_entry['filled'] or not old_schema_entry['filled']:
+            old_schema_entry['filled'] = False
+            new_schema_entry['filled'] = False
 
         old_status = old_schema_entry['status']
         new_status = new_schema_entry['status']
@@ -239,20 +286,21 @@ class SchemaGenerator:
                             (old_status, old_name, old_mode, old_type,
                              new_status, new_name, new_mode, new_type))
 
+        # Infer the best matching type.
         candidate_type = convert_type(old_type, new_type)
         if not candidate_type:
             raise Exception(
                 'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
                 (old_status, old_name, old_mode, old_type, new_status,
                  new_name, new_mode, new_type))
-
         new_info['type'] = candidate_type
+
         return new_schema_entry
 
     def get_schema_entry(self, key, value):
-        """Determines the 'schema_entry' of the JSON (key, value) pair. Calls
-        deduce_schema_for_line() recursively if the value is another JSON
-        object, instead of a primitive.
+        """Determines the 'schema_entry' of the (key, value) pair. Calls
+        deduce_schema_for_line() recursively if the value is another object
+        instead of a primitive (this will happen only for JSON input file).
         """
         value_mode, value_type = self.infer_bigquery_type(value)
 
@@ -266,6 +314,7 @@ class SchemaGenerator:
                 for val in value:
                     self.deduce_schema_for_line(val, fields)
             schema_entry = OrderedDict([('status', 'hard'),
+                                        ('filled', True),
                                         ('info', OrderedDict([
                                             ('fields', fields),
                                             ('mode', value_mode),
@@ -274,6 +323,7 @@ class SchemaGenerator:
                                         ]))])
         elif value_type == '__null__':
             schema_entry = OrderedDict([('status', 'soft'),
+                                        ('filled', False),
                                         ('info', OrderedDict([
                                             ('mode', 'NULLABLE'),
                                             ('name', key),
@@ -281,6 +331,7 @@ class SchemaGenerator:
                                         ]))])
         elif value_type == '__empty_array__':
             schema_entry = OrderedDict([('status', 'soft'),
+                                        ('filled', False),
                                         ('info', OrderedDict([
                                             ('mode', 'REPEATED'),
                                             ('name', key),
@@ -288,6 +339,7 @@ class SchemaGenerator:
                                         ]))])
         elif value_type == '__empty_record__':
             schema_entry = OrderedDict([('status', 'soft'),
+                                        ('filled', False),
                                         ('info', OrderedDict([
                                             ('fields', OrderedDict()),
                                             ('mode', value_mode),
@@ -295,7 +347,16 @@ class SchemaGenerator:
                                             ('type', 'RECORD'),
                                         ]))])
         else:
-            schema_entry = OrderedDict([('status', 'hard'),
+            # Empty fields are returned as empty strings, and must be treated as
+            # a (soft String) to allow clobbering by subsquent non-empty fields.
+            if value == "" and self.input_format == 'csv':
+                status = 'soft'
+                filled = False
+            else:
+                status = 'hard'
+                filled = True
+            schema_entry = OrderedDict([('status', status),
+                                        ('filled', filled),
                                         ('info', OrderedDict([
                                             ('mode', value_mode),
                                             ('name', key),
@@ -306,7 +367,7 @@ class SchemaGenerator:
 
     def infer_bigquery_type(self, node_value):
         """Determines the BigQuery (mode, type) tuple of the right hand side of
-        the JSON value.
+        the node value.
         """
         node_type = self.infer_value_type(node_value)
         if node_type != '__array__':
@@ -330,7 +391,7 @@ class SchemaGenerator:
         return ('REPEATED', array_type)
 
     def infer_value_type(self, value):
-        """Infers the type of the given JSON value.
+        """Infers the type of the given node value.
 
         * If the value is '{}', the type '__empty_record__' is returned.
         * If the value is '[]', the type '__empty_array__' is returned.
@@ -419,7 +480,11 @@ class SchemaGenerator:
         """Converts the bookkeeping 'schema_map' into the format recognized by
         BigQuery using the same sorting order as BigQuery.
         """
-        return flatten_schema_map(schema_map, self.keep_nulls)
+        return flatten_schema_map(
+            schema_map=schema_map,
+            keep_nulls=self.keep_nulls,
+            sorted_schema=self.sorted_schema,
+            infer_mode=self.infer_mode)
 
     def run(self):
         """Read the data records from the STDIN and print out the BigQuery
@@ -440,6 +505,15 @@ class SchemaGenerator:
             schema = self.flatten_schema(schema_map)
             json.dump(schema, sys.stdout, indent=2)
             print()
+
+
+def json_reader(file):
+    """A generator that converts an iterable of newline-delimited JSON objects
+    ('file' could be a 'list' for testing purposes) into an iterable of Python
+    dict objects.
+    """
+    for line in file:
+        yield json.loads(line)
 
 
 def convert_type(atype, btype):
@@ -521,11 +595,23 @@ def is_string_type(thetype):
     ]
 
 
-def flatten_schema_map(schema_map, keep_nulls=False):
+def flatten_schema_map(schema_map,
+                       keep_nulls=False,
+                       sorted_schema=True,
+                       infer_mode=False):
     """Converts the 'schema_map' into a more flatten version which is
-    compatible with BigQuery schema. If 'keep_nulls' is True then the resulting
-    schema contains entries for nulls, empty arrays or empty records in the
-    data.
+    compatible with BigQuery schema.
+
+    If 'keep_nulls' is True then the resulting schema contains entries for
+    nulls, empty arrays or empty records in the data.
+
+    If 'sorted_schema' is True, the schema is sorted using the name of the
+    columns. This seems to be the behavior for `bq load` using JSON data. For
+    CSV files, sorting must not happen because the position of schema column mus
+    match the position of the column value in the CSV file.
+
+    If 'infer_mode' is True, set the schema 'mode' to be 'REQUIRED' instead of
+    'NULLABLE' if the field contains a value for all data records.
     """
     if not isinstance(schema_map, dict):
         raise Exception(
@@ -533,8 +619,11 @@ def flatten_schema_map(schema_map, keep_nulls=False):
 
     # Build the BigQuery schema from the internal 'schema_map'.
     schema = []
-    for name, meta in sorted(schema_map.items()):
+    map_items = sorted(schema_map.items()) if sorted_schema \
+        else schema_map.items()
+    for name, meta in map_items:
         status = meta['status']
+        filled = meta['filled']
         info = meta['info']
 
         # Schema entries with a status of 'soft' are caused by 'null' or
@@ -543,10 +632,12 @@ def flatten_schema_map(schema_map, keep_nulls=False):
         if status == 'soft' and not keep_nulls:
             continue
 
-        # Copy the 'info' dictionary ordered alphabetically to match the output
-        # of BigQuery.
+        # Copy the 'info' dictionary into the schema dict, preserving the
+        # ordering of the 'field', 'mode', 'name', 'type' elements. 'bq load'
+        # keeps these sorted, so we created them in sorted order using an
+        # OrderedDict, so they should preserve order here too.
         new_info = OrderedDict()
-        for key, value in sorted(info.items()):
+        for key, value in info.items():
             if key == 'fields':
                 if not value:
                     # Create a dummy attribute for an empty RECORD to make
@@ -560,9 +651,15 @@ def flatten_schema_map(schema_map, keep_nulls=False):
                     ]
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
-                    new_value = flatten_schema_map(value, keep_nulls)
+                    new_value = flatten_schema_map(value, keep_nulls,
+                                                   sorted_schema)
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 new_value = value[1:]
+            elif key == 'mode':
+                if infer_mode and value == 'NULLABLE' and filled:
+                    new_value = 'REQUIRED'
+                else:
+                    new_value = value
             else:
                 new_value = value
             new_info[key] = new_value
@@ -570,43 +667,29 @@ def flatten_schema_map(schema_map, keep_nulls=False):
     return schema
 
 
-def sort_schema(schema):
-    """Sort the given BigQuery 'schema' and return a version that uses
-    'OrderedDict' with the same sorting rules as BigQuery.
-    """
-    if not isinstance(schema, list):
-        raise Exception('Unsupported type %s' % type(schema))
-
-    old_sorted = sorted(schema, key=lambda x: x['name'])
-    new_sorted = []
-    for old_elem in old_sorted:
-        if not isinstance(old_elem, dict):
-            raise Exception('Unsupported type %s' % type(schema))
-
-        new_elem = OrderedDict()
-        for key, value in sorted(old_elem.items()):
-            if key == 'fields':
-                new_elem[key] = sort_schema(value)
-            else:
-                new_elem[key] = value
-        new_sorted.append(new_elem)
-    return new_sorted
-
-
 def main():
     # Configure command line flags.
-    parser = argparse.ArgumentParser(description='Generate BigQuery schema.')
+    parser = argparse.ArgumentParser(
+        description='Generate BigQuery schema from JSON or CSV file.')
+    parser.add_argument(
+        '--input_format',
+        help="Specify an alternative input format ('csv', 'json')",
+        default='json')
     parser.add_argument(
         '--keep_nulls',
-        help='Print the schema for null values, empty arrays or empty records.',
+        help='Print the schema for null values, empty arrays or empty records',
         action="store_true")
     parser.add_argument(
         '--quoted_values_are_strings',
         help='Quoted values should be interpreted as strings',
         action="store_true")
     parser.add_argument(
+        '--infer_mode',
+        help="Determine if mode can be 'NULLABLE' or 'REQUIRED'",
+        action='store_true')
+    parser.add_argument(
         '--debugging_interval',
-        help='Number of lines between heartbeat debugging messages.',
+        help='Number of lines between heartbeat debugging messages',
         type=int,
         default=1000)
     parser.add_argument(
@@ -620,6 +703,8 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     generator = SchemaGenerator(
+        input_format=args.input_format,
+        infer_mode=args.infer_mode,
         keep_nulls=args.keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
