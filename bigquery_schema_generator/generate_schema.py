@@ -506,6 +506,26 @@ class SchemaGenerator:
             json.dump(schema, sys.stdout, indent=2)
             print()
 
+    def execute(self, input_file, output_file):
+        # TODO: BigQuery is case-insensitive with regards to the 'name' of the
+        # field. Verify that the 'name' is unique regardless of the case.
+        logging.basicConfig(level=logging.INFO)
+
+        schema_map, error_logs = self.deduce_schema(open(input_file, 'r'))
+
+        for error in error_logs:
+            logging.info("Problem on line %s: %s", error['line'], error['msg'])
+
+        fout = open(output_file, 'w')
+        if self.debugging_map:
+            json.dump(schema_map, fout, indent=2)
+            # print()
+        else:
+            schema = self.flatten_schema(schema_map)
+            json.dump(schema, fout, indent=2)
+            # print()
+        print(f"Schema salvato in {fout.name}")
+
 
 def json_reader(file):
     """A generator that converts an iterable of newline-delimited JSON objects
