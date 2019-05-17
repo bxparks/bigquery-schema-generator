@@ -524,7 +524,7 @@ class SchemaGenerator:
             schema = self.flatten_schema(schema_map)
             json.dump(schema, fout, indent=2)
             # print()
-        print(f"Schema salvato in {fout.name}")
+        print(f"Schema file saved in: {fout.name}")
 
 
 def json_reader(file):
