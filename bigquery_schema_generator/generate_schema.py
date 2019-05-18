@@ -414,8 +414,8 @@ class SchemaGenerator:
                 # Implement the same type inference algorithm as 'bq load' for
                 # quoted values that look like ints, floats or bools.
                 if self.INTEGER_MATCHER.match(value):
-                    if int(value) < self.INTEGER_MIN_VALUE or \
-                        self.INTEGER_MAX_VALUE < int(value):
+                    if int(value) < self.INTEGER_MIN_VALUE \
+                            or self.INTEGER_MAX_VALUE < int(value):
                         return 'QFLOAT'  # quoted float
                     else:
                         return 'QINTEGER'  # quoted integer
@@ -486,45 +486,25 @@ class SchemaGenerator:
             sorted_schema=self.sorted_schema,
             infer_mode=self.infer_mode)
 
-    def run(self):
+    def run(self, input_file=sys.stdin, output_file=sys.stdout):
         """Read the data records from the STDIN and print out the BigQuery
         schema on the STDOUT. The error logs are printed on the STDERR.
         """
         # TODO: BigQuery is case-insensitive with regards to the 'name' of the
         # field. Verify that the 'name' is unique regardless of the case.
 
-        schema_map, error_logs = self.deduce_schema(sys.stdin)
+        schema_map, error_logs = self.deduce_schema(input_file)
 
         for error in error_logs:
             logging.info("Problem on line %s: %s", error['line'], error['msg'])
 
         if self.debugging_map:
             json.dump(schema_map, sys.stdout, indent=2)
-            print()
-        else:
-            schema = self.flatten_schema(schema_map)
-            json.dump(schema, sys.stdout, indent=2)
-            print()
-
-    def execute(self, input_file, output_file):
-        # TODO: BigQuery is case-insensitive with regards to the 'name' of the
-        # field. Verify that the 'name' is unique regardless of the case.
-        logging.basicConfig(level=logging.INFO)
-
-        schema_map, error_logs = self.deduce_schema(open(input_file, 'r'))
-
-        for error in error_logs:
-            logging.info("Problem on line %s: %s", error['line'], error['msg'])
-
-        fout = open(output_file, 'w')
-        if self.debugging_map:
-            json.dump(schema_map, fout, indent=2)
             # print()
         else:
             schema = self.flatten_schema(schema_map)
-            json.dump(schema, fout, indent=2)
+            json.dump(schema, output_file, indent=2)
             # print()
-        print(f"Schema file saved in: {fout.name}")
 
 
 def json_reader(file):
@@ -714,8 +694,7 @@ def main():
         default=1000)
     parser.add_argument(
         '--debugging_map',
-        help=
-        'Print the metadata schema_map instead of the schema for debugging',
+        help='Print the metadata schema_map instead of the schema for debugging',
         action="store_true")
     args = parser.parse_args()
 
