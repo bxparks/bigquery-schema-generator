@@ -499,12 +499,12 @@ class SchemaGenerator:
             logging.info("Problem on line %s: %s", error['line'], error['msg'])
 
         if self.debugging_map:
-            json.dump(schema_map, sys.stdout, indent=2)
-            # print()
+            json.dump(schema_map, output_file, indent=2)
+            print(file=output_file)
         else:
             schema = self.flatten_schema(schema_map)
             json.dump(schema, output_file, indent=2)
-            # print()
+            print(file=output_file)
 
 
 def json_reader(file):
