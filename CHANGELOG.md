@@ -1,6 +1,8 @@
 # Changelog
 
 * Unreleased
+    * Add input and output parameters to run() to allow the client code using
+      `SchemaGenerator` to redirect the input and output files. (See #30).
 * 0.4 (2019-03-06)
     * Support CSV input files using `--input_format` flag. Preserve
       the ordering of fields in the schema file for CSV.

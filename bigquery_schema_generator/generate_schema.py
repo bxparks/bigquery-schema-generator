@@ -114,6 +114,8 @@ class SchemaGenerator:
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
 
+    # TODO: BigQuery is case-insensitive with regards to the 'name' of the
+    # field. Verify that the 'name' is unique regardless of the case.
     def deduce_schema(self, file):
         """Loop through each newlined-delimited line of 'file' and
         deduce the BigQuery schema. The schema is returned as a recursive map
@@ -486,25 +488,25 @@ class SchemaGenerator:
             sorted_schema=self.sorted_schema,
             infer_mode=self.infer_mode)
 
-    def run(self):
-        """Read the data records from the STDIN and print out the BigQuery
-        schema on the STDOUT. The error logs are printed on the STDERR.
+    def run(self, input_file=sys.stdin, output_file=sys.stdout):
+        """Read the data records from the input_file and print out the BigQuery
+        schema on the output_file. The error logs are printed on the sys.stderr.
+        Args:
+            input_file: a file-like object (default: sys.stdin)
+            output_file: a file-like object (default: sys.stdout)
         """
-        # TODO: BigQuery is case-insensitive with regards to the 'name' of the
-        # field. Verify that the 'name' is unique regardless of the case.
-
-        schema_map, error_logs = self.deduce_schema(sys.stdin)
+        schema_map, error_logs = self.deduce_schema(input_file)
 
         for error in error_logs:
             logging.info("Problem on line %s: %s", error['line'], error['msg'])
 
         if self.debugging_map:
-            json.dump(schema_map, sys.stdout, indent=2)
-            print()
+            json.dump(schema_map, output_file, indent=2)
+            print(file=output_file)
         else:
             schema = self.flatten_schema(schema_map)
-            json.dump(schema, sys.stdout, indent=2)
-            print()
+            json.dump(schema, output_file, indent=2)
+            print(file=output_file)
 
 
 def json_reader(file):
@@ -694,8 +696,7 @@ def main():
         default=1000)
     parser.add_argument(
         '--debugging_map',
-        help=
-        'Print the metadata schema_map instead of the schema for debugging',
+        help='Print the metadata schema_map instead of the schema',
         action="store_true")
     args = parser.parse_args()
 
