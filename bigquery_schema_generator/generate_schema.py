@@ -114,6 +114,8 @@ class SchemaGenerator:
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
 
+    # TODO: BigQuery is case-insensitive with regards to the 'name' of the
+    # field. Verify that the 'name' is unique regardless of the case.
     def deduce_schema(self, file):
         """Loop through each newlined-delimited line of 'file' and
         deduce the BigQuery schema. The schema is returned as a recursive map
@@ -155,6 +157,11 @@ class SchemaGenerator:
         The function returns a tuple of 2 things:
           * an OrderedDict which is sorted by the 'key' of the column name
           * a list of possible errors containing a map of 'line' and 'msg'
+
+        An Exception is thrown in the lower-level calls only for programming
+        errors, not for data validation errors. Therefore each line in the input
+        file is processed without a try-except block and any exception will be
+        allowed to escape to the calling routine.
         """
 
         if self.input_format == 'csv':
@@ -165,22 +172,21 @@ class SchemaGenerator:
             raise Exception("Unknown input_format '%s'" % self.input_format)
 
         schema_map = OrderedDict()
-        for json_object in reader:
-            self.line_number += 1
-            if self.line_number % self.debugging_interval == 0:
-                logging.info("Processing line %s", self.line_number)
+        try:
+            for json_object in reader:
+                self.line_number += 1
+                if self.line_number % self.debugging_interval == 0:
+                    logging.info("Processing line %s", self.line_number)
 
-            # Deduce the schema from this given data record.
-            try:
+                # Deduce the schema from this given data record.
                 if isinstance(json_object, dict):
                     self.deduce_schema_for_line(json_object, schema_map)
                 else:
                     self.log_error(
                         'Top level record must be an Object but was a %s' %
                         type(json_object))
-            except Exception as e:
-                self.log_error(str(e))
-        logging.info("Processed %s lines", self.line_number)
+        finally:
+            logging.info("Processed %s lines", self.line_number)
         return schema_map, self.error_logs
 
     def deduce_schema_for_line(self, json_object, schema_map):
@@ -192,14 +198,9 @@ class SchemaGenerator:
         """
         for key, value in json_object.items():
             schema_entry = schema_map.get(key)
-            try:
-                new_schema_entry = self.get_schema_entry(key, value)
-                merged_schema_entry = self.merge_schema_entry(
-                    schema_entry, new_schema_entry)
-            except Exception as e:
-                self.log_error(str(e))
-                continue
-            schema_map[key] = merged_schema_entry
+            new_schema_entry = self.get_schema_entry(key, value)
+            schema_map[key] = self.merge_schema_entry(
+                schema_entry, new_schema_entry)
 
     def merge_schema_entry(self, old_schema_entry, new_schema_entry):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
@@ -207,9 +208,17 @@ class SchemaGenerator:
 
         Returns the merged schema_entry. This method assumes that both
         'old_schema_entry' and 'new_schema_entry' can be modified in place and
-        returned as the new schema_entry.
+        returned as the new schema_entry. Returns None if the field should
+        be removed from the schema due to internal consistency errors.
+
+        An Exception is thrown if an unexpected programming error is detected.
+        The calling routine should stop processing the file.
         """
         if not old_schema_entry:
+            return new_schema_entry
+
+        # If the new schema is None, return immediately.
+        if not new_schema_entry:
             return new_schema_entry
 
         # If a field value is missing, permanently set 'filled' to False.
@@ -272,8 +281,7 @@ class SchemaGenerator:
             new_fields = new_info['fields']
             for key, new_entry in new_fields.items():
                 old_entry = old_fields.get(key)
-                merged_entry = self.merge_schema_entry(old_entry, new_entry)
-                old_fields[key] = merged_entry
+                old_fields[key] = self.merge_schema_entry(old_entry, new_entry)
             return old_schema_entry
 
         # For all other types, the old_mode must be the same as the new_mode. It
@@ -281,20 +289,22 @@ class SchemaGenerator:
         # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
         # not support that so we must also follow that rule.
         if old_mode != new_mode:
-            raise Exception(('Mismatched mode for non-RECORD: '
-                             'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
-                            (old_status, old_name, old_mode, old_type,
-                             new_status, new_name, new_mode, new_type))
+            self.log_error(
+                f'Ignoring non-RECORD field with mismatched mode: '
+                f'old=({old_status},{old_name},{old_mode},{old_type}); '
+                f'new=({new_status},{new_name},{new_mode},{new_type})')
+            return None
 
-        # Infer the best matching type.
+        # Check that the converted types are compatible.
         candidate_type = convert_type(old_type, new_type)
         if not candidate_type:
-            raise Exception(
-                'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
-                (old_status, old_name, old_mode, old_type, new_status,
-                 new_name, new_mode, new_type))
-        new_info['type'] = candidate_type
+            self.log_error(
+                f'Ignoring field with mismatched type: '
+                f'old=({old_status},{old_name},{old_mode},{old_type}); '
+                f'new=({new_status},{new_name},{new_mode},{new_type})')
+            return None
 
+        new_info['type'] = candidate_type
         return new_schema_entry
 
     def get_schema_entry(self, key, value):
@@ -303,6 +313,8 @@ class SchemaGenerator:
         instead of a primitive (this will happen only for JSON input file).
         """
         value_mode, value_type = self.infer_bigquery_type(value)
+        if not value_mode or not value_type:
+            return None
 
         # yapf: disable
         if value_type == 'RECORD':
@@ -378,15 +390,17 @@ class SchemaGenerator:
         # Verify that the array elements are identical types.
         array_type = self.infer_array_type(node_value)
         if not array_type:
-            raise Exception(
+            self.log_error(
                 "All array elements must be the same compatible type: %s" %
                 node_value)
+            return (None, None)
 
         # Disallow array of special types (with '__' not supported).
         # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
         # allowed by 'bq load'.
         if '__' in array_type and array_type != '__empty_record__':
-            raise Exception('Unsupported array element type: %s' % array_type)
+            self.log_error('Unsupported array element type: %s' % array_type)
+            return (None, None)
 
         return ('REPEATED', array_type)
 
@@ -450,7 +464,8 @@ class SchemaGenerator:
             else:
                 return '__empty_array__'
         else:
-            raise Exception('Unsupported node type: %s' % type(value))
+            raise Exception('Unsupported node type: %s (should not happen)'
+                % type(value))
 
     def infer_array_type(self, elements):
         """Return the type of all the array elements, accounting for the same
@@ -486,25 +501,25 @@ class SchemaGenerator:
             sorted_schema=self.sorted_schema,
             infer_mode=self.infer_mode)
 
-    def run(self):
-        """Read the data records from the STDIN and print out the BigQuery
-        schema on the STDOUT. The error logs are printed on the STDERR.
+    def run(self, input_file=sys.stdin, output_file=sys.stdout):
+        """Read the data records from the input_file and print out the BigQuery
+        schema on the output_file. The error logs are printed on the sys.stderr.
+        Args:
+            input_file: a file-like object (default: sys.stdin)
+            output_file: a file-like object (default: sys.stdout)
         """
-        # TODO: BigQuery is case-insensitive with regards to the 'name' of the
-        # field. Verify that the 'name' is unique regardless of the case.
-
-        schema_map, error_logs = self.deduce_schema(sys.stdin)
+        schema_map, error_logs = self.deduce_schema(input_file)
 
         for error in error_logs:
             logging.info("Problem on line %s: %s", error['line'], error['msg'])
 
         if self.debugging_map:
-            json.dump(schema_map, sys.stdout, indent=2)
-            print()
+            json.dump(schema_map, output_file, indent=2)
+            print(file=output_file)
         else:
             schema = self.flatten_schema(schema_map)
-            json.dump(schema, sys.stdout, indent=2)
-            print()
+            json.dump(schema, output_file, indent=2)
+            print(file=output_file)
 
 
 def json_reader(file):
@@ -607,8 +622,8 @@ def flatten_schema_map(schema_map,
 
     If 'sorted_schema' is True, the schema is sorted using the name of the
     columns. This seems to be the behavior for `bq load` using JSON data. For
-    CSV files, sorting must not happen because the position of schema column mus
-    match the position of the column value in the CSV file.
+    CSV files, sorting must not happen because the position of schema column
+    must match the position of the column value in the CSV file.
 
     If 'infer_mode' is True, set the schema 'mode' to be 'REQUIRED' instead of
     'NULLABLE' if the field contains a value for all data records.
@@ -622,6 +637,9 @@ def flatten_schema_map(schema_map,
     map_items = sorted(schema_map.items()) if sorted_schema \
         else schema_map.items()
     for name, meta in map_items:
+        # Skip over fields which have been explicitly removed
+        if not meta: continue
+
         status = meta['status']
         filled = meta['filled']
         info = meta['info']
@@ -694,8 +712,7 @@ def main():
         default=1000)
     parser.add_argument(
         '--debugging_map',
-        help=
-        'Print the metadata schema_map instead of the schema for debugging',
+        help='Print the metadata schema_map instead of the schema',
         action="store_true")
     args = parser.parse_args()
 

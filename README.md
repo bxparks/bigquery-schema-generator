@@ -12,7 +12,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 0.4 (2019-03-06)
+Version: 0.5 (2019-06-06)
 
 ## Background
 
@@ -579,6 +579,41 @@ INFO:root:Processed 4 lines
 ]
 ```
 
+## Using As a Library
+
+The `bigquery_schema_generator` module can be used as a library by an external
+Python client code by creating an instance of `SchemaGenerator` and calling the
+`run(input, output)` method:
+
+```python
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+
+generator = SchemaGenerator(
+    input_format=input_format,
+    infer_mode=infer_mode,
+    keep_nulls=keep_nulls,
+    quoted_values_are_strings=quoted_values_are_strings,
+    debugging_interval=debugging_interval,
+    debugging_map=debugging_map)
+generator.run(input_file, output_file)
+```
+
+If you need to process the generated schema programmatically, use the
+`deduce_schema()` method and process the resulting `schema_map` and `error_log`
+data structures like this:
+
+```python
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+...
+schema_map, error_logs = generator.deduce_schema(input_file)
+
+for error in error_logs:
+    logging.info("Problem on line %s: %s", error['line'], error['msg'])
+
+schema = generator.flatten_schema(schema_map)
+json.dump(schema, output_file, indent=2)
+```
+
 ## Benchmarks
 
 I wrote the `bigquery_schema_generator/anonymize.py` script to create an
@@ -595,8 +630,8 @@ Generating the schema using
 $ bigquery_schema_generator/generate_schema.py < anon1.data.json \
     > anon1.schema.json
 ```
-took 77s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
-2.80GHz, 32GB of RAM, Ubuntu Linux 17.10, Python 3.6.3.
+took 67s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
+2.80GHz, 32GB of RAM, Ubuntu Linux 18.04, Python 3.6.7.
 
 ## System Requirements
 
@@ -622,6 +657,9 @@ See [CHANGELOG.md](CHANGELOG.md).
   (de-code@).
 * Support for CSV files and detection of `REQUIRED` fields by Sandor Korotkevics
   (korotkevics@).
+* Better support for using `bigquery_schema_generator` as a library from an
+  external Python code by StefanoG_ITA (@StefanoGITA).
+
 
 ## License
 

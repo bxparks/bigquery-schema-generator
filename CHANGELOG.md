@@ -1,6 +1,12 @@
 # Changelog
 
-* Unreleased
+* 0.5 (2019-06-06)
+    * Add input and output parameters to run() to allow the client code using
+      `SchemaGenerator` to redirect the input and output files. (See #30).
+    * Remove fields with incompatible types (or other errors) from the generated
+      schema, instead of picking the type of the first encounter. (See #31).
+    * Improve internal data validation handling, reserving exceptions for
+      programming errors only.
 * 0.4 (2019-03-06)
     * Support CSV input files using `--input_format` flag. Preserve
       the ordering of fields in the schema file for CSV.

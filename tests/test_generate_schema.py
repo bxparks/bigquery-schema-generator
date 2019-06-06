@@ -17,6 +17,7 @@
 import unittest
 import os
 import json
+from io import StringIO
 from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import is_string_type
@@ -229,16 +230,14 @@ class TestSchemaGenerator(unittest.TestCase):
                          generator.infer_bigquery_type([{}]))
 
         # Cannot have arrays of nulls (REPEATED __null__)
-        with self.assertRaises(Exception):
-            generator.infer_bigquery_type([None])
+        self.assertEqual((None, None), generator.infer_bigquery_type([None]))
 
         # Cannot have arrays of empty arrays: (REPEATED __empty_array__)
-        with self.assertRaises(Exception):
-            generator.infer_bigquery_type([[], []])
+        self.assertEqual((None, None), generator.infer_bigquery_type([[], []]))
 
         # Cannot have arrays of arrays: (REPEATED __array__)
-        with self.assertRaises(Exception):
-            generator.infer_bigquery_type([[1, 2], [2]])
+        self.assertEqual((None, None),
+            generator.infer_bigquery_type([[1, 2], [2]]))
 
     def test_infer_array_type(self):
         generator = SchemaGenerator()
@@ -380,6 +379,22 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertTrue(is_string_type('TIMESTAMP'))
         self.assertTrue(is_string_type('DATE'))
         self.assertTrue(is_string_type('TIME'))
+
+    def test_run_with_input_and_output(self):
+        generator = SchemaGenerator()
+        input = StringIO('{ "name": "1" }')
+        output = StringIO()
+        generator.run(input, output)
+        expected = """\
+[
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "INTEGER"
+  }
+]
+"""
+        self.assertEqual(expected, output.getvalue())
 
 
 class TestFromDataFile(unittest.TestCase):
