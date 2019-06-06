@@ -112,15 +112,9 @@ DATA
 { "ts": "2017-05-22T17:10:00-07:00" }
 { "ts": 1.0 }
 ERRORS
-2: Mismatched type: old=(hard,d,NULLABLE,DATE); new=(hard,d,NULLABLE,FLOAT)
+2: Ignoring field with mismatched type: old=(hard,ts,NULLABLE,TIMESTAMP); new=(hard,ts,NULLABLE,FLOAT)
 SCHEMA
-[
-  {
-    "mode": "NULLABLE",
-    "name": "ts",
-    "type": "TIMESTAMP"
-  }
-]
+[]
 END
 
 # DATE cannot change into a non-String type.
@@ -128,15 +122,9 @@ DATA
 { "d": "2017-01-01" }
 { "d": 1.0 }
 ERRORS
-2: Mismatched type: old=(hard,d,NULLABLE,DATE); new=(hard,d,NULLABLE,FLOAT)
+2: Ignoring field with mismatched type: old=(hard,d,NULLABLE,DATE); new=(hard,d,NULLABLE,FLOAT)
 SCHEMA
-[
-  {
-    "mode": "NULLABLE",
-    "name": "d",
-    "type": "DATE"
-  }
-]
+[]
 END
 
 # TIME cannot change into a non-String type.
@@ -144,15 +132,9 @@ DATA
 { "t": "17:10:01" }
 { "t": 1.0 }
 ERRORS
-2: Mismatched type: old=(hard,d,NULLABLE,DATE); new=(hard,d,NULLABLE,FLOAT)
+2: Ignoring field with mismatched type: old=(hard,t,NULLABLE,TIME); new=(hard,t,NULLABLE,FLOAT)
 SCHEMA
-[
-  {
-    "mode": "NULLABLE",
-    "name": "t",
-    "type": "TIME"
-  }
-]
+[]
 END
 
 # Conflicting TIME or DATE field reduces to STRING.
@@ -405,15 +387,9 @@ DATA
 { "i": 3 }
 { "i": [1, 2] }
 ERRORS
-2: Mismatched mode for non-RECORD: old=(hard,i,NULLABLE,INTEGER); new=(hard,i,REPEATED,INTEGER)
+2: Ignoring non-RECORD field with mismatched mode: old=(hard,i,NULLABLE,INTEGER); new=(hard,i,REPEATED,INTEGER)
 SCHEMA
-[
-  {
-    "mode": "NULLABLE",
-    "name": "i",
-    "type": "INTEGER"
-  }
-]
+[]
 END
 
 # No downgrade of REPEATED to NULLABLE.
@@ -421,15 +397,9 @@ DATA
 { "i": [1, 2] }
 { "i": 3 }
 ERRORS
-2: Mismatched mode for non-RECORD: old=(hard,i,REPEATED,INTEGER); new=(hard,i,NULLABLE,INTEGER)
+2: Ignoring non-RECORD field with mismatched mode: old=(hard,i,REPEATED,INTEGER); new=(hard,i,NULLABLE,INTEGER)
 SCHEMA
-[
-  {
-    "mode": "REPEATED",
-    "name": "i",
-    "type": "INTEGER"
-  }
-]
+[]
 END
 
 # NULLABLE RECORD can be upgraded to a REPEATED RECORD.

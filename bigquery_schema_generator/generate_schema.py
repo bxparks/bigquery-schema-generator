@@ -194,14 +194,9 @@ class SchemaGenerator:
         """
         for key, value in json_object.items():
             schema_entry = schema_map.get(key)
-            try:
-                new_schema_entry = self.get_schema_entry(key, value)
-                merged_schema_entry = self.merge_schema_entry(
-                    schema_entry, new_schema_entry)
-            except Exception as e:
-                self.log_error(str(e))
-                continue
-            schema_map[key] = merged_schema_entry
+            new_schema_entry = self.get_schema_entry(key, value)
+            schema_map[key] = self.merge_schema_entry(
+                schema_entry, new_schema_entry)
 
     def merge_schema_entry(self, old_schema_entry, new_schema_entry):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
@@ -209,7 +204,11 @@ class SchemaGenerator:
 
         Returns the merged schema_entry. This method assumes that both
         'old_schema_entry' and 'new_schema_entry' can be modified in place and
-        returned as the new schema_entry.
+        returned as the new schema_entry. Returns None if the field should
+        be removed from the schema due to internal consistency errors.
+
+        An Exception is thrown if an unexpected programming error is detected.
+        The calling routine should stop processing the file.
         """
         if not old_schema_entry:
             return new_schema_entry
@@ -274,8 +273,7 @@ class SchemaGenerator:
             new_fields = new_info['fields']
             for key, new_entry in new_fields.items():
                 old_entry = old_fields.get(key)
-                merged_entry = self.merge_schema_entry(old_entry, new_entry)
-                old_fields[key] = merged_entry
+                old_fields[key] = self.merge_schema_entry(old_entry, new_entry)
             return old_schema_entry
 
         # For all other types, the old_mode must be the same as the new_mode. It
@@ -283,20 +281,22 @@ class SchemaGenerator:
         # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
         # not support that so we must also follow that rule.
         if old_mode != new_mode:
-            raise Exception(('Mismatched mode for non-RECORD: '
-                             'old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)') %
-                            (old_status, old_name, old_mode, old_type,
-                             new_status, new_name, new_mode, new_type))
+            self.log_error(
+                f'Ignoring non-RECORD field with mismatched mode: '
+                f'old=({old_status},{old_name},{old_mode},{old_type}); '
+                f'new=({new_status},{new_name},{new_mode},{new_type})')
+            return None
 
-        # Infer the best matching type.
+        # Check that the converted types are compatible.
         candidate_type = convert_type(old_type, new_type)
         if not candidate_type:
-            raise Exception(
-                'Mismatched type: old=(%s,%s,%s,%s); new=(%s,%s,%s,%s)' %
-                (old_status, old_name, old_mode, old_type, new_status,
-                 new_name, new_mode, new_type))
-        new_info['type'] = candidate_type
+            self.log_error(
+                f'Ignoring field with mismatched type: '
+                f'old=({old_status},{old_name},{old_mode},{old_type}); '
+                f'new=({new_status},{new_name},{new_mode},{new_type})')
+            return None
 
+        new_info['type'] = candidate_type
         return new_schema_entry
 
     def get_schema_entry(self, key, value):
@@ -609,8 +609,8 @@ def flatten_schema_map(schema_map,
 
     If 'sorted_schema' is True, the schema is sorted using the name of the
     columns. This seems to be the behavior for `bq load` using JSON data. For
-    CSV files, sorting must not happen because the position of schema column mus
-    match the position of the column value in the CSV file.
+    CSV files, sorting must not happen because the position of schema column
+    must match the position of the column value in the CSV file.
 
     If 'infer_mode' is True, set the schema 'mode' to be 'REQUIRED' instead of
     'NULLABLE' if the field contains a value for all data records.
@@ -624,6 +624,9 @@ def flatten_schema_map(schema_map,
     map_items = sorted(schema_map.items()) if sorted_schema \
         else schema_map.items()
     for name, meta in map_items:
+        # Skip over fields which have been explicitly removed
+        if not meta: continue
+
         status = meta['status']
         filled = meta['filled']
         info = meta['info']
