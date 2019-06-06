@@ -157,6 +157,11 @@ class SchemaGenerator:
         The function returns a tuple of 2 things:
           * an OrderedDict which is sorted by the 'key' of the column name
           * a list of possible errors containing a map of 'line' and 'msg'
+
+        An Exception is thrown in the lower-level calls only for programming
+        errors, not for data validation errors. Therefore each line in the input
+        file is processed without a try-except block and any exception will be
+        allowed to escape to the calling routine.
         """
 
         if self.input_format == 'csv':
@@ -167,22 +172,21 @@ class SchemaGenerator:
             raise Exception("Unknown input_format '%s'" % self.input_format)
 
         schema_map = OrderedDict()
-        for json_object in reader:
-            self.line_number += 1
-            if self.line_number % self.debugging_interval == 0:
-                logging.info("Processing line %s", self.line_number)
+        try:
+            for json_object in reader:
+                self.line_number += 1
+                if self.line_number % self.debugging_interval == 0:
+                    logging.info("Processing line %s", self.line_number)
 
-            # Deduce the schema from this given data record.
-            try:
+                # Deduce the schema from this given data record.
                 if isinstance(json_object, dict):
                     self.deduce_schema_for_line(json_object, schema_map)
                 else:
                     self.log_error(
                         'Top level record must be an Object but was a %s' %
                         type(json_object))
-            except Exception as e:
-                self.log_error(str(e))
-        logging.info("Processed %s lines", self.line_number)
+        finally:
+            logging.info("Processed %s lines", self.line_number)
         return schema_map, self.error_logs
 
     def deduce_schema_for_line(self, json_object, schema_map):
@@ -211,6 +215,10 @@ class SchemaGenerator:
         The calling routine should stop processing the file.
         """
         if not old_schema_entry:
+            return new_schema_entry
+
+        # If the new schema is None, return immediately.
+        if not new_schema_entry:
             return new_schema_entry
 
         # If a field value is missing, permanently set 'filled' to False.
@@ -305,6 +313,8 @@ class SchemaGenerator:
         instead of a primitive (this will happen only for JSON input file).
         """
         value_mode, value_type = self.infer_bigquery_type(value)
+        if not value_mode or not value_type:
+            return None
 
         # yapf: disable
         if value_type == 'RECORD':
@@ -380,15 +390,17 @@ class SchemaGenerator:
         # Verify that the array elements are identical types.
         array_type = self.infer_array_type(node_value)
         if not array_type:
-            raise Exception(
+            self.log_error(
                 "All array elements must be the same compatible type: %s" %
                 node_value)
+            return (None, None)
 
         # Disallow array of special types (with '__' not supported).
         # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
         # allowed by 'bq load'.
         if '__' in array_type and array_type != '__empty_record__':
-            raise Exception('Unsupported array element type: %s' % array_type)
+            self.log_error('Unsupported array element type: %s' % array_type)
+            return (None, None)
 
         return ('REPEATED', array_type)
 
@@ -452,7 +464,8 @@ class SchemaGenerator:
             else:
                 return '__empty_array__'
         else:
-            raise Exception('Unsupported node type: %s' % type(value))
+            raise Exception('Unsupported node type: %s (should not happen)'
+                % type(value))
 
     def infer_array_type(self, elements):
         """Return the type of all the array elements, accounting for the same

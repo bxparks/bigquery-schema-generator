@@ -275,6 +275,15 @@ SCHEMA
 ]
 END
 
+# Arrays of Arrays not allowed.
+DATA
+{ "a": [[]] }
+ERRORS
+1: Unsupported array element type: __empty_array__
+SCHEMA
+[]
+END
+
 # All elements of an array must be of the same type. Also check that an error
 # in one element ("a") continues the processing the remaining elements. (The
 # bug was caused by a missing try/except block while looping over each
@@ -282,7 +291,7 @@ END
 DATA
 { "s": "string", "x": 3.2, "i": 3, "b": true, "a": [ "a", 1] }
 ERRORS
-1: Not all array elements are equal type: ['a', 1]
+1: All array elements must be the same compatible type: ['a', 1]
 SCHEMA
 [
   {

@@ -595,8 +595,8 @@ Generating the schema using
 $ bigquery_schema_generator/generate_schema.py < anon1.data.json \
     > anon1.schema.json
 ```
-took 77s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
-2.80GHz, 32GB of RAM, Ubuntu Linux 17.10, Python 3.6.3.
+took 67s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
+2.80GHz, 32GB of RAM, Ubuntu Linux 18.04, Python 3.6.7.
 
 ## System Requirements
 

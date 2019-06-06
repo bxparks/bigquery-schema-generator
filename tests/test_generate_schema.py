@@ -230,16 +230,14 @@ class TestSchemaGenerator(unittest.TestCase):
                          generator.infer_bigquery_type([{}]))
 
         # Cannot have arrays of nulls (REPEATED __null__)
-        with self.assertRaises(Exception):
-            generator.infer_bigquery_type([None])
+        self.assertEqual((None, None), generator.infer_bigquery_type([None]))
 
         # Cannot have arrays of empty arrays: (REPEATED __empty_array__)
-        with self.assertRaises(Exception):
-            generator.infer_bigquery_type([[], []])
+        self.assertEqual((None, None), generator.infer_bigquery_type([[], []]))
 
         # Cannot have arrays of arrays: (REPEATED __array__)
-        with self.assertRaises(Exception):
-            generator.infer_bigquery_type([[1, 2], [2]])
+        self.assertEqual((None, None),
+            generator.infer_bigquery_type([[1, 2], [2]]))
 
     def test_infer_array_type(self):
         generator = SchemaGenerator()
