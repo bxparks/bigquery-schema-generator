@@ -872,3 +872,36 @@ SCHEMA
   }
 ]
 END
+
+# Sanitize the names to comply with BigQuery.
+DATA csv infer_mode sanitize_names
+name,surname,age_in_#years,eighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacters
+John
+Michael,,
+Maria,Smith,30,yes
+Joanna,Anders,21,yes
+SCHEMA
+[
+  {
+    "mode": "REQUIRED",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "surname",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "age_in__years",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "eighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterse",
+    "type": "STRING"
+  }
+]
+END
+
