@@ -428,19 +428,20 @@ class TestFromDataFile(unittest.TestCase):
         keep_nulls = ('keep_nulls' in data_flags)
         infer_mode = ('infer_mode' in data_flags)
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
+        sanitize_names = ('sanitize_names' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']
         expected_schema = chunk['schema']
 
         print("Test chunk %s: First record: %s" % (chunk_count, records[0]))
-
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,
             infer_mode=infer_mode,
             keep_nulls=keep_nulls,
-            quoted_values_are_strings=quoted_values_are_strings)
+            quoted_values_are_strings=quoted_values_are_strings,
+            sanitize_names=sanitize_names)
         schema_map, error_logs = generator.deduce_schema(records)
         schema = generator.flatten_schema(schema_map)
 
