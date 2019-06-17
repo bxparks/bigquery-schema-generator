@@ -12,7 +12,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 0.5 (2019-06-06)
+Version: 0.5.1 (2019-06-19)
 
 ## Background
 
