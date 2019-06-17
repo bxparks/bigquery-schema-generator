@@ -204,10 +204,10 @@ Print the built-in help strings:
 
 ```
 $ generate-schema --help
-usage: generate-schema [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
-                       [--quoted_values_are_strings] [--infer_mode]
-                       [--debugging_interval DEBUGGING_INTERVAL]
-                       [--debugging_map]
+usage: generate_schema.py [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
+                          [--quoted_values_are_strings] [--infer_mode]
+                          [--debugging_interval DEBUGGING_INTERVAL]
+                          [--debugging_map] [--sanitize_names]
 
 Generate BigQuery schema from JSON or CSV file.
 
@@ -223,7 +223,8 @@ optional arguments:
   --debugging_interval DEBUGGING_INTERVAL
                         Number of lines between heartbeat debugging messages
   --debugging_map       Print the metadata schema_map instead of the schema
-                        for debugging
+  --sanitize_names      Forces schema name to comply with BigQuery naming
+                        standard
 ```
 
 #### Input Format (`--input_format`)
@@ -351,6 +352,14 @@ flag is intended to be used for debugging.
 ```
 $ generate-schema --debugging_map < file.data.json > file.schema.json
 ```
+
+#### Sanitize Names (`--sanitize_names`)
+
+BigQuery column names are restricted to certain characters and length. With this
+flag, column names are sanitizes so that any character outside of ASCII letters,
+numbers and underscore (`[a-zA-Z0-9_]`) are converted to an underscore. (For
+example "go&2#there!" is converted to "go_2_there_".) Names longer than 128
+characters are truncated to 128.
 
 ## Schema Types
 
@@ -658,7 +667,9 @@ See [CHANGELOG.md](CHANGELOG.md).
 * Support for CSV files and detection of `REQUIRED` fields by Sandor Korotkevics
   (korotkevics@).
 * Better support for using `bigquery_schema_generator` as a library from an
-  external Python code by StefanoG_ITA (@StefanoGITA).
+  external Python code by StefanoG_ITA (StefanoGITA@).
+* Sanitizing of column names to valid BigQuery characters and length by Jon
+  Warghed (jonwarghed@).
 
 
 ## License
