@@ -115,7 +115,7 @@ class SchemaGenerator:
         # This option generally wants to be turned on as any inferred schema
         # will not be accepted by `bq load` when it contains illegal characters.
         # Characters such as #, / or -. Neither will it be accepted if the column name
-        # in the schema is larger than 128 characters. 
+        # in the schema is larger than 128 characters.
         self.sanitize_names = sanitize_names
 
     def log_error(self, msg):
@@ -206,8 +206,8 @@ class SchemaGenerator:
         for key, value in json_object.items():
             schema_entry = schema_map.get(key)
             new_schema_entry = self.get_schema_entry(key, value)
-            schema_map[key] = self.merge_schema_entry(
-                schema_entry, new_schema_entry)
+            schema_map[key] = self.merge_schema_entry(schema_entry,
+                                                      new_schema_entry)
 
     def merge_schema_entry(self, old_schema_entry, new_schema_entry):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
@@ -471,8 +471,8 @@ class SchemaGenerator:
             else:
                 return '__empty_array__'
         else:
-            raise Exception('Unsupported node type: %s (should not happen)'
-                % type(value))
+            raise Exception(
+                'Unsupported node type: %s (should not happen)' % type(value))
 
     def infer_array_type(self, elements):
         """Return the type of all the array elements, accounting for the same
@@ -678,8 +678,8 @@ def flatten_schema_map(schema_map,
                     ]
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
-                    new_value = flatten_schema_map(value, keep_nulls,
-                                                   sorted_schema, sanitize_names)
+                    new_value = flatten_schema_map(
+                        value, keep_nulls, sorted_schema, sanitize_names)
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 new_value = value[1:]
             elif key == 'mode':

@@ -237,7 +237,7 @@ class TestSchemaGenerator(unittest.TestCase):
 
         # Cannot have arrays of arrays: (REPEATED __array__)
         self.assertEqual((None, None),
-            generator.infer_bigquery_type([[1, 2], [2]]))
+                         generator.infer_bigquery_type([[1, 2], [2]]))
 
     def test_infer_array_type(self):
         generator = SchemaGenerator()

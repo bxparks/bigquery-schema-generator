@@ -904,4 +904,3 @@ SCHEMA
   }
 ]
 END
-
