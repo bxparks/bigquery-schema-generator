@@ -79,7 +79,8 @@ class SchemaGenerator:
                  keep_nulls=False,
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
-                 debugging_map=False):
+                 debugging_map=False,
+                 sanitize_names=False):
         self.input_format = input_format
         self.infer_mode = infer_mode
         self.keep_nulls = keep_nulls
@@ -110,6 +111,12 @@ class SchemaGenerator:
 
         self.line_number = 0
         self.error_logs = []
+
+        # This option generally wants to be turned on as any inferred schema
+        # will not be accepted by `bq load` when it contains illegal characters.
+        # Characters such as #, / or -. Neither will it be accepted if the column name
+        # in the schema is larger than 128 characters.
+        self.sanitize_names = sanitize_names
 
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
@@ -199,8 +206,8 @@ class SchemaGenerator:
         for key, value in json_object.items():
             schema_entry = schema_map.get(key)
             new_schema_entry = self.get_schema_entry(key, value)
-            schema_map[key] = self.merge_schema_entry(
-                schema_entry, new_schema_entry)
+            schema_map[key] = self.merge_schema_entry(schema_entry,
+                                                      new_schema_entry)
 
     def merge_schema_entry(self, old_schema_entry, new_schema_entry):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
@@ -464,8 +471,8 @@ class SchemaGenerator:
             else:
                 return '__empty_array__'
         else:
-            raise Exception('Unsupported node type: %s (should not happen)'
-                % type(value))
+            raise Exception(
+                'Unsupported node type: %s (should not happen)' % type(value))
 
     def infer_array_type(self, elements):
         """Return the type of all the array elements, accounting for the same
@@ -499,7 +506,8 @@ class SchemaGenerator:
             schema_map=schema_map,
             keep_nulls=self.keep_nulls,
             sorted_schema=self.sorted_schema,
-            infer_mode=self.infer_mode)
+            infer_mode=self.infer_mode,
+            sanitize_names=self.sanitize_names)
 
     def run(self, input_file=sys.stdin, output_file=sys.stdout):
         """Read the data records from the input_file and print out the BigQuery
@@ -613,7 +621,8 @@ def is_string_type(thetype):
 def flatten_schema_map(schema_map,
                        keep_nulls=False,
                        sorted_schema=True,
-                       infer_mode=False):
+                       infer_mode=False,
+                       sanitize_names=False):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema.
 
@@ -669,8 +678,8 @@ def flatten_schema_map(schema_map,
                     ]
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
-                    new_value = flatten_schema_map(value, keep_nulls,
-                                                   sorted_schema)
+                    new_value = flatten_schema_map(
+                        value, keep_nulls, sorted_schema, sanitize_names)
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 new_value = value[1:]
             elif key == 'mode':
@@ -678,6 +687,8 @@ def flatten_schema_map(schema_map,
                     new_value = 'REQUIRED'
                 else:
                     new_value = value
+            elif key == 'name' and sanitize_names:
+                new_value = re.sub('[^a-zA-Z0-9_]', '_', value)[0:127]
             else:
                 new_value = value
             new_info[key] = new_value
@@ -714,6 +725,10 @@ def main():
         '--debugging_map',
         help='Print the metadata schema_map instead of the schema',
         action="store_true")
+    parser.add_argument(
+        '--sanitize_names',
+        help='Forces schema name to comply with BigQuery naming standard',
+        action="store_true")
     args = parser.parse_args()
 
     # Configure logging.
@@ -725,7 +740,8 @@ def main():
         keep_nulls=args.keep_nulls,
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
-        debugging_map=args.debugging_map)
+        debugging_map=args.debugging_map,
+        sanitize_names=args.sanitize_names)
     generator.run()
 
 

@@ -1,5 +1,9 @@
 # Changelog
 
+* Unreleased
+* 0.5.1 (2019-06-17)
+    * Add `--sanitize_names` to convert invalid characters in column names and
+      to shorten them if too long. (See #33; thanks @jonwarghed).
 * 0.5 (2019-06-06)
     * Add input and output parameters to run() to allow the client code using
       `SchemaGenerator` to redirect the input and output files. (See #30).
