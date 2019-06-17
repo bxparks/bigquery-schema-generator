@@ -117,7 +117,6 @@ class SchemaGenerator:
         # Characters such as #, / or -. Neither will it be accepted if the column name
         # in the schema is larger than 128 characters. 
         self.sanitize_names = sanitize_names
-        
 
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
@@ -689,7 +688,6 @@ def flatten_schema_map(schema_map,
                 else:
                     new_value = value
             elif key == 'name' and sanitize_names:
-                print(value)
                 new_value = re.sub('[^a-zA-Z0-9_]', '_', value)[0:127]
             else:
                 new_value = value

@@ -435,7 +435,6 @@ class TestFromDataFile(unittest.TestCase):
         expected_schema = chunk['schema']
 
         print("Test chunk %s: First record: %s" % (chunk_count, records[0]))
-        print(sanitize_names)
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,
