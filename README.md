@@ -44,17 +44,32 @@ the input dataset.
 
 ## Installation
 
-Install from [PyPI](https://pypi.python.org/pypi) repository using `pip3`.
-If you want to install the package for your entire system globally, use
-```
-$ sudo -H pip3 install bigquery_schema_generator
-```
-If you are using a virtual environment (such as
-[venv](https://docs.python.org/3/library/venv.html)), then you don't need
-the `sudo` coommand, and you can just type:
+Install from [PyPI](https://pypi.python.org/pypi) repository using `pip3`. There
+are too many ways to install packages in Python. The following are in order
+highest to lowest recommendation:
+
+1) If you are using a virtual environment (such as
+[venv](https://docs.python.org/3/library/venv.html)), then use:
 ```
 $ pip3 install bigquery_schema_generator
 ```
+
+2) If you aren't using a virtual environment you can install into
+your local Python directory:
+
+```
+$ pip3 install --user bigquery_schema_generator
+```
+
+3) If you want to install the package for your entire system globally, use
+```
+$ sudo -H pip3 install bigquery_schema_generator
+```
+but realize that you will be running code from PyPI as `root` so this has
+security implications.
+
+Sometimes, your Python environment gets into a complete mess and the `pip3`
+command won't work. Try typing `python3 -m pip` instead.
 
 A successful install should print out something like the following (the version
 number may be different):
