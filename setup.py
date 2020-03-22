@@ -27,5 +27,10 @@ setup(name='bigquery-schema-generator',
           'console_scripts': [
             'generate-schema = bigquery_schema_generator.generate_schema:main'
         ]
-      }
+      },
+      extras_require={
+          'dev': [
+              'pytest',
+          ],
+    },
 )

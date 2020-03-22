@@ -103,6 +103,8 @@ class DataReader:
     def __init__(self, testdata_file):
         self.testdata_file = testdata_file
         self.next_line = None
+        self.lineno = 0
+        self.chunk_count = 0
 
     def read_chunk(self):
         """Returns a dict with the next test chunk from the data file,
@@ -115,15 +117,18 @@ class DataReader:
             }
         Returns None if there are no more test chunks.
         """
-        data_flags, records = self.read_data_section()
+        data_flags, records, line = self.read_data_section()
         if data_flags is None:
             return None
         errors = self.read_errors_section()
         error_map = self.process_errors(errors)
         schema = self.read_schema_section()
         self.read_end_marker()
+        self.chunk_count += 1
 
         return {
+            'chunk_count': self.chunk_count,
+            'line': line,
             'data_flags': data_flags,
             'records': records,
             'errors': errors,
@@ -138,8 +143,9 @@ class DataReader:
 
         # First tag must be 'DATA [flags]'
         tag_line = self.read_line()
+        lineno = self.lineno
         if tag_line is None:
-            return (None, None)
+            return (None, None, lineno)
         (tag, data_flags) = self.parse_tag_line(tag_line)
         if tag != 'DATA':
             raise Exception(
@@ -160,7 +166,7 @@ class DataReader:
                 break
             records.append(line)
 
-        return (data_flags, records)
+        return (data_flags, records, lineno)
 
     def read_errors_section(self):
         """Return a dictionary of errors which are expected from the parsing of
@@ -259,6 +265,7 @@ class DataReader:
 
         while True:
             line = self.testdata_file.readline()
+            self.lineno += 1
             # EOF
             if line == '':
                 return None

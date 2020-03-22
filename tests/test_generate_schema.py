@@ -23,6 +23,7 @@ from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import convert_type
 from data_reader import DataReader
+from pytest import fixture
 
 
 class TestSchemaGenerator(unittest.TestCase):
@@ -397,7 +398,7 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual(expected, output.getvalue())
 
 
-class TestFromDataFile(unittest.TestCase):
+class ChunksFromDataFile(object):
     """Read the test case data from TESTDATA_FILE and verify that the expected
     schema matches the one produced by SchemaGenerator.deduce_schema(). Multiple
     test cases are stored in TESTDATA_FILE. The data_reader.py module knows how
@@ -406,7 +407,7 @@ class TestFromDataFile(unittest.TestCase):
 
     TESTDATA_FILE = 'testdata.txt'
 
-    def test(self):
+    def chunks(self):
         # Find the TESTDATA_FILE in the same directory as this script file.
         dir_path = os.path.dirname(os.path.realpath(__file__))
         testdata_path = os.path.join(dir_path, self.TESTDATA_FILE)
@@ -414,15 +415,25 @@ class TestFromDataFile(unittest.TestCase):
         # Read each test case (data chunk) and verify the expected schema.
         with open(testdata_path) as testdatafile:
             data_reader = DataReader(testdatafile)
-            chunk_count = 0
             while True:
                 chunk = data_reader.read_chunk()
                 if chunk is None:
                     break
-                chunk_count += 1
-                self.verify_data_chunk(chunk_count, chunk)
+                yield chunk
 
-    def verify_data_chunk(self, chunk_count, chunk):
+    @classmethod
+    def chunk_id(cls, chunk):
+        return "chunk-{chunk_count}-line-{line}".format(**chunk)
+
+@fixture(params = list(ChunksFromDataFile().chunks()), ids=ChunksFromDataFile.chunk_id)
+def chunk(request):
+    return request.param
+
+
+class TestDataChunks:
+    def test_data_chunk(self, chunk):
+        chunk_count = chunk['chunk_count']
+        line = chunk['line']
         data_flags = chunk['data_flags']
         input_format = 'csv' if ('csv' in data_flags) else 'json'
         keep_nulls = ('keep_nulls' in data_flags)
@@ -434,7 +445,7 @@ class TestFromDataFile(unittest.TestCase):
         expected_error_map = chunk['error_map']
         expected_schema = chunk['schema']
 
-        print("Test chunk %s: First record: %s" % (chunk_count, records[0]))
+        print("Test chunk %s, line %s: First record: %s" % (chunk_count, line, records[0]))
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,
@@ -447,10 +458,12 @@ class TestFromDataFile(unittest.TestCase):
 
         # Check the schema, preserving order
         expected = json.loads(expected_schema, object_pairs_hook=OrderedDict)
-        self.assertEqual(expected, schema)
+        assert expected == schema
 
         # Check the error messages
-        self.assertEqual(len(expected_errors), len(error_logs))
+        assert len(expected_errors) == len(error_logs)
+        self.assert_error_messages(expected_error_map, error_logs)
+
         self.assert_error_messages(expected_error_map, error_logs)
 
     def assert_error_messages(self, expected_error_map, error_logs):
@@ -470,9 +483,9 @@ class TestFromDataFile(unittest.TestCase):
         # well.
         for line_number, messages in sorted(error_map.items()):
             expected_entry = expected_error_map.get(line_number)
-            self.assertIsNotNone(expected_entry)
+            assert expected_entry is not None
             expected_messages = expected_entry['msgs']
-            self.assertEqual(len(expected_messages), len(messages))
+            assert len(expected_messages) == len(messages)
 
 
 if __name__ == '__main__':
