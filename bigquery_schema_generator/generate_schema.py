@@ -123,7 +123,7 @@ class SchemaGenerator:
 
     # TODO: BigQuery is case-insensitive with regards to the 'name' of the
     # field. Verify that the 'name' is unique regardless of the case.
-    def deduce_schema(self, file):
+    def deduce_schema(self, file, *, schema_map=None):
         """Loop through each newlined-delimited line of 'file' and
         deduce the BigQuery schema. The schema is returned as a recursive map
         that contains both the database schema and some additional metadata
@@ -178,7 +178,9 @@ class SchemaGenerator:
         else:
             raise Exception("Unknown input_format '%s'" % self.input_format)
 
-        schema_map = OrderedDict()
+        if schema_map is None:
+            schema_map = OrderedDict()
+
         try:
             for json_object in reader:
                 self.line_number += 1
@@ -296,11 +298,17 @@ class SchemaGenerator:
         # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
         # not support that so we must also follow that rule.
         if old_mode != new_mode:
-            self.log_error(
-                f'Ignoring non-RECORD field with mismatched mode: '
-                f'old=({old_status},{old_name},{old_mode},{old_type}); '
-                f'new=({new_status},{new_name},{new_mode},{new_type})')
-            return None
+            # primitive-types are conservatively deduced NULLABLE. In case we
+            # know a-priori that a field is REQUIRED, we accept that
+            new_might_be_required = new_mode == 'NULLABLE' and new_schema_entry['filled']
+            if self.infer_mode and old_mode == 'REQUIRED' and new_might_be_required:
+                new_info['mode'] = old_mode
+            else:
+                self.log_error(
+                    f'Ignoring non-RECORD field with mismatched mode: '
+                    f'old=({old_status},{old_name},{old_mode},{old_type}); '
+                    f'new=({new_status},{new_name},{new_mode},{new_type})')
+                return None
 
         # Check that the converted types are compatible.
         candidate_type = convert_type(old_type, new_type)
@@ -509,14 +517,14 @@ class SchemaGenerator:
             infer_mode=self.infer_mode,
             sanitize_names=self.sanitize_names)
 
-    def run(self, input_file=sys.stdin, output_file=sys.stdout):
+    def run(self, input_file=sys.stdin, output_file=sys.stdout, schema_map=None):
         """Read the data records from the input_file and print out the BigQuery
         schema on the output_file. The error logs are printed on the sys.stderr.
         Args:
             input_file: a file-like object (default: sys.stdin)
             output_file: a file-like object (default: sys.stdout)
         """
-        schema_map, error_logs = self.deduce_schema(input_file)
+        schema_map, error_logs = self.deduce_schema(input_file, schema_map=schema_map)
 
         for error in error_logs:
             logging.info("Problem on line %s: %s", error['line'], error['msg'])
