@@ -46,6 +46,9 @@ class DataReader:
         ERRORS
         line: msg
         ...
+        ERRORS INFORMED
+        line: msg
+        ...
         SCHEMA
         bigquery_schema
         END
@@ -57,6 +60,8 @@ class DataReader:
 
         * a DATA section containing the newline-separated JSON data records
         * an optional ERRORS section containing the expected error messages
+        * an optional ERRORS INFORMED section containing the expected error
+          messages when the schema is known to schema decoder in advance
         * a SCHEMA section containing the expected BigQuery schema
         * comment lines start with a '#' character.
 
@@ -120,8 +125,14 @@ class DataReader:
         data_flags, records, line = self.read_data_section()
         if data_flags is None:
             return None
-        errors = self.read_errors_section()
-        error_map = self.process_errors(errors)
+        error_flags, errors = self.read_errors_section()
+        if errors and error_flags:
+            raise Exception("Unexpected error flags in the first ERRORS section")
+        informed_error_flags, informed_errors = self.read_errors_section()
+        if informed_errors and "INFORMED" not in informed_error_flags:
+            raise Exception("Expected INFORMED flag in the second ERRORS section")
+        error_map = self.process_errors(errors or [])
+        informed_error_map = self.process_errors(informed_errors or [])
         schema = self.read_schema_section()
         self.read_end_marker()
         self.chunk_count += 1
@@ -131,8 +142,10 @@ class DataReader:
             'line': line,
             'data_flags': data_flags,
             'records': records,
-            'errors': errors,
+            'errors': errors or [],
             'error_map': error_map,
+            'informed_errors': informed_errors,
+            'informed_error_map': informed_error_map,
             'schema': schema
         }
 
@@ -180,11 +193,11 @@ class DataReader:
         # The 'ERRORS' section is optional.
         tag_line = self.read_line()
         if tag_line is None:
-            return []
-        (tag, _) = self.parse_tag_line(tag_line)
+            return None, None
+        (tag, error_flags) = self.parse_tag_line(tag_line)
         if tag != 'ERRORS':
             self.push_back(tag_line)
-            return []
+            return None, None
 
         # Read the ERRORS records until the next TAG_TOKEN.
         errors = []
@@ -194,12 +207,12 @@ class DataReader:
                 raise Exception("Unexpected EOF, should be SCHEMA tag")
             (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
-                if tag == 'ERRORS':
+                if tag == 'DATA':
                     raise Exception("Unexpected ERRORS tag")
                 self.push_back(line)
                 break
             errors.append(line)
-        return errors
+        return error_flags, errors
 
     def read_schema_section(self):
         """Returns the JSON string of the schema section.

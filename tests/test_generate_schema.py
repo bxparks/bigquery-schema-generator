@@ -22,9 +22,72 @@ from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import convert_type
+from bigquery_schema_generator.generate_schema import bq_schema_to_map
+from bigquery_schema_generator.generate_schema import BQ_TYPES
 from data_reader import DataReader
 from pytest import fixture
 
+
+@fixture(params=sorted(BQ_TYPES))
+def f_bq_type(request):
+    return request.param
+
+
+@fixture(params=['NULLABLE', 'REQUIRED', 'REPEATED'])
+def f_bq_mode(request):
+    return request.param
+
+
+@fixture
+def f_bq_entry(f_bq_mode, f_bq_type):
+    yield make_bq_entry(f_bq_mode, f_bq_type)
+
+
+def make_bq_entry(mode, type):
+    if type == 'RECORD':
+        return OrderedDict([
+            ('fields', [make_bq_entry('NULLABLE','STRING')]),
+            ('mode', mode),
+            ('name', 'a'),
+            ('type', type),
+        ])
+    else:
+        return OrderedDict([
+            ('mode', mode),
+            ('name', 'a'),
+            ('type', type),
+        ])
+
+
+@fixture(params=[('csv', True), ('csv', False), ('json', False)],
+         ids=lambda x: "{}-{}".format(*x))
+def f_input_format_infer_mode(request):
+    return request.param
+
+
+@fixture(params=[True, False])
+def f_keep_nulls(request):
+    return request.param
+
+
+@fixture(params=[True, False])
+def f_quoted_values_are_strings(request):
+    return request.param
+
+
+@fixture
+def f_generator(f_input_format_infer_mode, f_keep_nulls, f_quoted_values_are_strings):
+    yield SchemaGenerator(input_format=f_input_format_infer_mode[0],
+                          infer_mode=f_input_format_infer_mode[1],
+                          keep_nulls=f_keep_nulls,
+                          quoted_values_are_strings=f_quoted_values_are_strings)
+
+
+def test_bq_entry_roundtrip(f_bq_entry, f_generator):
+    schema = [f_bq_entry]
+    schema_map = bq_schema_to_map(schema)
+    flattened = f_generator.flatten_schema(schema_map)
+    assert schema == flattened
 
 class TestSchemaGenerator(unittest.TestCase):
     def test_timestamp_matcher_valid(self):
@@ -430,6 +493,7 @@ def chunk(request):
     return request.param
 
 
+
 class TestDataChunks:
     def test_data_chunk(self, chunk):
         chunk_count = chunk['chunk_count']
@@ -464,7 +528,51 @@ class TestDataChunks:
         assert len(expected_errors) == len(error_logs)
         self.assert_error_messages(expected_error_map, error_logs)
 
+    def test_data_chunk_informed(self, chunk):
+        chunk_count = chunk['chunk_count']
+        line = chunk['line']
+        data_flags = chunk['data_flags']
+        input_format = 'csv' if ('csv' in data_flags) else 'json'
+        keep_nulls = ('keep_nulls' in data_flags)
+        infer_mode = ('infer_mode' in data_flags)
+        quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
+        sanitize_names = ('sanitize_names' in data_flags)
+        records = chunk['records']
+        expected_schema = chunk['schema']
+        expected_errors = chunk['informed_errors']
+        expected_error_map = chunk['informed_error_map']
+        if expected_errors is None:
+            expected_errors = chunk['errors']
+            expected_error_map = chunk['error_map']
+
+        # Check the schema, preserving order
+        expected = json.loads(expected_schema, object_pairs_hook=OrderedDict)
+
+        print("Test informed chunk %s, line %s: First record: %s" % (chunk_count, line, records[0]))
+
+        # Test deduction with preloaded schema
+
+        expected_map = bq_schema_to_map(expected)
+        generator = SchemaGenerator(
+            input_format=input_format,
+            infer_mode=infer_mode,
+            keep_nulls=keep_nulls,
+            quoted_values_are_strings=quoted_values_are_strings,
+            sanitize_names=sanitize_names)
+        schema_map, error_logs = generator.deduce_schema(records, schema_map=expected_map)
+        schema = generator.flatten_schema(schema_map)
+
+        # Check the schema, preserving order
+        assert expected == schema
+
+        print('informed_expected_errors=',expected_errors,'error_logs=',error_logs)
+        assert len(expected_errors) == len(error_logs)
         self.assert_error_messages(expected_error_map, error_logs)
+
+        # Test roundtrip of schema -> schema_map -> schema
+        expected_map = bq_schema_to_map(expected)
+        schema = generator.flatten_schema(expected_map)
+        assert expected == schema
 
     def assert_error_messages(self, expected_error_map, error_logs):
         # Convert the list of errors into a map
