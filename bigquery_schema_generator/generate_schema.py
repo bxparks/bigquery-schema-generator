@@ -217,7 +217,7 @@ class SchemaGenerator:
             new_value = re.sub('[^a-zA-Z0-9_]', '_', value[:127])
         else:
             new_value = value
-        return new_value
+        return new_value.lower()
 
 
     def merge_schema_entry(self, old_schema_entry, new_schema_entry):
