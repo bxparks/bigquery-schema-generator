@@ -30,7 +30,14 @@ setup(name='bigquery-schema-generator',
       },
       extras_require={
           'dev': [
+              'flake8',
               'pytest',
+              'tox',
+              'wheel',
+              'setuptools',
           ],
+        'test': [
+            'coverage',
+        ],
     },
 )
