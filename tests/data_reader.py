@@ -216,8 +216,8 @@ class DataReader:
                 break
             (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
-                if tag == 'SCHEMA':
-                    raise Exception("Unexpected SCHEMA tag")
+                if tag in ('DATA', 'ERROR', 'SCHEMA'):
+                    raise Exception("Unexpected {} tag".format(tag))
                 self.push_back(line)
                 break
             schema_lines.append(line)
