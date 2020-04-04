@@ -659,15 +659,19 @@ took 67s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
 
 ## System Requirements
 
-This project was initially developed on Ubuntu 17.04 using Python 3.5.3. I have
-tested it on:
+This project was initially developed on Ubuntu 17.04 using Python 3.5.3, but it
+now requires Python 3.6 or higher, I think mostly due to the use of f-strings.
 
+I have tested it on:
+
+* Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
-* Ubuntu 17.04, Python 3.5.3
-* Ubuntu 16.04, Python 3.5.2
 * MacOS 10.14.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
+
+The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
+and 3.8.
 
 ## Changelog
 

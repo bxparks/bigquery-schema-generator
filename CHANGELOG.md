@@ -1,6 +1,12 @@
 # Changelog
 
 * Unreleased
+    * Fix `--sanitize_names` for recursive RECORD fields (Thanks riccardomc,
+      see #43).
+    * Clean up how unit tests are run, trying my best to figure out
+      Python's convolution package importing mechanism.
+    * Add GitHub Actions continuous integration pipelines with flake8 checks and
+      automated unit testing.
 * 0.5.1 (2019-06-17)
     * Add `--sanitize_names` to convert invalid characters in column names and
       to shorten them if too long. (See #33; thanks @jonwarghed).
