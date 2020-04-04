@@ -618,11 +618,13 @@ def is_string_type(thetype):
     ]
 
 
-def flatten_schema_map(schema_map,
-                       keep_nulls=False,
-                       sorted_schema=True,
-                       infer_mode=False,
-                       sanitize_names=False):
+def flatten_schema_map(
+        schema_map,
+        keep_nulls=False,
+        sorted_schema=True,
+        infer_mode=False,
+        sanitize_names=False,
+):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema.
 
@@ -679,7 +681,12 @@ def flatten_schema_map(schema_map,
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
                     new_value = flatten_schema_map(
-                        value, keep_nulls, sorted_schema, infer_mode, sanitize_names)
+                        schema_map=value,
+                        keep_nulls=keep_nulls,
+                        sorted_schema=sorted_schema,
+                        infer_mode=infer_mode,
+                        sanitize_names=sanitize_names,
+                    )
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 new_value = value[1:]
             elif key == 'mode':
