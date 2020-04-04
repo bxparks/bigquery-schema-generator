@@ -679,7 +679,7 @@ def flatten_schema_map(schema_map,
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
                     new_value = flatten_schema_map(
-                        value, keep_nulls, sorted_schema, sanitize_names)
+                        value, keep_nulls, sorted_schema, infer_mode, sanitize_names)
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 new_value = value[1:]
             elif key == 'mode':
