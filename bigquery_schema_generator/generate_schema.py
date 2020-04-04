@@ -114,8 +114,8 @@ class SchemaGenerator:
 
         # This option generally wants to be turned on as any inferred schema
         # will not be accepted by `bq load` when it contains illegal characters.
-        # Characters such as #, / or -. Neither will it be accepted if the column name
-        # in the schema is larger than 128 characters.
+        # Characters such as #, / or -. Neither will it be accepted if the
+        # column name in the schema is larger than 128 characters.
         self.sanitize_names = sanitize_names
 
     def log_error(self, msg):
@@ -323,7 +323,6 @@ class SchemaGenerator:
         if not value_mode or not value_type:
             return None
 
-        # yapf: disable
         if value_type == 'RECORD':
             # recursively figure out the RECORD
             fields = OrderedDict()
@@ -332,39 +331,48 @@ class SchemaGenerator:
             else:
                 for val in value:
                     self.deduce_schema_for_line(val, fields)
-            schema_entry = OrderedDict([('status', 'hard'),
-                                        ('filled', True),
-                                        ('info', OrderedDict([
-                                            ('fields', fields),
-                                            ('mode', value_mode),
-                                            ('name', key),
-                                            ('type', value_type),
-                                        ]))])
+            # yapf: disable
+            schema_entry = OrderedDict([
+                ('status', 'hard'),
+                ('filled', True),
+                ('info', OrderedDict([
+                    ('fields', fields),
+                    ('mode', value_mode),
+                    ('name', key),
+                    ('type', value_type),
+                ])),
+            ])
         elif value_type == '__null__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('mode', 'NULLABLE'),
-                                            ('name', key),
-                                            ('type', 'STRING'),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('mode', 'NULLABLE'),
+                    ('name', key),
+                    ('type', 'STRING'),
+                ])),
+            ])
         elif value_type == '__empty_array__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('mode', 'REPEATED'),
-                                            ('name', key),
-                                            ('type', 'STRING'),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('mode', 'REPEATED'),
+                    ('name', key),
+                    ('type', 'STRING'),
+                ])),
+            ])
         elif value_type == '__empty_record__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('fields', OrderedDict()),
-                                            ('mode', value_mode),
-                                            ('name', key),
-                                            ('type', 'RECORD'),
-                                        ]))])
+            schema_entry = OrderedDict(
+                [('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('fields', OrderedDict()),
+                    ('mode', value_mode),
+                    ('name', key),
+                    ('type', 'RECORD'),
+                ])),
+            ])
         else:
             # Empty fields are returned as empty strings, and must be treated as
             # a (soft String) to allow clobbering by subsquent non-empty fields.
@@ -374,13 +382,15 @@ class SchemaGenerator:
             else:
                 status = 'hard'
                 filled = True
-            schema_entry = OrderedDict([('status', status),
-                                        ('filled', filled),
-                                        ('info', OrderedDict([
-                                            ('mode', value_mode),
-                                            ('name', key),
-                                            ('type', value_type),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', status),
+                ('filled', filled),
+                ('info', OrderedDict([
+                    ('mode', value_mode),
+                    ('name', key),
+                    ('type', value_type),
+                ])),
+            ])
         # yapf: enable
         return schema_entry
 
