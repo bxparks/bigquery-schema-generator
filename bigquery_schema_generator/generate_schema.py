@@ -366,8 +366,8 @@ class SchemaGenerator:
                 ])),
             ])
         elif value_type == '__empty_record__':
-            schema_entry = OrderedDict(
-                [('status', 'soft'),
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
                 ('filled', False),
                 ('info', OrderedDict([
                     ('fields', OrderedDict()),
@@ -448,8 +448,8 @@ class SchemaGenerator:
                 # Implement the same type inference algorithm as 'bq load' for
                 # quoted values that look like ints, floats or bools.
                 if self.INTEGER_MATCHER.match(value):
-                    if int(value) < self.INTEGER_MIN_VALUE or \
-                        self.INTEGER_MAX_VALUE < int(value):
+                    if (int(value) < self.INTEGER_MIN_VALUE
+                            or self.INTEGER_MAX_VALUE < int(value)):
                         return 'QFLOAT'  # quoted float
                     else:
                         return 'QINTEGER'  # quoted integer
@@ -662,7 +662,8 @@ def flatten_schema_map(
         else schema_map.items()
     for name, meta in map_items:
         # Skip over fields which have been explicitly removed
-        if not meta: continue
+        if not meta:
+            continue
 
         status = meta['status']
         filled = meta['filled']
