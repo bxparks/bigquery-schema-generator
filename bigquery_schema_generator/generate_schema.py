@@ -73,6 +73,9 @@ class SchemaGenerator:
     # Detect floats inside quotes.
     FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
+    # Valid field name characters of BigQuery
+    FIELD_NAME_MATCHER = re.compile(r'[^a-zA-Z0-9_]')
+
     def __init__(self,
                  input_format='json',
                  infer_mode=False,
@@ -698,6 +701,7 @@ def flatten_schema_map(
                         sanitize_names=sanitize_names,
                     )
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
+                # Convert QINTEGER -> INTEGER, similarly for QFLAT and QBOOLEAN.
                 new_value = value[1:]
             elif key == 'mode':
                 if infer_mode and value == 'NULLABLE' and filled:
@@ -705,7 +709,9 @@ def flatten_schema_map(
                 else:
                     new_value = value
             elif key == 'name' and sanitize_names:
-                new_value = re.sub('[^a-zA-Z0-9_]', '_', value)[0:127]
+                new_value = SchemaGenerator.FIELD_NAME_MATCHER.sub(
+                    '_', value,
+                )[0:127]
             else:
                 new_value = value
             new_info[key] = new_value
