@@ -22,7 +22,7 @@ from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import convert_type
-from data_reader import DataReader
+from .data_reader import DataReader
 
 
 class TestSchemaGenerator(unittest.TestCase):
@@ -194,7 +194,7 @@ class TestSchemaGenerator(unittest.TestCase):
                          generator.infer_bigquery_type(2.0))
         # yapf: disable
         self.assertEqual(('NULLABLE', 'RECORD'),
-                         generator.infer_bigquery_type({ 'a': 1, 'b': 2 }))
+                         generator.infer_bigquery_type({'a': 1, 'b': 2}))
         # yapf: enable
         self.assertEqual(('NULLABLE', '__null__'),
                          generator.infer_bigquery_type(None))
@@ -209,9 +209,12 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual(
             ('REPEATED', 'DATE'),
             generator.infer_bigquery_type(['2018-02-08', '2018-02-09']))
-        self.assertEqual(('REPEATED', 'TIMESTAMP'),
-                         generator.infer_bigquery_type(
-                             ['2018-02-08T12:34:56', '2018-02-08T12:34:56']))
+        self.assertEqual(
+            ('REPEATED', 'TIMESTAMP'),
+            generator.infer_bigquery_type(
+                ['2018-02-08T12:34:56', '2018-02-08T12:34:56'],
+            )
+        )
         self.assertEqual(('REPEATED', 'STRING'),
                          generator.infer_bigquery_type(['a', 'b', 'c']))
         self.assertEqual(('REPEATED', 'BOOLEAN'),
@@ -221,10 +224,13 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual(('REPEATED', 'FLOAT'),
                          generator.infer_bigquery_type([1.0, 2.0]))
         # yapf: disable
-        self.assertEqual(('REPEATED', 'RECORD'),
-                         generator.infer_bigquery_type([
-                            { 'a': 1, 'b': 2 },
-                            { 'c': 3 }]))
+        self.assertEqual(
+            ('REPEATED', 'RECORD'),
+            generator.infer_bigquery_type([
+                {'a': 1, 'b': 2},
+                {'c': 3},
+            ])
+        )
         # yapf: enable
         self.assertEqual(('REPEATED', '__empty_record__'),
                          generator.infer_bigquery_type([{}]))

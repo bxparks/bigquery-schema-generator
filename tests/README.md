@@ -9,10 +9,25 @@ file which is parsed by the unit test program.  This has two advantages:
 * we can more easily update the input and output data records, and 
 * the `testdata.txt` data can be reused for versions written in other languages
 
-The output of `test_generate_schema.py` should look something like this:
+## Running the Tests
+
+The tests should be run from the top-level package:
 
 ```
-$ ./test_generate_schema.py
+$ cd .../bigquery-schema-generator
+
+$ make tests
+
+# OR
+
+$ python3 -m unittest
+```
+
+## Test Output
+
+The output of `test_generate_schema.py` will look something like this:
+
+```
 ----------------------------------------------------------------------
 Ran 4 tests in 0.002s
 
@@ -30,25 +45,4 @@ Test chunk 10: First record: { "i": 3 }
 Test chunk 11: First record: { "i": [1, 2] }
 Test chunk 12: First record: { "r" : { "i": 3 } }
 Test chunk 13: First record: { "r" : [{ "i": 4 }] }
-```
-
-## Unit Test for anonymize.py
-
-The unit test for `anonymize.py` should look like this:
-```
-$ ./test_anonymize.py
-.
-----------------------------------------------------------------------
-Ran 1 test in 0.000s
-
-OK
-```
-
-## Running All Tests
-
-Use the
-[discovery mode](https://docs.python.org/3/library/unittest.html)
-for `unittest` which runs all tests with the `test_` prefix:
-```
-$ python3 -m unittest
 ```

@@ -12,7 +12,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 0.5.1 (2019-06-19)
+Version: 1.0 (2020-04-04)
 
 ## Background
 
@@ -44,17 +44,32 @@ the input dataset.
 
 ## Installation
 
-Install from [PyPI](https://pypi.python.org/pypi) repository using `pip3`.
-If you want to install the package for your entire system globally, use
-```
-$ sudo -H pip3 install bigquery_schema_generator
-```
-If you are using a virtual environment (such as
-[venv](https://docs.python.org/3/library/venv.html)), then you don't need
-the `sudo` coommand, and you can just type:
+Install from [PyPI](https://pypi.python.org/pypi) repository using `pip3`. There
+are too many ways to install packages in Python. The following are in order
+highest to lowest recommendation:
+
+1) If you are using a virtual environment (such as
+[venv](https://docs.python.org/3/library/venv.html)), then use:
 ```
 $ pip3 install bigquery_schema_generator
 ```
+
+2) If you aren't using a virtual environment you can install into
+your local Python directory:
+
+```
+$ pip3 install --user bigquery_schema_generator
+```
+
+3) If you want to install the package for your entire system globally, use
+```
+$ sudo -H pip3 install bigquery_schema_generator
+```
+but realize that you will be running code from PyPI as `root` so this has
+security implications.
+
+Sometimes, your Python environment gets into a complete mess and the `pip3`
+command won't work. Try typing `python3 -m pip` instead.
 
 A successful install should print out something like the following (the version
 number may be different):
@@ -644,15 +659,19 @@ took 67s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
 
 ## System Requirements
 
-This project was initially developed on Ubuntu 17.04 using Python 3.5.3. I have
-tested it on:
+This project was initially developed on Ubuntu 17.04 using Python 3.5.3, but it
+now requires Python 3.6 or higher, I think mostly due to the use of f-strings.
 
+I have tested it on:
+
+* Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
-* Ubuntu 17.04, Python 3.5.3
-* Ubuntu 16.04, Python 3.5.2
 * MacOS 10.14.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
+
+The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
+and 3.8.
 
 ## Changelog
 

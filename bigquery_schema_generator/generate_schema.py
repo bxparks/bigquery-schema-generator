@@ -73,6 +73,9 @@ class SchemaGenerator:
     # Detect floats inside quotes.
     FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
+    # Valid field name characters of BigQuery
+    FIELD_NAME_MATCHER = re.compile(r'[^a-zA-Z0-9_]')
+
     def __init__(self,
                  input_format='json',
                  infer_mode=False,
@@ -114,8 +117,8 @@ class SchemaGenerator:
 
         # This option generally wants to be turned on as any inferred schema
         # will not be accepted by `bq load` when it contains illegal characters.
-        # Characters such as #, / or -. Neither will it be accepted if the column name
-        # in the schema is larger than 128 characters.
+        # Characters such as #, / or -. Neither will it be accepted if the
+        # column name in the schema is larger than 128 characters.
         self.sanitize_names = sanitize_names
 
     def log_error(self, msg):
@@ -323,7 +326,6 @@ class SchemaGenerator:
         if not value_mode or not value_type:
             return None
 
-        # yapf: disable
         if value_type == 'RECORD':
             # recursively figure out the RECORD
             fields = OrderedDict()
@@ -332,39 +334,48 @@ class SchemaGenerator:
             else:
                 for val in value:
                     self.deduce_schema_for_line(val, fields)
-            schema_entry = OrderedDict([('status', 'hard'),
-                                        ('filled', True),
-                                        ('info', OrderedDict([
-                                            ('fields', fields),
-                                            ('mode', value_mode),
-                                            ('name', key),
-                                            ('type', value_type),
-                                        ]))])
+            # yapf: disable
+            schema_entry = OrderedDict([
+                ('status', 'hard'),
+                ('filled', True),
+                ('info', OrderedDict([
+                    ('fields', fields),
+                    ('mode', value_mode),
+                    ('name', key),
+                    ('type', value_type),
+                ])),
+            ])
         elif value_type == '__null__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('mode', 'NULLABLE'),
-                                            ('name', key),
-                                            ('type', 'STRING'),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('mode', 'NULLABLE'),
+                    ('name', key),
+                    ('type', 'STRING'),
+                ])),
+            ])
         elif value_type == '__empty_array__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('mode', 'REPEATED'),
-                                            ('name', key),
-                                            ('type', 'STRING'),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('mode', 'REPEATED'),
+                    ('name', key),
+                    ('type', 'STRING'),
+                ])),
+            ])
         elif value_type == '__empty_record__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('fields', OrderedDict()),
-                                            ('mode', value_mode),
-                                            ('name', key),
-                                            ('type', 'RECORD'),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('fields', OrderedDict()),
+                    ('mode', value_mode),
+                    ('name', key),
+                    ('type', 'RECORD'),
+                ])),
+            ])
         else:
             # Empty fields are returned as empty strings, and must be treated as
             # a (soft String) to allow clobbering by subsquent non-empty fields.
@@ -374,13 +385,15 @@ class SchemaGenerator:
             else:
                 status = 'hard'
                 filled = True
-            schema_entry = OrderedDict([('status', status),
-                                        ('filled', filled),
-                                        ('info', OrderedDict([
-                                            ('mode', value_mode),
-                                            ('name', key),
-                                            ('type', value_type),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', status),
+                ('filled', filled),
+                ('info', OrderedDict([
+                    ('mode', value_mode),
+                    ('name', key),
+                    ('type', value_type),
+                ])),
+            ])
         # yapf: enable
         return schema_entry
 
@@ -435,8 +448,8 @@ class SchemaGenerator:
                 # Implement the same type inference algorithm as 'bq load' for
                 # quoted values that look like ints, floats or bools.
                 if self.INTEGER_MATCHER.match(value):
-                    if int(value) < self.INTEGER_MIN_VALUE or \
-                        self.INTEGER_MAX_VALUE < int(value):
+                    if (int(value) < self.INTEGER_MIN_VALUE
+                            or self.INTEGER_MAX_VALUE < int(value)):
                         return 'QFLOAT'  # quoted float
                     else:
                         return 'QINTEGER'  # quoted integer
@@ -618,11 +631,13 @@ def is_string_type(thetype):
     ]
 
 
-def flatten_schema_map(schema_map,
-                       keep_nulls=False,
-                       sorted_schema=True,
-                       infer_mode=False,
-                       sanitize_names=False):
+def flatten_schema_map(
+        schema_map,
+        keep_nulls=False,
+        sorted_schema=True,
+        infer_mode=False,
+        sanitize_names=False,
+):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema.
 
@@ -647,7 +662,8 @@ def flatten_schema_map(schema_map,
         else schema_map.items()
     for name, meta in map_items:
         # Skip over fields which have been explicitly removed
-        if not meta: continue
+        if not meta:
+            continue
 
         status = meta['status']
         filled = meta['filled']
@@ -679,8 +695,14 @@ def flatten_schema_map(schema_map,
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
                     new_value = flatten_schema_map(
-                        value, keep_nulls, sorted_schema, sanitize_names)
+                        schema_map=value,
+                        keep_nulls=keep_nulls,
+                        sorted_schema=sorted_schema,
+                        infer_mode=infer_mode,
+                        sanitize_names=sanitize_names,
+                    )
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
+                # Convert QINTEGER -> INTEGER, similarly for QFLAT and QBOOLEAN.
                 new_value = value[1:]
             elif key == 'mode':
                 if infer_mode and value == 'NULLABLE' and filled:
@@ -688,7 +710,9 @@ def flatten_schema_map(schema_map,
                 else:
                     new_value = value
             elif key == 'name' and sanitize_names:
-                new_value = re.sub('[^a-zA-Z0-9_]', '_', value)[0:127]
+                new_value = SchemaGenerator.FIELD_NAME_MATCHER.sub(
+                    '_', value,
+                )[0:127]
             else:
                 new_value = value
             new_info[key] = new_value
