@@ -22,7 +22,7 @@ from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import convert_type
-from data_reader import DataReader
+from .data_reader import DataReader
 
 
 class TestSchemaGenerator(unittest.TestCase):
