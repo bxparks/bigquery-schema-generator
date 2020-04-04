@@ -15,7 +15,7 @@ except:  # noqa: E722
 
 setup(
     name='bigquery-schema-generator',
-    version='0.5.1',
+    version='1.0',
     description='BigQuery schema generator from JSON or CSV data',
     long_description=long_description,
     url='https://github.com/bxparks/bigquery-schema-generator',
@@ -23,7 +23,7 @@ setup(
     author_email='brian@xparks.net',
     license='Apache 2.0',
     packages=['bigquery_schema_generator'],
-    python_requires='~=3.5',
+    python_requires='~=3.6',
     entry_points={
         'console_scripts': [
             'generate-schema = bigquery_schema_generator.generate_schema:main'
