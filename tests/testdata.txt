@@ -873,6 +873,26 @@ SCHEMA
 ]
 END
 
+# Sanitize the names to comply with BigQuery recursively.
+DATA sanitize_names
+{ "r" : { "a-name": [1, 2] } }
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "REPEATED",
+        "name": "a_name",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "r",
+    "type": "RECORD"
+  }
+]
+END
+
 # Sanitize the names to comply with BigQuery.
 DATA csv infer_mode sanitize_names
 name,surname,age_in_#years,eighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacters
