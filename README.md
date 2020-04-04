@@ -689,6 +689,7 @@ See [CHANGELOG.md](CHANGELOG.md).
   external Python code by StefanoG_ITA (StefanoGITA@).
 * Sanitizing of column names to valid BigQuery characters and length by Jon
   Warghed (jonwarghed@).
+* Bug fix in `--sanitize_names` by Riccardo M. Cefala (riccardomc@).
 
 
 ## License
