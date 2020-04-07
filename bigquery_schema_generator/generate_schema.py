@@ -712,7 +712,7 @@ def bq_schema_to_map(schema):
     """ convert BQ JSON table schema representation to SchemaGenerator schema_map representaton """
     if isinstance(schema, dict):
         schema = schema['fields']
-    return OrderedDict((f['name'], bq_schema_field_to_entry(f))
+    return OrderedDict((f['name'].lower(), bq_schema_field_to_entry(f))
                        for f in schema)
 
 
@@ -751,13 +751,13 @@ def bq_schema_field_to_entry(field):
         info = OrderedDict([
             ('fields', bq_schema_to_map(field['fields'])),
             ('mode', field['mode']),
-            ('name', field['name']),
+            ('name', field['name'].lower()),
             ('type', type),
         ])
     else:
         info = OrderedDict([
             ('mode', field['mode']),
-            ('name', field['name']),
+            ('name', field['name'].lower()),
             ('type', type),
         ])
     return OrderedDict([
