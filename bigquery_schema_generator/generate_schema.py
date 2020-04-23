@@ -206,11 +206,11 @@ class SchemaGenerator:
         then they must be compatible.
         """
         for key, value in json_object.items():
-            key = self.sanitize_name(key)
-            schema_entry = schema_map.get(key)
+            sanitized_key = self.sanitize_name(key)
+            schema_entry = schema_map.get(sanitized_key)
             new_schema_entry = self.get_schema_entry(key, value)
-            schema_map[key] = self.merge_schema_entry(schema_entry,
-                                                      new_schema_entry)
+            schema_map[sanitized_key] = self.merge_schema_entry(schema_entry,
+                                                                new_schema_entry)
 
     def sanitize_name(self, value):
         if self.sanitize_names:
@@ -751,13 +751,13 @@ def bq_schema_field_to_entry(field):
         info = OrderedDict([
             ('fields', bq_schema_to_map(field['fields'])),
             ('mode', field['mode']),
-            ('name', field['name'].lower()),
+            ('name', field['name']),
             ('type', type),
         ])
     else:
         info = OrderedDict([
             ('mode', field['mode']),
-            ('name', field['name'].lower()),
+            ('name', field['name']),
             ('type', type),
         ])
     return OrderedDict([
