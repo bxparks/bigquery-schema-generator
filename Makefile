@@ -1,4 +1,6 @@
-.PHONY: tests
+.PHONY: tests flake8 all
+
+all: flake8 tests
 
 tests:
 	python3 -m unittest
