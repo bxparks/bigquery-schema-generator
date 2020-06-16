@@ -272,9 +272,13 @@ class SchemaGenerator:
 
         # Defensive check, names should always be the same.
         if old_name != new_name:
-            raise Exception(
-                'old_name (%s) != new_name(%s), should never happen' %
-                (old_name, new_name))
+            if old_name.lower() != new_name.lower():
+                raise Exception(
+                    'old_name (%s) != new_name(%s), should never happen' %
+                    (old_name, new_name))
+            else:
+                # preserve old name if case is different
+                new_info['name'] = old_info['name']
 
         # Recursively merge in the subfields of a RECORD, allowing
         # NULLABLE to become REPEATED (because 'bq load' allows it).
