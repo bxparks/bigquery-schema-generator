@@ -370,11 +370,29 @@ $ generate-schema --debugging_map < file.data.json > file.schema.json
 
 #### Sanitize Names (`--sanitize_names`)
 
-BigQuery column names are restricted to certain characters and length. With this
-flag, column names are sanitizes so that any character outside of ASCII letters,
-numbers and underscore (`[a-zA-Z0-9_]`) are converted to an underscore. (For
-example "go&2#there!" is converted to "go_2_there_".) Names longer than 128
-characters are truncated to 128.
+BigQuery column names are [restricted to certain characters and
+length](https://cloud.google.com/bigquery/docs/schemas#column_names):
+* it must contain only letters (a-z, A-Z), numbers (0-9), or underscores
+* it must start with a letter or underscore
+* the maximum length is 128 characters
+* column names are case-insensitive
+
+For CSV files, the `bq load` command seems to automatically convert invalid
+column names into valid column names. This flag attempts to perform some of the
+same transformations, to avoid having to scan through the input data twice to
+generate the schema file. The transformations are:
+
+* any character outside of ASCII letters, numbers and underscore
+  (`[a-zA-Z0-9_]`) are converted to an underscore. For example `go&2#there!` is
+  converted to `go_2_there_`;
+* names longer than 128 characters are truncated to 128.
+
+My recollection is that the `bq load` command does *not* normalize the JSON key
+names. Instead it prints an error message. So the `--sanitize_names` flag is
+useful mostly for CSV files. For JSON files, you'll have to do a second pass
+through the data files to cleanup the column names anyway. See [Issue
+#14](https://github.com/bxparks/bigquery-schema-generator/issues/14) and [Issue
+#33](https://github.com/bxparks/bigquery-schema-generator/issues/33).
 
 ## Schema Types
 
