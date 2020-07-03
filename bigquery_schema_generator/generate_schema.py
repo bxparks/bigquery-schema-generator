@@ -76,20 +76,34 @@ class SchemaGenerator:
     # Valid field name characters of BigQuery
     FIELD_NAME_MATCHER = re.compile(r'[^a-zA-Z0-9_]')
 
-    def __init__(self,
-                 input_format='json',
-                 infer_mode=False,
-                 keep_nulls=False,
-                 quoted_values_are_strings=False,
-                 debugging_interval=1000,
-                 debugging_map=False,
-                 sanitize_names=False):
+    def __init__(
+        self,
+        input_format='json',
+        infer_mode=False,
+        keep_nulls=False,
+        quoted_values_are_strings=False,
+        debugging_interval=1000,
+        debugging_map=False,
+        sanitize_names=False,
+        ignore_invalid_lines=False,
+    ):
         self.input_format = input_format
         self.infer_mode = infer_mode
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
+
+        # Make column names conform to BigQuery. Illegal characters outside the
+        # range of [a-zA-Z0-9-_] are converted into an underscore. Names longer
+        # than 128 characters are truncated to 128. This is probably useful only
+        # for CSV files because 'bq load' automatically transforms the column
+        # names. For JSON files, 'bq load' fails with error messages.
+        self.sanitize_names = sanitize_names
+
+        # Ignore invalid lines by logging an error and continuing to process the
+        # rest of the file.
+        self.ignore_invalid_lines = ignore_invalid_lines
 
         # 'infer_mode' is supported for only input_format = 'csv' because
         # the header line gives us the complete list of fields to be expected in
@@ -114,12 +128,6 @@ class SchemaGenerator:
 
         self.line_number = 0
         self.error_logs = []
-
-        # This option generally wants to be turned on as any inferred schema
-        # will not be accepted by `bq load` when it contains illegal characters.
-        # Characters such as #, / or -. Neither will it be accepted if the
-        # column name in the schema is larger than 128 characters.
-        self.sanitize_names = sanitize_names
 
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
@@ -184,6 +192,8 @@ class SchemaGenerator:
         schema_map = OrderedDict()
         try:
             for json_object in reader:
+
+                # Print a progress message periodically.
                 self.line_number += 1
                 if self.line_number % self.debugging_interval == 0:
                     logging.info("Processing line %s", self.line_number)
@@ -191,12 +201,21 @@ class SchemaGenerator:
                 # Deduce the schema from this given data record.
                 if isinstance(json_object, dict):
                     self.deduce_schema_for_line(json_object, schema_map)
+                elif isinstance(json_object, Exception):
+                    self.log_error(
+                        f'Record could not be parsed: Exception: {json_object}')
+                    if not self.ignore_invalid_lines:
+                        break
                 else:
                     self.log_error(
-                        'Top level record must be an Object but was a %s' %
-                        type(json_object))
+                        'Record should be a JSON Object but was a '
+                        f'{type(json_object)}'
+                    )
+                    if not self.ignore_invalid_lines:
+                        break
         finally:
             logging.info("Processed %s lines", self.line_number)
+
         return schema_map, self.error_logs
 
     def deduce_schema_for_line(self, json_object, schema_map):
@@ -546,10 +565,16 @@ class SchemaGenerator:
 def json_reader(file):
     """A generator that converts an iterable of newline-delimited JSON objects
     ('file' could be a 'list' for testing purposes) into an iterable of Python
-    dict objects.
+    dict objects. If the line cannot be parsed as JSON, the exception thrown by
+    the json.loads() is yielded back, instead of the json object. The calling
+    code can check for this exception with an isinstance() function, then
+    continue processing the rest of the file.
     """
     for line in file:
-        yield json.loads(line)
+        try:
+            yield json.loads(line)
+        except Exception as e:
+            yield e
 
 
 def convert_type(atype, btype):
@@ -753,6 +778,10 @@ def main():
         '--sanitize_names',
         help='Forces schema name to comply with BigQuery naming standard',
         action="store_true")
+    parser.add_argument(
+        '--ignore_invalid_lines',
+        help='Ignore lines that cannot be parsed instead of stopping',
+        action="store_true")
     args = parser.parse_args()
 
     # Configure logging.
@@ -765,7 +794,9 @@ def main():
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
         debugging_map=args.debugging_map,
-        sanitize_names=args.sanitize_names)
+        sanitize_names=args.sanitize_names,
+        ignore_invalid_lines=args.ignore_invalid_lines,
+    )
     generator.run()
 
 

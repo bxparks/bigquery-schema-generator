@@ -435,6 +435,7 @@ class TestFromDataFile(unittest.TestCase):
         infer_mode = ('infer_mode' in data_flags)
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         sanitize_names = ('sanitize_names' in data_flags)
+        ignore_invalid_lines = ('ignore_invalid_lines' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']
@@ -447,7 +448,9 @@ class TestFromDataFile(unittest.TestCase):
             infer_mode=infer_mode,
             keep_nulls=keep_nulls,
             quoted_values_are_strings=quoted_values_are_strings,
-            sanitize_names=sanitize_names)
+            sanitize_names=sanitize_names,
+            ignore_invalid_lines=ignore_invalid_lines,
+        )
         schema_map, error_logs = generator.deduce_schema(records)
         schema = generator.flatten_schema(schema_map)
 

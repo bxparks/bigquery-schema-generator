@@ -1,6 +1,9 @@
 # Changelog
 
 * Unreleased
+    * Add `--ignore_invalid_lines` to ignore parsing errors on invalid lines
+      and continue processing.
+    * Add GitHub actions for automated tests and flake8 validation.
 * 1.0 (2020-04-04)
     * Fix `--sanitize_names` for recursive RECORD fields (Thanks riccardomc@,
       see #43).

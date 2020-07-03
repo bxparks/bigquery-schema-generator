@@ -223,6 +223,7 @@ usage: generate_schema.py [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
                           [--quoted_values_are_strings] [--infer_mode]
                           [--debugging_interval DEBUGGING_INTERVAL]
                           [--debugging_map] [--sanitize_names]
+                          [--ignore_invalid_lines]
 
 Generate BigQuery schema from JSON or CSV file.
 
@@ -240,6 +241,8 @@ optional arguments:
   --debugging_map       Print the metadata schema_map instead of the schema
   --sanitize_names      Forces schema name to comply with BigQuery naming
                         standard
+  --ignore_invalid_lines
+                        Ignore lines that cannot be parsed instead of stopping
 ```
 
 #### Input Format (`--input_format`)
@@ -393,6 +396,22 @@ useful mostly for CSV files. For JSON files, you'll have to do a second pass
 through the data files to cleanup the column names anyway. See [Issue
 #14](https://github.com/bxparks/bigquery-schema-generator/issues/14) and [Issue
 #33](https://github.com/bxparks/bigquery-schema-generator/issues/33).
+
+#### Ignore Invalid Lines (`--ignore_invalid_lines`)
+
+By default, if an error is encountered on a particular line, processing stops
+immediately. This flag causes invalid lines to be ignored and processing
+continues. A list of all errors and their line numbers will be printed on the
+STDERR after processing the entire file.
+
+This flag will be most useful for JSON files, to ignore lines which do not parse
+correctly. CSV is a more robust format, and the CSV Reader will not normally
+throw an exception. The schema deduction logic will handle missing or extra
+columns gracefully. However, if a particular line does cause problems for the
+CSV Reader, this flag can be used to ignore that line.
+
+Fixes [Issue
+#49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
 
 ## Schema Types
 
