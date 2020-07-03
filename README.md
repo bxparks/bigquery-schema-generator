@@ -404,11 +404,15 @@ immediately. This flag causes invalid lines to be ignored and processing
 continues. A list of all errors and their line numbers will be printed on the
 STDERR after processing the entire file.
 
-This flag will be most useful for JSON files, to ignore lines which do not parse
-correctly. CSV is a more robust format, and the CSV Reader will not normally
-throw an exception. The schema deduction logic will handle missing or extra
-columns gracefully. However, if a particular line does cause problems for the
-CSV Reader, this flag can be used to ignore that line.
+This flag currently makes sense only for for JSON files, to ignore lines which
+do not parse correctly as a JSON object.
+
+This flag probably does nothing for CSV files. CSV files are processed by the
+`DictReader` class which performs its own line processing internally, including
+extracting the column names from the first line of the file. If probably will
+not throw any exception for a given line, and even if it did, we would not be
+able to catch it and continue processing. Fortunately, the schema deduction
+logic will handle missing or extra columns gracefully.
 
 Fixes [Issue
 #49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
