@@ -402,6 +402,18 @@ class TestSchemaGenerator(unittest.TestCase):
 """
         self.assertEqual(expected, output.getvalue())
 
+    def test_run_with_invalid_input_throws_exception(self):
+        generator = SchemaGenerator()
+        output = StringIO()
+
+        input = StringIO('[]')
+        with self.assertRaises(Exception):
+            generator.run(input, output)
+
+        input = StringIO('this is not a JSON')
+        with self.assertRaises(Exception):
+            generator.run(input, output)
+
 
 class TestFromDataFile(unittest.TestCase):
     """Read the test case data from TESTDATA_FILE and verify that the expected

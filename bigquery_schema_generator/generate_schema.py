@@ -205,14 +205,14 @@ class SchemaGenerator:
                     self.log_error(
                         f'Record could not be parsed: Exception: {json_object}')
                     if not self.ignore_invalid_lines:
-                        break
+                        raise json_object
                 else:
                     self.log_error(
                         'Record should be a JSON Object but was a '
                         f'{type(json_object)}'
                     )
                     if not self.ignore_invalid_lines:
-                        break
+                        raise Exception('Record must be a JSON Object')
         finally:
             logging.info("Processed %s lines", self.line_number)
 

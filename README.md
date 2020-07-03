@@ -400,19 +400,19 @@ through the data files to cleanup the column names anyway. See [Issue
 #### Ignore Invalid Lines (`--ignore_invalid_lines`)
 
 By default, if an error is encountered on a particular line, processing stops
-immediately. This flag causes invalid lines to be ignored and processing
-continues. A list of all errors and their line numbers will be printed on the
-STDERR after processing the entire file.
+immediately with an exception. This flag causes invalid lines to be ignored and
+processing continues. A list of all errors and their line numbers will be
+printed on the STDERR after processing the entire file.
 
-This flag currently makes sense only for for JSON files, to ignore lines which
-do not parse correctly as a JSON object.
+This flag is currently most useful for JSON files, to ignore lines which do not
+parse correctly as a JSON object.
 
-This flag probably does nothing for CSV files. CSV files are processed by the
+This flag is probably not useful for CSV files. CSV files are processed by the
 `DictReader` class which performs its own line processing internally, including
-extracting the column names from the first line of the file. If probably will
-not throw any exception for a given line, and even if it did, we would not be
-able to catch it and continue processing. Fortunately, the schema deduction
-logic will handle missing or extra columns gracefully.
+extracting the column names from the first line of the file. If the `DictReader`
+does throw an exception on a given line, we would not be able to catch it and
+continue processing. Fortunately, CSV files are fairly robust, and the schema
+deduction logic will handle any missing or extra columns gracefully.
 
 Fixes [Issue
 #49](https://github.com/bxparks/bigquery-schema-generator/issues/49).

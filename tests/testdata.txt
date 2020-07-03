@@ -79,18 +79,6 @@ SCHEMA
 ]
 END
 
-# If --ignore_invalid_lines is not given (default), the first invalid line
-# causes processing to stop.
-DATA
-[]
-{ "x": 3 }
-this is not a JSON object
-ERRORS
-1: Record should be a JSON object but was a <class 'list'>
-SCHEMA
-[]
-END
-
 # If --ignore_invalid_lines, invalid lines are ignored and processing
 # continues.
 DATA ignore_invalid_lines
