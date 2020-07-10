@@ -46,6 +46,8 @@ the input dataset.
 
 ## Installation
 
+**Prerequisite**: You need have Python 3.6 or higher.
+
 Install from [PyPI](https://pypi.python.org/pypi) repository using `pip3`. There
 are too many ways to install packages in Python. The following are in order
 highest to lowest recommendation:
@@ -78,18 +80,24 @@ number may be different):
 ```
 Collecting bigquery-schema-generator
 Installing collected packages: bigquery-schema-generator
-Successfully installed bigquery-schema-generator-0.3.2
+Successfully installed bigquery-schema-generator-1.1
 ```
 
-The shell script `generate-schema` is installed in the same directory as
-`pip3`.
+The shell script `generate-schema` will be installed somewhere in your system,
+depending on how your Python environment is configured. See below for
+some notes for Ubuntu Linux and MacOS.
 
-### Ubuntu Linux
+### Ubuntu Linux (18.04, maybe 20.04)
 
-Under Ubuntu Linux, you should find the `generate-schema` script at
-`/usr/local/bin/generate-schema`.
+After running `pip3 install bigquery_schema_generator`, the `generate-schema`
+script may be installed in one the following locations:
 
-### MacOS
+* `/usr/bin/generate-schema`
+* `/usr/local/bin/generate-schema`
+* `$HOME/.local/bin/generate-schema`
+* `$HOME/.virtualenvs/{your_virtual_env}/bin/generate-schema`
+
+### MacOS (10.14 Mojave)
 
 If you installed Python from
 [Python Releases for Mac OS X](https://www.python.org/downloads/mac-osx/),
@@ -102,6 +110,14 @@ The Python installer updates `$HOME/.bash_profile` to add
 `/Library/Frameworks/Python.framework/Versions/3.6/bin` to the `$PATH`
 environment variable. So you should be able to run the `generate-schema`
 command without typing in the full path.
+
+You can install Python3 using
+[Homebrew](https://docs.brew.sh/Homebrew-and-Python). In this environment, the
+`generate-schema` script will probably be installed in `/usr/local/bin` but I'm
+not completely certain.
+
+I don't use my Mac very much these days and I won't upgrade to Catalina (10.15),
+so I can't help you with this OS version.
 
 ## Usage
 
