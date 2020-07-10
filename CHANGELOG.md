@@ -1,9 +1,12 @@
 # Changelog
 
 * Unreleased
+* 1.1 (2020-07-09)
     * Add `--ignore_invalid_lines` to ignore parsing errors on invalid lines
-      and continue processing.
+      and continue processing. Fixes
+      [#49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
     * Add GitHub actions for automated tests and flake8 validation.
+    * Add package `__version__` string.
 * 1.0 (2020-04-04)
     * Fix `--sanitize_names` for recursive RECORD fields (Thanks riccardomc@,
       see #43).

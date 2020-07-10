@@ -12,7 +12,8 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 1.0 (2020-04-04)
+* Version: 1.1 (2020-07-09)
+* [CHANGELOG.md](CHANGELOG.md)
 
 ## Background
 
@@ -713,10 +714,6 @@ I have tested it on:
 
 The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
 and 3.8.
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md).
 
 ## Authors
 
