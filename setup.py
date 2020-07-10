@@ -13,9 +13,18 @@ except:  # noqa: E722
         # If all else fails, use some reasonable string.
         long_description = 'BigQuery schema generator.'
 
+# Read the version string from bigquery_schema_generator/version.py.
+# See https://packaging.python.org/guides/single-sourcing-package-version/
+version = {}
+with open("bigquery_schema_generator/version.py") as fp:
+    exec(fp.read(), version)
+version_string = version['__version__']
+if not version_string:
+    raise Exception("Unable to read version.py")
+
 setup(
     name='bigquery-schema-generator',
-    version='1.0',
+    version=version_string,
     description='BigQuery schema generator from JSON or CSV data',
     long_description=long_description,
     url='https://github.com/bxparks/bigquery-schema-generator',

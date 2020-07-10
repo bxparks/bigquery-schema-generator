@@ -402,6 +402,18 @@ class TestSchemaGenerator(unittest.TestCase):
 """
         self.assertEqual(expected, output.getvalue())
 
+    def test_run_with_invalid_input_throws_exception(self):
+        generator = SchemaGenerator()
+        output = StringIO()
+
+        input = StringIO('[]')
+        with self.assertRaises(Exception):
+            generator.run(input, output)
+
+        input = StringIO('this is not a JSON')
+        with self.assertRaises(Exception):
+            generator.run(input, output)
+
 
 class TestFromDataFile(unittest.TestCase):
     """Read the test case data from TESTDATA_FILE and verify that the expected
@@ -435,6 +447,7 @@ class TestFromDataFile(unittest.TestCase):
         infer_mode = ('infer_mode' in data_flags)
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         sanitize_names = ('sanitize_names' in data_flags)
+        ignore_invalid_lines = ('ignore_invalid_lines' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']
@@ -447,7 +460,9 @@ class TestFromDataFile(unittest.TestCase):
             infer_mode=infer_mode,
             keep_nulls=keep_nulls,
             quoted_values_are_strings=quoted_values_are_strings,
-            sanitize_names=sanitize_names)
+            sanitize_names=sanitize_names,
+            ignore_invalid_lines=ignore_invalid_lines,
+        )
         schema_map, error_logs = generator.deduce_schema(records)
         schema = generator.flatten_schema(schema_map)
 
