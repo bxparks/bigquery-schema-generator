@@ -7,6 +7,7 @@
       [#49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
     * Add GitHub actions for automated tests and flake8 validation.
     * Add package `__version__` string.
+    * Update setup.py, no longer need to convert README.md markdown to RST.
 * 1.0 (2020-04-04)
     * Fix `--sanitize_names` for recursive RECORD fields (Thanks riccardomc@,
       see #43).
