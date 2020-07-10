@@ -12,7 +12,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 1.1 (2020-07-09)
+Version: 1.1 (2020-07-10)
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
@@ -87,7 +87,7 @@ The shell script `generate-schema` will be installed somewhere in your system,
 depending on how your Python environment is configured. See below for
 some notes for Ubuntu Linux and MacOS.
 
-### Ubuntu Linux (18.04, maybe 20.04)
+### Ubuntu Linux (18.04, 20.04)
 
 After running `pip3 install bigquery_schema_generator`, the `generate-schema`
 script may be installed in one the following locations:
@@ -98,6 +98,9 @@ script may be installed in one the following locations:
 * `$HOME/.virtualenvs/{your_virtual_env}/bin/generate-schema`
 
 ### MacOS (10.14 Mojave)
+
+I don't use my Mac for software development these days, and I won't upgrade to
+Catalina (10.15) or later, but here are some notes if they help.
 
 If you installed Python from
 [Python Releases for Mac OS X](https://www.python.org/downloads/mac-osx/),
@@ -115,9 +118,6 @@ You can install Python3 using
 [Homebrew](https://docs.brew.sh/Homebrew-and-Python). In this environment, the
 `generate-schema` script will probably be installed in `/usr/local/bin` but I'm
 not completely certain.
-
-I don't use my Mac very much these days and I won't upgrade to Catalina (10.15),
-so I can't help you with this OS version.
 
 ## Usage
 

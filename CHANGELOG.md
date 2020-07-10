@@ -1,7 +1,7 @@
 # Changelog
 
 * Unreleased
-* 1.1 (2020-07-09)
+* 1.1 (2020-07-10)
     * Add `--ignore_invalid_lines` to ignore parsing errors on invalid lines
       and continue processing. Fixes
       [#49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
