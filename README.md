@@ -12,8 +12,9 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-* Version: 1.1 (2020-07-09)
-* [CHANGELOG.md](CHANGELOG.md)
+Version: 1.1 (2020-07-09)
+
+Changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ## Background
 
