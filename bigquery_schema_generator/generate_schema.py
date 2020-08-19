@@ -80,13 +80,15 @@ class SchemaGenerator:
                  quoted_values_are_strings=False,
                  debugging_interval=1000,
                  debugging_map=False,
-                 sanitize_names=False):
+                 sanitize_names=False,
+                 type_mismatch_callback=None):
         self.input_format = input_format
         self.infer_mode = infer_mode
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
+        self.type_mismatch_callback = type_mismatch_callback
 
         # 'infer_mode' is supported for only input_format = 'csv' because
         # the header line gives us the complete list of fields to be expected in
@@ -325,6 +327,9 @@ class SchemaGenerator:
 
         # Check that the converted types are compatible.
         candidate_type = convert_type(old_type, new_type)
+        if not candidate_type and self.type_mismatch_callback:
+            # inconvertible -> check if the caller has additional insight
+            candidate_type = self.type_mismatch_callback(old_type, new_type)
         if not candidate_type:
             self.log_error(
                 f'Ignoring field with mismatched type: '
