@@ -317,7 +317,9 @@ class SchemaGenerator:
                     new_base_path = "{}.{}".format(base_path, old_name)
                 else:
                     new_base_path = old_name
-                old_fields[key] = self.merge_schema_entry(old_entry, new_entry, base_path=new_base_path)
+                old_fields[key] = self.merge_schema_entry(old_entry,
+                                                          new_entry,
+                                                          base_path=new_base_path)
             return old_schema_entry
 
         if base_path:
