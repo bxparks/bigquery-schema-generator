@@ -231,7 +231,10 @@ class SchemaGenerator:
             schema_map[key] = self.merge_schema_entry(schema_entry,
                                                       new_schema_entry)
 
-    def merge_schema_entry(self, old_schema_entry, new_schema_entry, base_path=None):
+    def merge_schema_entry(self,
+                           old_schema_entry,
+                           new_schema_entry,
+                           base_path=None):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
         a merged schema entry. Recursively merges in sub-fields as well.
 
@@ -240,8 +243,9 @@ class SchemaGenerator:
         returned as the new schema_entry. Returns None if the field should
         be removed from the schema due to internal consistency errors.
 
-        'base_path' is the string representing the current path within the nested record
-        that leads to this specific entry. This is used during error logging.
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry. This is used during
+        error logging.
 
         An Exception is thrown if an unexpected programming error is detected.
         The calling routine should stop processing the file.
@@ -317,9 +321,10 @@ class SchemaGenerator:
                     new_base_path = "{}.{}".format(base_path, old_name)
                 else:
                     new_base_path = old_name
-                old_fields[key] = self.merge_schema_entry(old_entry,
-                                                          new_entry,
-                                                          base_path=new_base_path)
+                old_fields[key] = self.merge_schema_entry(
+                    old_entry,
+                    new_entry,
+                    base_path=new_base_path)
             return old_schema_entry
 
         if base_path:
