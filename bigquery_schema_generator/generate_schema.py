@@ -218,18 +218,22 @@ class SchemaGenerator:
 
         return schema_map, self.error_logs
 
-    def deduce_schema_for_line(self, json_object, schema_map):
+    def deduce_schema_for_line(self, json_object, schema_map, base_path=None):
         """Figures out the BigQuery schema for the given 'json_object' and
         updates 'schema_map' with the latest info. A 'schema_map' entry of type
         'soft' is a provisional entry that can be overwritten by a subsequent
         'soft' or 'hard' entry. If both the old and new have the same type,
         then they must be compatible.
+
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry.
         """
         for key, value in json_object.items():
             schema_entry = schema_map.get(key)
-            new_schema_entry = self.get_schema_entry(key, value)
+            new_schema_entry = self.get_schema_entry(key, value, base_path=base_path)
             schema_map[key] = self.merge_schema_entry(schema_entry,
-                                                      new_schema_entry)
+                                                      new_schema_entry,
+                                                      base_path=base_path)
 
     def merge_schema_entry(self,
                            old_schema_entry,
@@ -357,23 +361,30 @@ class SchemaGenerator:
         new_info['type'] = candidate_type
         return new_schema_entry
 
-    def get_schema_entry(self, key, value):
+    def get_schema_entry(self, key, value, base_path=None):
         """Determines the 'schema_entry' of the (key, value) pair. Calls
         deduce_schema_for_line() recursively if the value is another object
         instead of a primitive (this will happen only for JSON input file).
+
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry.
         """
         value_mode, value_type = self.infer_bigquery_type(value)
         if not value_mode or not value_type:
             return None
 
         if value_type == 'RECORD':
+            if base_path:
+                new_base_path = "{}.{}".format(base_path, key)
+            else:
+                new_base_path = key
             # recursively figure out the RECORD
             fields = OrderedDict()
             if value_mode == 'NULLABLE':
-                self.deduce_schema_for_line(value, fields)
+                self.deduce_schema_for_line(value, fields, base_path=new_base_path)
             else:
                 for val in value:
-                    self.deduce_schema_for_line(val, fields)
+                    self.deduce_schema_for_line(val, fields, base_path=new_base_path)
             # yapf: disable
             schema_entry = OrderedDict([
                 ('status', 'hard'),
