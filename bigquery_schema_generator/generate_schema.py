@@ -230,7 +230,9 @@ class SchemaGenerator:
         """
         for key, value in json_object.items():
             schema_entry = schema_map.get(key)
-            new_schema_entry = self.get_schema_entry(key, value, base_path=base_path)
+            new_schema_entry = self.get_schema_entry(key,
+                                                     value,
+                                                     base_path=base_path)
             schema_map[key] = self.merge_schema_entry(schema_entry,
                                                       new_schema_entry,
                                                       base_path=base_path)
