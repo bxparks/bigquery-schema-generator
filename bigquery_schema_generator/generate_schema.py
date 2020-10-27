@@ -381,10 +381,14 @@ class SchemaGenerator:
             # recursively figure out the RECORD
             fields = OrderedDict()
             if value_mode == 'NULLABLE':
-                self.deduce_schema_for_line(value, fields, base_path=new_base_path)
+                self.deduce_schema_for_line(value,
+                                            fields,
+                                            base_path=new_base_path)
             else:
                 for val in value:
-                    self.deduce_schema_for_line(val, fields, base_path=new_base_path)
+                    self.deduce_schema_for_line(val,
+                                                fields,
+                                                base_path=new_base_path)
             # yapf: disable
             schema_entry = OrderedDict([
                 ('status', 'hard'),
