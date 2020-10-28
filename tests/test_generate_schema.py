@@ -22,6 +22,7 @@ from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import convert_type
+from bigquery_schema_generator.generate_schema import json_full_path
 from .data_reader import DataReader
 
 
@@ -413,6 +414,15 @@ class TestSchemaGenerator(unittest.TestCase):
         input = StringIO('this is not a JSON')
         with self.assertRaises(Exception):
             generator.run(input, output)
+
+    def test_json_full_path(self):
+        self.assertEqual('port', json_full_path(None, 'port'))
+        self.assertEqual('port', json_full_path("", 'port'))
+
+        # 'base_path' should never be '0', but if is do something reasonable.
+        self.assertEqual('0.port', json_full_path(0, 'port'))
+
+        self.assertEqual('server.port', json_full_path('server', 'port'))
 
 
 class TestFromDataFile(unittest.TestCase):
