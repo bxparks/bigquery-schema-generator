@@ -1,6 +1,9 @@
 # Changelog
 
 * Unreleased
+* 1.2 (2020-10-27)
+    * Print full path of nested JSON elements in error messages (See #52;
+      thanks abroglesc@).
 * 1.1 (2020-07-10)
     * Add `--ignore_invalid_lines` to ignore parsing errors on invalid lines
       and continue processing. Fixes

@@ -12,7 +12,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 1.1 (2020-07-10)
+Version: 1.2 (2020-10-27)
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
@@ -723,6 +723,7 @@ now requires Python 3.6 or higher, I think mostly due to the use of f-strings.
 
 I have tested it on:
 
+* Ubuntu 20.04, Python 3.8.5
 * Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
@@ -745,6 +746,8 @@ and 3.8.
 * Sanitizing of column names to valid BigQuery characters and length by Jon
   Warghed (jonwarghed@).
 * Bug fix in `--sanitize_names` by Riccardo M. Cefala (riccardomc@).
+* Print full path of nested JSON elements in error messages, by Austin Brogle
+  (abroglesc@).
 
 
 ## License
