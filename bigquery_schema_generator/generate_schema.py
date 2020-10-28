@@ -218,20 +218,29 @@ class SchemaGenerator:
 
         return schema_map, self.error_logs
 
-    def deduce_schema_for_line(self, json_object, schema_map):
+    def deduce_schema_for_line(self, json_object, schema_map, base_path=None):
         """Figures out the BigQuery schema for the given 'json_object' and
         updates 'schema_map' with the latest info. A 'schema_map' entry of type
         'soft' is a provisional entry that can be overwritten by a subsequent
         'soft' or 'hard' entry. If both the old and new have the same type,
         then they must be compatible.
+
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry.
         """
         for key, value in json_object.items():
             schema_entry = schema_map.get(key)
-            new_schema_entry = self.get_schema_entry(key, value)
+            new_schema_entry = self.get_schema_entry(key,
+                                                     value,
+                                                     base_path=base_path)
             schema_map[key] = self.merge_schema_entry(schema_entry,
-                                                      new_schema_entry)
+                                                      new_schema_entry,
+                                                      base_path=base_path)
 
-    def merge_schema_entry(self, old_schema_entry, new_schema_entry):
+    def merge_schema_entry(self,
+                           old_schema_entry,
+                           new_schema_entry,
+                           base_path=None):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
         a merged schema entry. Recursively merges in sub-fields as well.
 
@@ -239,6 +248,10 @@ class SchemaGenerator:
         'old_schema_entry' and 'new_schema_entry' can be modified in place and
         returned as the new schema_entry. Returns None if the field should
         be removed from the schema due to internal consistency errors.
+
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry. This is used during
+        error logging.
 
         An Exception is thrown if an unexpected programming error is detected.
         The calling routine should stop processing the file.
@@ -310,8 +323,22 @@ class SchemaGenerator:
             new_fields = new_info['fields']
             for key, new_entry in new_fields.items():
                 old_entry = old_fields.get(key)
-                old_fields[key] = self.merge_schema_entry(old_entry, new_entry)
+                if base_path:
+                    new_base_path = "{}.{}".format(base_path, old_name)
+                else:
+                    new_base_path = old_name
+                old_fields[key] = self.merge_schema_entry(
+                    old_entry,
+                    new_entry,
+                    base_path=new_base_path)
             return old_schema_entry
+
+        if base_path:
+            full_old_name = "{}.{}".format(base_path, old_name)
+            full_new_name = "{}.{}".format(base_path, new_name)
+        else:
+            full_old_name = old_name
+            full_new_name = new_name
 
         # For all other types, the old_mode must be the same as the new_mode. It
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
@@ -320,8 +347,8 @@ class SchemaGenerator:
         if old_mode != new_mode:
             self.log_error(
                 f'Ignoring non-RECORD field with mismatched mode: '
-                f'old=({old_status},{old_name},{old_mode},{old_type}); '
-                f'new=({new_status},{new_name},{new_mode},{new_type})')
+                f'old=({old_status},{full_old_name},{old_mode},{old_type}); '
+                f'new=({new_status},{full_new_name},{new_mode},{new_type})')
             return None
 
         # Check that the converted types are compatible.
@@ -329,30 +356,41 @@ class SchemaGenerator:
         if not candidate_type:
             self.log_error(
                 f'Ignoring field with mismatched type: '
-                f'old=({old_status},{old_name},{old_mode},{old_type}); '
-                f'new=({new_status},{new_name},{new_mode},{new_type})')
+                f'old=({old_status},{full_old_name},{old_mode},{old_type}); '
+                f'new=({new_status},{full_new_name},{new_mode},{new_type})')
             return None
 
         new_info['type'] = candidate_type
         return new_schema_entry
 
-    def get_schema_entry(self, key, value):
+    def get_schema_entry(self, key, value, base_path=None):
         """Determines the 'schema_entry' of the (key, value) pair. Calls
         deduce_schema_for_line() recursively if the value is another object
         instead of a primitive (this will happen only for JSON input file).
+
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry.
         """
         value_mode, value_type = self.infer_bigquery_type(value)
         if not value_mode or not value_type:
             return None
 
         if value_type == 'RECORD':
+            if base_path:
+                new_base_path = "{}.{}".format(base_path, key)
+            else:
+                new_base_path = key
             # recursively figure out the RECORD
             fields = OrderedDict()
             if value_mode == 'NULLABLE':
-                self.deduce_schema_for_line(value, fields)
+                self.deduce_schema_for_line(value,
+                                            fields,
+                                            base_path=new_base_path)
             else:
                 for val in value:
-                    self.deduce_schema_for_line(val, fields)
+                    self.deduce_schema_for_line(val,
+                                                fields,
+                                                base_path=new_base_path)
             # yapf: disable
             schema_entry = OrderedDict([
                 ('status', 'hard'),

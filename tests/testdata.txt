@@ -732,6 +732,36 @@ SCHEMA
 ]
 END
 
+# Incompatible types error printing full path
+# given
+DATA
+{"source_machine":{"port":80},"dest_machine":{"port":80}}
+{"source_machine":{"port":80},"dest_machine":{"port":"http-port"}}
+ERRORS
+2: Ignoring field with mismatched type: old=(hard,dest_machine.port,NULLABLE,INTEGER); new=(hard,dest_machine.port,NULLABLE,STRING)
+SCHEMA
+[
+  {
+    "fields": [],
+    "mode": "NULLABLE",
+    "name": "dest_machine",
+    "type": "RECORD"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "port",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "source_machine",
+    "type": "RECORD"
+  }
+]
+END
+
 # Simple CSV file
 DATA csv
 name,surname,age
