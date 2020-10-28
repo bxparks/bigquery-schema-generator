@@ -200,7 +200,10 @@ class SchemaGenerator:
 
                 # Deduce the schema from this given data record.
                 if isinstance(json_object, dict):
-                    self.deduce_schema_for_line(json_object, schema_map)
+                    self.deduce_schema_for_line(
+                        json_object=json_object,
+                        schema_map=schema_map,
+                    )
                 elif isinstance(json_object, Exception):
                     self.log_error(
                         f'Record could not be parsed: Exception: {json_object}')
@@ -230,17 +233,23 @@ class SchemaGenerator:
         """
         for key, value in json_object.items():
             schema_entry = schema_map.get(key)
-            new_schema_entry = self.get_schema_entry(key,
-                                                     value,
-                                                     base_path=base_path)
-            schema_map[key] = self.merge_schema_entry(schema_entry,
-                                                      new_schema_entry,
-                                                      base_path=base_path)
+            new_schema_entry = self.get_schema_entry(
+                key=key,
+                value=value,
+                base_path=base_path,
+            )
+            schema_map[key] = self.merge_schema_entry(
+                old_schema_entry=schema_entry,
+                new_schema_entry=new_schema_entry,
+                base_path=base_path,
+            )
 
-    def merge_schema_entry(self,
-                           old_schema_entry,
-                           new_schema_entry,
-                           base_path=None):
+    def merge_schema_entry(
+        self,
+        old_schema_entry,
+        new_schema_entry,
+        base_path=None,
+    ):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
         a merged schema entry. Recursively merges in sub-fields as well.
 
@@ -325,9 +334,10 @@ class SchemaGenerator:
                 old_entry = old_fields.get(key)
                 new_base_path = json_full_path(base_path, old_name)
                 old_fields[key] = self.merge_schema_entry(
-                    old_entry,
-                    new_entry,
-                    base_path=new_base_path)
+                    old_schema_entry=old_entry,
+                    new_schema_entry=new_entry,
+                    base_path=new_base_path,
+                )
             return old_schema_entry
 
         full_old_name = json_full_path(base_path, old_name)
@@ -373,15 +383,20 @@ class SchemaGenerator:
             # recursively figure out the RECORD
             fields = OrderedDict()
             if value_mode == 'NULLABLE':
-                self.deduce_schema_for_line(value,
-                                            fields,
-                                            base_path=new_base_path)
+                self.deduce_schema_for_line(
+                    json_object=value,
+                    schema_map=fields,
+                    base_path=new_base_path,
+                )
             else:
                 for val in value:
-                    self.deduce_schema_for_line(val,
-                                                fields,
-                                                base_path=new_base_path)
-            # yapf: disable
+                    self.deduce_schema_for_line(
+                        json_object=val,
+                        schema_map=fields,
+                        base_path=new_base_path,
+                    )
+
+        # yapf: disable
             schema_entry = OrderedDict([
                 ('status', 'hard'),
                 ('filled', True),
@@ -567,7 +582,8 @@ class SchemaGenerator:
             keep_nulls=self.keep_nulls,
             sorted_schema=self.sorted_schema,
             infer_mode=self.infer_mode,
-            sanitize_names=self.sanitize_names)
+            sanitize_names=self.sanitize_names,
+        )
 
     def run(self, input_file=sys.stdin, output_file=sys.stdout):
         """Read the data records from the input_file and print out the BigQuery
