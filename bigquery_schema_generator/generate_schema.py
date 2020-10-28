@@ -323,22 +323,15 @@ class SchemaGenerator:
             new_fields = new_info['fields']
             for key, new_entry in new_fields.items():
                 old_entry = old_fields.get(key)
-                if base_path:
-                    new_base_path = "{}.{}".format(base_path, old_name)
-                else:
-                    new_base_path = old_name
+                new_base_path = json_full_path(base_path, old_name)
                 old_fields[key] = self.merge_schema_entry(
                     old_entry,
                     new_entry,
                     base_path=new_base_path)
             return old_schema_entry
 
-        if base_path:
-            full_old_name = "{}.{}".format(base_path, old_name)
-            full_new_name = "{}.{}".format(base_path, new_name)
-        else:
-            full_old_name = old_name
-            full_new_name = new_name
+        full_old_name = json_full_path(base_path, old_name)
+        full_new_name = json_full_path(base_path, new_name)
 
         # For all other types, the old_mode must be the same as the new_mode. It
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
@@ -376,10 +369,7 @@ class SchemaGenerator:
             return None
 
         if value_type == 'RECORD':
-            if base_path:
-                new_base_path = "{}.{}".format(base_path, key)
-            else:
-                new_base_path = key
+            new_base_path = json_full_path(base_path, key)
             # recursively figure out the RECORD
             fields = OrderedDict()
             if value_mode == 'NULLABLE':
@@ -781,6 +771,17 @@ def flatten_schema_map(
             new_info[key] = new_value
         schema.append(new_info)
     return schema
+
+
+def json_full_path(base_path, key):
+    """Return the dot-separated JSON full path to a particular key.
+    e.g. 'server.config.port'. Column names in CSV files are never nested,
+    so this will always return `key`.
+    """
+    if base_path is None or base_path == "":
+        return key
+    else:
+        return f'{base_path}.{key}'
 
 
 def main():
