@@ -29,7 +29,6 @@ Usage:
 * file.schema.json is the schema definition of the table.
 """
 
-from IPython import embed
 from collections import OrderedDict
 import argparse
 import json
