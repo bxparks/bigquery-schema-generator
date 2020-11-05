@@ -733,8 +733,8 @@ SCHEMA
 END
 
 # Incompatible types error printing full path
-# given
-DATA
+# given. Keeping nulls
+DATA keep_nulls
 {"source_machine":{"port":80},"dest_machine":{"port":80}}
 {"source_machine":{"port":80},"dest_machine":{"port":"http-port"}}
 ERRORS
@@ -758,6 +758,75 @@ SCHEMA
     "mode": "NULLABLE",
     "name": "source_machine",
     "type": "RECORD"
+  }
+]
+END
+
+# Removing null inner nested_fields from schema
+DATA
+{"test": "thing", "empty_record": {}, "outer_nested_record": {"inner_empty_record": {}}, "filled_record": {"full_of_stuff": "totally"}}
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "full_of_stuff",
+        "type": "STRING"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "filled_record",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test",
+    "type": "STRING"
+  }
+]
+END
+
+# Removing null inner nested_fields from schema keeping when 1 line has data
+DATA
+{"test": "thing", "empty_record": {}, "outer_nested_record": {"inner_empty_record": {}}, "filled_record": {"full_of_stuff": "totally"}}
+{"test": "thing", "empty_record": {}, "outer_nested_record": {"inner_empty_record": {"something": "exists"}}, "filled_record": {"full_of_stuff": "totally"}}
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "full_of_stuff",
+        "type": "STRING"
+      }                                                                                                        ],
+    "mode": "NULLABLE",
+    "name": "filled_record",
+    "type": "RECORD"
+  },
+  {
+    "fields": [
+      {
+        "fields": [
+          {
+            "mode": "NULLABLE",
+            "name": "something",
+            "type": "STRING"
+          }
+        ],
+        "mode": "NULLABLE",
+        "name": "inner_empty_record",
+        "type": "RECORD"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "outer_nested_record",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test",
+    "type": "STRING"
   }
 ]
 END

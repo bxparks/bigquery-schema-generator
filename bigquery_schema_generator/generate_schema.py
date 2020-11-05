@@ -29,6 +29,7 @@ Usage:
 * file.schema.json is the schema definition of the table.
 """
 
+from IPython import embed
 from collections import OrderedDict
 import argparse
 import json
@@ -749,8 +750,11 @@ def flatten_schema_map(
         # keeps these sorted, so we created them in sorted order using an
         # OrderedDict, so they should preserve order here too.
         new_info = OrderedDict()
+        record_filled = False
+        fields_key_missing = True
         for key, value in info.items():
             if key == 'fields':
+                fields_key_missing = False
                 if not value:
                     # Create a dummy attribute for an empty RECORD to make
                     # the BigQuery importer happy.
@@ -761,6 +765,7 @@ def flatten_schema_map(
                             ('type', 'STRING'),
                         ])
                     ]
+                    record_filled = True
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
                     new_value = flatten_schema_map(
@@ -770,6 +775,8 @@ def flatten_schema_map(
                         infer_mode=infer_mode,
                         sanitize_names=sanitize_names,
                     )
+                    if new_value != []:
+                        record_filled = True
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 # Convert QINTEGER -> INTEGER, similarly for QFLAT and QBOOLEAN.
                 new_value = value[1:]
@@ -785,7 +792,11 @@ def flatten_schema_map(
             else:
                 new_value = value
             new_info[key] = new_value
-        schema.append(new_info)
+        # This check will remove record fields where all nested record values are null.
+        # For additional context see:
+        # https://github.com/bxparks/bigquery-schema-generator/issues/55
+        if keep_nulls or record_filled or fields_key_missing:
+            schema.append(new_info)
     return schema
 
 
