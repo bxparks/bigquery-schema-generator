@@ -791,8 +791,8 @@ def flatten_schema_map(
             else:
                 new_value = value
             new_info[key] = new_value
-        # This check will remove record fields where all nested record values are null.
-        # For additional context see:
+        # This check will remove record fields where all nested record values
+        # are null. For additional context see:
         # https://github.com/bxparks/bigquery-schema-generator/issues/55
         if keep_nulls or record_filled or fields_key_missing:
             schema.append(new_info)
