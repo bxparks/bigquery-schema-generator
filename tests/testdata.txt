@@ -817,7 +817,7 @@ SCHEMA
 ]
 END
 
-# Infer 'REQUIR ED' mode for a consistently filled in value - simple
+# Infer 'REQUIRED' mode for a consistently filled in value - simple
 DATA csv infer_mode
 a,b,c,d,e
 ,ho,hi,true

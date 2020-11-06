@@ -25,69 +25,7 @@ from bigquery_schema_generator.generate_schema import convert_type
 from bigquery_schema_generator.generate_schema import bq_schema_to_map
 from bigquery_schema_generator.generate_schema import BQ_TYPES
 from data_reader import DataReader
-from pytest import fixture
 
-
-@fixture(params=sorted(BQ_TYPES))
-def f_bq_type(request):
-    return request.param
-
-
-@fixture(params=['NULLABLE', 'REQUIRED', 'REPEATED'])
-def f_bq_mode(request):
-    return request.param
-
-
-@fixture
-def f_bq_entry(f_bq_mode, f_bq_type):
-    yield make_bq_entry(f_bq_mode, f_bq_type)
-
-
-def make_bq_entry(mode, type):
-    if type == 'RECORD':
-        return OrderedDict([
-            ('fields', [make_bq_entry('NULLABLE','STRING')]),
-            ('mode', mode),
-            ('name', 'a'),
-            ('type', type),
-        ])
-    else:
-        return OrderedDict([
-            ('mode', mode),
-            ('name', 'a'),
-            ('type', type),
-        ])
-
-
-@fixture(params=[('csv', True), ('csv', False), ('json', False)],
-         ids=lambda x: "{}-{}".format(*x))
-def f_input_format_infer_mode(request):
-    return request.param
-
-
-@fixture(params=[True, False])
-def f_keep_nulls(request):
-    return request.param
-
-
-@fixture(params=[True, False])
-def f_quoted_values_are_strings(request):
-    return request.param
-
-
-@fixture
-def f_generator(f_input_format_infer_mode, f_keep_nulls, f_quoted_values_are_strings):
-    yield SchemaGenerator(input_format=f_input_format_infer_mode[0],
-                          infer_mode=f_input_format_infer_mode[1],
-                          keep_nulls=f_keep_nulls,
-                          quoted_values_are_strings=f_quoted_values_are_strings)
-
-
-def test_bq_entry_roundtrip(f_bq_entry, f_generator):
-    schema = [f_bq_entry]
-    schema_map = bq_schema_to_map(schema)
-    flattened = f_generator.flatten_schema(schema_map)
-    assert schema == flattened
 
 class TestSchemaGenerator(unittest.TestCase):
     def test_timestamp_matcher_valid(self):
@@ -484,18 +422,18 @@ class ChunksFromDataFile(object):
                     break
                 yield chunk
 
-    @classmethod
-    def chunk_id(cls, chunk):
-        return "chunk-{chunk_count}-line-{line}".format(**chunk)
 
-@fixture(params = list(ChunksFromDataFile().chunks()), ids=ChunksFromDataFile.chunk_id)
-def chunk(request):
-    return request.param
+class TestDataChunksFromFile(unittest.TestCase):
+    def test_all_data_chunks(self):
+        for chunk in ChunksFromDataFile().chunks():
+            try:
+                self.verify_data_chunk(chunk)
+                self.verify_data_chunk_informed(chunk)
+            except AssertionError as e:
+                print("\nError when processing chunk on line {}\n".format(chunk['line']))
+                raise e
 
-
-
-class TestDataChunks:
-    def test_data_chunk(self, chunk):
+    def verify_data_chunk(self, chunk):
         chunk_count = chunk['chunk_count']
         line = chunk['line']
         data_flags = chunk['data_flags']
@@ -522,13 +460,13 @@ class TestDataChunks:
 
         # Check the schema, preserving order
         expected = json.loads(expected_schema, object_pairs_hook=OrderedDict)
-        assert expected == schema
+        self.assertEqual(expected, schema)
 
         # Check the error messages
-        assert len(expected_errors) == len(error_logs)
+        self.assertEqual(len(expected_errors), len(error_logs))
         self.assert_error_messages(expected_error_map, error_logs)
 
-    def test_data_chunk_informed(self, chunk):
+    def verify_data_chunk_informed(self, chunk):
         chunk_count = chunk['chunk_count']
         line = chunk['line']
         data_flags = chunk['data_flags']
@@ -563,16 +501,16 @@ class TestDataChunks:
         schema = generator.flatten_schema(schema_map)
 
         # Check the schema, preserving order
-        assert expected == schema
+        self.assertEqual(expected, schema)
 
         print('informed_expected_errors=',expected_errors,'error_logs=',error_logs)
-        assert len(expected_errors) == len(error_logs)
+        self.assertEqual(len(expected_errors), len(error_logs))
         self.assert_error_messages(expected_error_map, error_logs)
 
         # Test roundtrip of schema -> schema_map -> schema
         expected_map = bq_schema_to_map(expected)
         schema = generator.flatten_schema(expected_map)
-        assert expected == schema
+        self.assertEqual(expected, schema)
 
     def assert_error_messages(self, expected_error_map, error_logs):
         # Convert the list of errors into a map
@@ -591,9 +529,73 @@ class TestDataChunks:
         # well.
         for line_number, messages in sorted(error_map.items()):
             expected_entry = expected_error_map.get(line_number)
-            assert expected_entry is not None
+            self.assertIsNotNone(expected_entry)
             expected_messages = expected_entry['msgs']
-            assert len(expected_messages) == len(messages)
+            self.assertEqual(len(expected_messages), len(messages))
+
+
+class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
+    def test_bq_schema_to_map_permutations(self):
+        ''' This checks that each possible type of consititued schema, when generated,
+            then converted to a schema_map, then back to the schema, they are equal.
+
+            This function is really ugly but has good coverage. This was migrated
+            from pytest fixtures which were a bit cleaner but we ideally did not
+            want to add a new dependency / library that is used for testing.
+        '''
+        valid_types = BQ_TYPES
+        valid_modes = ['NULLABLE', 'REQUIRED', 'REPEATED']
+        valid_input_formats_and_modes = [('csv', True), ('csv', False), ('json', False)]
+        valid_keep_null_params = [True, False]
+        valid_quoted_values_are_strings = [True, False]
+        for valid_type in valid_types:
+            for valid_mode in valid_modes:
+                bq_entry = self.make_bq_schema_entry(valid_mode, valid_type)
+                schema = [bq_entry]
+                schema_map = bq_schema_to_map(schema)
+                for input_format_and_mode in valid_input_formats_and_modes:
+                    for keep_null_param in valid_keep_null_params:
+                        for quote_value_are_strings in valid_quoted_values_are_strings:
+                            generator = SchemaGenerator(input_format=input_format_and_mode[0],
+                                                        infer_mode=input_format_and_mode[1],
+                                                        keep_nulls=keep_null_param,
+                                                        quoted_values_are_strings=quote_value_are_strings)
+                            flattened = generator.flatten_schema(schema_map)
+                            try:
+                                self.assertEquals(schema, flattened)
+                            except AssertionError as e:
+                                print("test_bq_schema_to_map_permutations failed for case where: "
+                                      "bq_entry={}\nschema_generator created with values:"
+                                      "{}-{}-{}-{}"
+                                      .format(bq_entry,
+                                              input_format_and_mode[0],
+                                              input_format_and_mode[1],
+                                              keep_null_param,
+                                              quote_value_are_strings))
+                                raise e
+
+    def make_bq_schema_entry(self, mode, type):
+        ''' Creates a bigquery schema entry
+        '''
+        if type == 'RECORD':
+            return OrderedDict([
+                ('fields', [self.make_bq_schema_entry('NULLABLE','STRING')]),
+                ('mode', mode),
+                ('name', 'a'),
+                ('type', type),
+            ])
+        else:
+            return OrderedDict([
+                ('mode', mode),
+                ('name', 'a'),
+                ('type', type),
+            ])
+
+    def validate_existing_schema_to_schema_map_entry(self, existing_schema, schema_generator):
+        schema = [existing_schema]
+        schema_map = bq_schema_to_map(schema)
+        flattened = schema_generator.flatten_schema(schema_map)
+        self.assertEqual(schema, flattened)
 
 
 if __name__ == '__main__':
