@@ -777,6 +777,13 @@ def bq_schema_field_to_entry(field):
         ('info', info),
     ])
 
+def read_existing_schema_from_file(existing_schema_path):
+    if existing_schema_path:
+        with open(existing_schema_path, 'r') as f:
+            existing_json_schema = json.load(f)
+            return bq_schema_to_map(existing_json_schema)
+    return None
+
 def main():
     # Configure command line flags.
     parser = argparse.ArgumentParser(
@@ -810,6 +817,12 @@ def main():
         '--sanitize_names',
         help='Forces schema name to comply with BigQuery naming standard',
         action="store_true")
+    parser.add_argument(
+        '--existing_schema_path',
+        help='File that contains the existing BigQuery schema for a table.'
+        ' This can be fetched with:'
+        ' `bq show --schema <project_id>:<dataset>:<table_name>',
+        default=None)
     args = parser.parse_args()
 
     # Configure logging.
@@ -823,7 +836,8 @@ def main():
         debugging_interval=args.debugging_interval,
         debugging_map=args.debugging_map,
         sanitize_names=args.sanitize_names)
-    generator.run()
+    existing_schema_map = read_existing_schema_from_file(args.existing_schema_path)
+    generator.run(schema_map=existing_schema_map)
 
 
 if __name__ == '__main__':
