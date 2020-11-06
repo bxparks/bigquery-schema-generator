@@ -32,6 +32,9 @@ class DataReader:
         DATA [flags]
         json_records
         ...
+        EXISTING_SCHEMA
+        existing json schema from bq api
+        ...
         ERRORS
         line: msg
         ...
@@ -59,6 +62,8 @@ class DataReader:
     the following components:
 
         * a DATA section containing the newline-separated JSON data records
+        * an optional EXISTING_SCHEMA section contains the existing base
+          BigQuery schema to build off of
         * an optional ERRORS section containing the expected error messages
         * an optional ERRORS INFORMED section containing the expected error
           messages when the schema is known to schema decoder in advance
@@ -97,13 +102,14 @@ class DataReader:
             data_flags = chunk['data_flags']
             keep_nulls = ('keep_nulls' in data_flags)
             records = chunk['records']
+            existing_schema = chunk['existing_schema']
             schema = chunk['schema']
             ...
     """
 
     # Recognized tags.
     # TODO: Change to a hash set to speed up the lookup if many are added.
-    TAG_TOKENS = ['DATA', 'ERRORS', 'SCHEMA', 'END']
+    TAG_TOKENS = ['DATA', 'ERRORS', 'EXISTING_SCHEMA', 'SCHEMA', 'END']
 
     def __init__(self, testdata_file):
         self.testdata_file = testdata_file
@@ -118,6 +124,7 @@ class DataReader:
                 'data_flags': [data_flags],
                 'data': [data lines],
                 'errors': {errors},
+                'existing_schema': schema_string,
                 'schema': schema_string
             }
         Returns None if there are no more test chunks.
@@ -125,6 +132,7 @@ class DataReader:
         data_flags, records, line = self.read_data_section()
         if data_flags is None:
             return None
+        existing_schema = self.read_existing_schema_section()
         error_flags, errors = self.read_errors_section()
         if errors and error_flags:
             raise Exception("Unexpected error flags in the first ERRORS section")
@@ -142,6 +150,7 @@ class DataReader:
             'line': line,
             'data_flags': data_flags,
             'records': records,
+            'existing_schema': existing_schema,
             'errors': errors or [],
             'error_map': error_map,
             'informed_errors': informed_errors,
@@ -181,6 +190,35 @@ class DataReader:
 
         return (data_flags, records, lineno)
 
+    def read_existing_schema_section(self):
+        """Returns the JSON string of the schema section.
+        """
+
+        # The next tag must be 'EXISTING_SCHEMA'
+        tag_line = self.read_line()
+        if tag_line is None:
+            raise Exception("Unexpected EOF, should be EXISTING_SCHEMA tag")
+        (tag, _) = self.parse_tag_line(tag_line)
+        if tag == 'EXISTING_SCHEMA':
+            # Read the EXISTING_SCHEMA records until the next TAG_TOKEN
+            schema_lines = []
+            while True:
+                line = self.read_line()
+                if line is None:
+                    break
+                (tag, _) = self.parse_tag_line(line)
+                if tag in self.TAG_TOKENS:
+                    if tag in ('DATA', 'EXISTING_SCHEMA'):
+                        raise Exception("Unexpected {} tag".format(tag))
+                    self.push_back(line)
+                    break
+                schema_lines.append(line)
+
+            return ''.join(schema_lines)
+        else:
+            self.push_back(tag_line)
+            return []
+
     def read_errors_section(self):
         """Return a dictionary of errors which are expected from the parsing of
         the DATA section. The dict has the form:
@@ -208,7 +246,7 @@ class DataReader:
             (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
                 if tag == 'DATA':
-                    raise Exception("Unexpected ERRORS tag")
+                    raise Exception("Unexpected DATA tag found in ERRORS section")
                 self.push_back(line)
                 break
             errors.append(line)
@@ -235,7 +273,7 @@ class DataReader:
                 break
             (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
-                if tag in ('DATA', 'ERROR', 'SCHEMA'):
+                if tag in ('DATA', 'ERRORS', 'EXISTING_SCHEMA', 'SCHEMA'):
                     raise Exception("Unexpected {} tag".format(tag))
                 self.push_back(line)
                 break
@@ -342,6 +380,7 @@ def main():
             break
         print("DATA_FLAGS: %s" % chunk['data_flags'])
         print("DATA: %s" % chunk['records'])
+        print("EXISTING_SCHEMA: %s" % chunk['existing_schema'])
         print("ERRORS: %s" % chunk['errors'])
         print("ERROR_MAP: %s" % chunk['error_map'])
         print("SCHEMA: %s" % chunk['schema'])
