@@ -348,6 +348,7 @@ class SchemaGenerator:
         value_mode, value_type = self.infer_bigquery_type(value)
         if not value_mode or not value_type:
             return None
+        sanitized_key = self.sanitize_name(key)
 
         # yapf: disable
         if value_type == 'RECORD':
@@ -363,7 +364,7 @@ class SchemaGenerator:
                                         ('info', OrderedDict([
                                             ('fields', fields),
                                             ('mode', value_mode),
-                                            ('name', key),
+                                            ('name', sanitized_key),
                                             ('type', value_type),
                                         ]))])
         elif value_type == '__null__':
@@ -371,7 +372,7 @@ class SchemaGenerator:
                                         ('filled', False),
                                         ('info', OrderedDict([
                                             ('mode', 'NULLABLE'),
-                                            ('name', key),
+                                            ('name', sanitized_key),
                                             ('type', 'STRING'),
                                         ]))])
         elif value_type == '__empty_array__':
@@ -379,7 +380,7 @@ class SchemaGenerator:
                                         ('filled', False),
                                         ('info', OrderedDict([
                                             ('mode', 'REPEATED'),
-                                            ('name', key),
+                                            ('name', sanitized_key),
                                             ('type', 'STRING'),
                                         ]))])
         elif value_type == '__empty_record__':
@@ -388,7 +389,7 @@ class SchemaGenerator:
                                         ('info', OrderedDict([
                                             ('fields', OrderedDict()),
                                             ('mode', value_mode),
-                                            ('name', key),
+                                            ('name', sanitized_key),
                                             ('type', 'RECORD'),
                                         ]))])
         else:
@@ -404,7 +405,7 @@ class SchemaGenerator:
                                         ('filled', filled),
                                         ('info', OrderedDict([
                                             ('mode', value_mode),
-                                            ('name', key),
+                                            ('name', sanitized_key),
                                             ('type', value_type),
                                         ]))])
         # yapf: enable
@@ -540,6 +541,7 @@ class SchemaGenerator:
         Args:
             input_file: a file-like object (default: sys.stdin)
             output_file: a file-like object (default: sys.stdout)
+            schema_map: the existing bigquery schema_map we start with
         """
         schema_map, error_logs = self.deduce_schema(input_file, schema_map=schema_map)
 
