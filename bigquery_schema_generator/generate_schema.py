@@ -757,23 +757,26 @@ def bq_type_to_entry_type(type):
 
 def bq_schema_field_to_entry(field):
     type = bq_type_to_entry_type(field['type'])
+    # In some cases with nested fields within a record, bigquery does not
+    # populate a mode field. We will assume this is NULLABLE in this case
+    mode = field.get('mode', 'NULLABLE')
     # maintain order of info fields
     if type == 'RECORD':
         info = OrderedDict([
             ('fields', bq_schema_to_map(field['fields'])),
-            ('mode', field['mode']),
+            ('mode', mode),
             ('name', field['name']),
             ('type', type),
         ])
     else:
         info = OrderedDict([
-            ('mode', field['mode']),
+            ('mode', mode),
             ('name', field['name']),
             ('type', type),
         ])
     return OrderedDict([
         ('status', 'hard'),
-        ('filled', field['mode'] != 'NULLABLE'),
+        ('filled', mode != 'NULLABLE'),
         ('info', info),
     ])
 
