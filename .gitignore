@@ -21,4 +21,3 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-.tox/
