@@ -86,8 +86,8 @@ DATA ignore_invalid_lines
 { "x": 3 }
 this is not a JSON object
 ERRORS
-1: Record should be a JSON object but was a <class 'list'>
-3: Record cannot be parsed: Exception: Expecting value: line 1 column 1 (char 0)
+1: Record should be a JSON Object but was a <class 'list'>
+3: Record could not be parsed: Exception: Expecting value: line 1 column 1 (char 0)
 SCHEMA
 [
   {

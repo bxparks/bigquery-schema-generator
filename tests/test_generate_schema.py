@@ -19,9 +19,11 @@ import os
 import json
 from io import StringIO
 from collections import OrderedDict
+from bigquery_schema_generator.generate_schema import BQ_TYPES
 from bigquery_schema_generator.generate_schema import SchemaGenerator
-from bigquery_schema_generator.generate_schema import is_string_type
+from bigquery_schema_generator.generate_schema import bq_schema_to_map
 from bigquery_schema_generator.generate_schema import convert_type
+from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import json_full_path
 from .data_reader import DataReader
 
@@ -483,7 +485,8 @@ class TestDataChunksFromFile(unittest.TestCase):
             infer_mode=infer_mode,
             keep_nulls=keep_nulls,
             quoted_values_are_strings=quoted_values_are_strings,
-            sanitize_names=sanitize_names)
+            sanitize_names=sanitize_names,
+            ignore_invalid_lines=ignore_invalid_lines)
         existing_schema_map = None
         if existing_schema:
             existing_schema_map = bq_schema_to_map(json.loads(existing_schema))
