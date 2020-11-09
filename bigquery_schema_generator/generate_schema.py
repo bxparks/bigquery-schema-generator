@@ -237,8 +237,8 @@ class SchemaGenerator:
             sanitized_key = self.sanitize_name(key)
             schema_entry = schema_map.get(sanitized_key)
             new_schema_entry = self.get_schema_entry(key, value)
-            schema_map[sanitized_key] = self.merge_schema_entry(schema_entry,
-                                                                new_schema_entry)
+            schema_map[sanitized_key] = self.merge_schema_entry(
+                schema_entry, new_schema_entry)
 
     def sanitize_name(self, value):
         if self.sanitize_names:
@@ -358,14 +358,17 @@ class SchemaGenerator:
         if old_mode != new_mode:
             # primitive-types are conservatively deduced NULLABLE. In case we
             # know a-priori that a field is REQUIRED, we accept that
-            new_might_be_required = new_mode == 'NULLABLE' and new_schema_entry['filled']
-            if self.infer_mode and old_mode == 'REQUIRED' and new_might_be_required:
+            new_might_be_required = new_mode == 'NULLABLE' and\
+                new_schema_entry['filled']
+            if self.infer_mode and old_mode == 'REQUIRED' and\
+                new_might_be_required:
                 new_info['mode'] = old_mode
             else:
                 self.log_error(
                     f'Ignoring non-RECORD field with mismatched mode: '
-                    f'old=({old_status},{full_old_name},{old_mode},{old_type}); '
-                    f'new=({new_status},{full_new_name},{new_mode},{new_type})')
+                    f'old=({old_status},{full_old_name},{old_mode},{old_type});'
+                    f' new=({new_status},{full_new_name},{new_mode},{new_type})'
+                )
                 return None
 
         # Check that the converted types are compatible.
@@ -598,7 +601,8 @@ class SchemaGenerator:
             sorted_schema=self.sorted_schema,
             infer_mode=self.infer_mode)
 
-    def run(self, input_file=sys.stdin, output_file=sys.stdout, schema_map=None):
+    def run(self, input_file=sys.stdin,
+            output_file=sys.stdout, schema_map=None):
         """Read the data records from the input_file and print out the BigQuery
         schema on the output_file. The error logs are printed on the sys.stderr.
         Args:
@@ -606,7 +610,8 @@ class SchemaGenerator:
             output_file: a file-like object (default: sys.stdout)
             schema_map: the existing bigquery schema_map we start with
         """
-        schema_map, error_logs = self.deduce_schema(input_file, schema_map=schema_map)
+        schema_map, error_logs = self.deduce_schema(input_file,
+                                                    schema_map=schema_map)
 
         for error in error_logs:
             logging.info("Problem on line %s: %s", error['line'], error['msg'])
@@ -795,7 +800,8 @@ def flatten_schema_map(schema_map,
     return schema
 
 def bq_schema_to_map(schema):
-    """ convert BQ JSON table schema representation to SchemaGenerator schema_map representaton """
+    """ convert BQ JSON table schema representation to SchemaGenerator
+        schema_map representaton """
     if isinstance(schema, dict):
         schema = schema['fields']
     return OrderedDict((f['name'].lower(), bq_schema_field_to_entry(f))
@@ -931,7 +937,8 @@ def main():
         sanitize_names=args.sanitize_names,
         ignore_invalid_lines=args.ignore_invalid_lines,
     )
-    existing_schema_map = read_existing_schema_from_file(args.existing_schema_path)
+    existing_schema_map = read_existing_schema_from_file(
+        args.existing_schema_path)
     generator.run(schema_map=existing_schema_map)
     generator.run()
 

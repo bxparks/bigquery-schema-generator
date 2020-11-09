@@ -131,7 +131,8 @@ class DataReader:
         existing_schema = self.read_existing_schema_section()
         error_flags, errors = self.read_errors_section()
         if errors and error_flags:
-            raise Exception("Unexpected error flags in the first ERRORS section")
+            raise Exception("Unexpected error flags in the first ERRORS"
+                            " section")
         error_map = self.process_errors(errors or [])
         schema = self.read_schema_section()
         self.read_end_marker()
@@ -235,7 +236,8 @@ class DataReader:
             (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
                 if tag == 'DATA':
-                    raise Exception("Unexpected DATA tag found in ERRORS section")
+                    raise Exception("Unexpected DATA tag found in ERRORS"
+                                    " section")
                 self.push_back(line)
                 break
             errors.append(line)

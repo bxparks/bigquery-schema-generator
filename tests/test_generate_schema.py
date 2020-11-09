@@ -458,7 +458,8 @@ class TestDataChunksFromFile(unittest.TestCase):
             try:
                 self.verify_data_chunk(chunk)
             except AssertionError as e:
-                print("\nError when processing chunk on line {}\n".format(chunk['line']))
+                print("\nError when processing chunk starting on line {}\n"
+                      .format(chunk['line']))
                 raise e
 
     def verify_data_chunk(self, chunk):
@@ -522,16 +523,20 @@ class TestDataChunksFromFile(unittest.TestCase):
 
 class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
     def test_bq_schema_to_map_round_trip_permutations(self):
-        ''' This checks that each possible type of consititued schema, when generated,
-            then converted to a schema_map, then back to the schema, they are equal.
+        ''' This checks that each possible type of consititued schema, when
+            generated, then converted to a schema_map, then back to the schema,
+            they are equal.
 
-            This function is really ugly but has good coverage. This was migrated
-            from pytest fixtures which were a bit cleaner but we ideally did not
-            want to add a new dependency / library that is used for testing.
+            This function is really ugly but has good coverage. This was
+            migrated from pytest fixtures which were a bit cleaner but we
+            ideally did not want to add a new dependency / library that is used
+            for testing.
         '''
         valid_types = BQ_TYPES
         valid_modes = ['NULLABLE', 'REQUIRED', 'REPEATED']
-        valid_input_formats_and_modes = [('csv', True), ('csv', False), ('json', False)]
+        valid_input_formats_and_modes = [('csv', True),
+                                         ('csv', False),
+                                         ('json', False)]
         valid_keep_null_params = [True, False]
         valid_quoted_values_are_strings = [True, False]
         for valid_type in valid_types:
@@ -541,17 +546,21 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                 schema_map = bq_schema_to_map(schema)
                 for input_format_and_mode in valid_input_formats_and_modes:
                     for keep_null_param in valid_keep_null_params:
-                        for quote_value_are_strings in valid_quoted_values_are_strings:
-                            generator = SchemaGenerator(input_format=input_format_and_mode[0],
-                                                        infer_mode=input_format_and_mode[1],
-                                                        keep_nulls=keep_null_param,
-                                                        quoted_values_are_strings=quote_value_are_strings)
+                        for quote_value_are_strings in\
+                            valid_quoted_values_are_strings:
+                            generator = SchemaGenerator(
+                                input_format=input_format_and_mode[0],
+                                infer_mode=input_format_and_mode[1],
+                                keep_nulls=keep_null_param,
+                                quoted_values_are_strings=\
+                                    quote_value_are_strings)
                             flattened = generator.flatten_schema(schema_map)
                             try:
                                 self.assertEqual(schema, flattened)
                             except AssertionError as e:
-                                print("test_bq_schema_to_map_permutations failed for case where: "
-                                      "bq_entry={}\nschema_generator created with values:"
+                                print("test_bq_schema_to_map_permutations"
+                                      " failed for case where: bq_entry={}\n"
+                                      "schema_generator created with values:"
                                       "{}-{}-{}-{}"
                                       .format(bq_entry,
                                               input_format_and_mode[0],
@@ -565,7 +574,7 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
         '''
         if type == 'RECORD':
             return OrderedDict([
-                ('fields', [self.make_bq_schema_entry('NULLABLE','STRING')]),
+                ('fields', [self.make_bq_schema_entry('NULLABLE', 'STRING')]),
                 ('mode', mode),
                 ('name', 'a'),
                 ('type', type),
@@ -577,7 +586,9 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                 ('type', type),
             ])
 
-    def validate_existing_schema_to_schema_map_entry(self, existing_schema, schema_generator):
+    def validate_existing_schema_to_schema_map_entry(self,
+                                                     existing_schema,
+                                                     schema_generator):
         schema = [existing_schema]
         schema_map = bq_schema_to_map(schema)
         flattened = schema_generator.flatten_schema(schema_map)
