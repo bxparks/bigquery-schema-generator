@@ -22,9 +22,8 @@ from collections import OrderedDict
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import convert_type
-from bigquery_schema_generator.generate_schema import bq_schema_to_map
-from bigquery_schema_generator.generate_schema import BQ_TYPES
-from data_reader import DataReader
+from bigquery_schema_generator.generate_schema import json_full_path
+from .data_reader import DataReader
 
 
 class TestSchemaGenerator(unittest.TestCase):
@@ -196,7 +195,7 @@ class TestSchemaGenerator(unittest.TestCase):
                          generator.infer_bigquery_type(2.0))
         # yapf: disable
         self.assertEqual(('NULLABLE', 'RECORD'),
-                         generator.infer_bigquery_type({ 'a': 1, 'b': 2 }))
+                         generator.infer_bigquery_type({'a': 1, 'b': 2}))
         # yapf: enable
         self.assertEqual(('NULLABLE', '__null__'),
                          generator.infer_bigquery_type(None))
@@ -211,9 +210,12 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual(
             ('REPEATED', 'DATE'),
             generator.infer_bigquery_type(['2018-02-08', '2018-02-09']))
-        self.assertEqual(('REPEATED', 'TIMESTAMP'),
-                         generator.infer_bigquery_type(
-                             ['2018-02-08T12:34:56', '2018-02-08T12:34:56']))
+        self.assertEqual(
+            ('REPEATED', 'TIMESTAMP'),
+            generator.infer_bigquery_type(
+                ['2018-02-08T12:34:56', '2018-02-08T12:34:56'],
+            )
+        )
         self.assertEqual(('REPEATED', 'STRING'),
                          generator.infer_bigquery_type(['a', 'b', 'c']))
         self.assertEqual(('REPEATED', 'BOOLEAN'),
@@ -223,10 +225,13 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual(('REPEATED', 'FLOAT'),
                          generator.infer_bigquery_type([1.0, 2.0]))
         # yapf: disable
-        self.assertEqual(('REPEATED', 'RECORD'),
-                         generator.infer_bigquery_type([
-                            { 'a': 1, 'b': 2 },
-                            { 'c': 3 }]))
+        self.assertEqual(
+            ('REPEATED', 'RECORD'),
+            generator.infer_bigquery_type([
+                {'a': 1, 'b': 2},
+                {'c': 3},
+            ])
+        )
         # yapf: enable
         self.assertEqual(('REPEATED', '__empty_record__'),
                          generator.infer_bigquery_type([{}]))
@@ -398,6 +403,27 @@ class TestSchemaGenerator(unittest.TestCase):
 """
         self.assertEqual(expected, output.getvalue())
 
+    def test_run_with_invalid_input_throws_exception(self):
+        generator = SchemaGenerator()
+        output = StringIO()
+
+        input = StringIO('[]')
+        with self.assertRaises(Exception):
+            generator.run(input, output)
+
+        input = StringIO('this is not a JSON')
+        with self.assertRaises(Exception):
+            generator.run(input, output)
+
+    def test_json_full_path(self):
+        self.assertEqual('port', json_full_path(None, 'port'))
+        self.assertEqual('port', json_full_path("", 'port'))
+
+        # 'base_path' should never be '0', but if is do something reasonable.
+        self.assertEqual('0.port', json_full_path(0, 'port'))
+
+        self.assertEqual('server.port', json_full_path('server', 'port'))
+
 
 class ChunksFromDataFile(object):
     """Read the test case data from TESTDATA_FILE and verify that the expected
@@ -442,6 +468,7 @@ class TestDataChunksFromFile(unittest.TestCase):
         infer_mode = ('infer_mode' in data_flags)
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         sanitize_names = ('sanitize_names' in data_flags)
+        ignore_invalid_lines = ('ignore_invalid_lines' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']

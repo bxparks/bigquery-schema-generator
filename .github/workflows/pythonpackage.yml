@@ -1,0 +1,53 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: BigQuery Schema Generator CI 
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy: 
+      matrix:
+        # 3.5 does not support f-strings
+        python-version: [3.6, 3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+        # pip install -r requirements.txt
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build for most python errors.
+        # W503 and W504 are both enabled by default and are mutual
+        # contradictory, so we have to suppress one of them
+        # E501 uses 79 columns by default, but 80 is the default line wrap in
+        # vim, so change the line-length.
+        flake8 . --count --ignore W503 --show-source --statistics \
+            --max-line-length=80
+
+        # Exit-zero treats all errors as warnings.
+        # The complexity warning is not useful... in fact the whole thing is
+        # not useful, so turn it off.
+        # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=80
+        # --statistics
+
+    - name: Test with unittest
+      run: |
+        python -m unittest

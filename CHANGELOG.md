@@ -1,9 +1,26 @@
 # Changelog
 
 * Unreleased
+* 1.2 (2020-10-27)
+    * Print full path of nested JSON elements in error messages (See #52;
+      thanks abroglesc@).
+* 1.1 (2020-07-10)
+    * Add `--ignore_invalid_lines` to ignore parsing errors on invalid lines
+      and continue processing. Fixes
+      [#49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
+    * Add GitHub actions for automated tests and flake8 validation.
+    * Add package `__version__` string.
+    * Update setup.py, no longer need to convert README.md markdown to RST.
+* 1.0 (2020-04-04)
+    * Fix `--sanitize_names` for recursive RECORD fields (Thanks riccardomc@,
+      see #43).
+    * Clean up how unit tests are run, trying my best to figure out
+      Python's convolution package importing mechanism.
+    * Add GitHub Actions continuous integration pipelines with flake8 checks and
+      automated unit testing.
 * 0.5.1 (2019-06-17)
     * Add `--sanitize_names` to convert invalid characters in column names and
-      to shorten them if too long. (See #33; thanks @jonwarghed).
+      to shorten them if too long. (See #33; thanks jonwarghed@).
 * 0.5 (2019-06-06)
     * Add input and output parameters to run() to allow the client code using
       `SchemaGenerator` to redirect the input and output files. (See #30).

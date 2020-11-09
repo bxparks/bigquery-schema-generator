@@ -73,20 +73,37 @@ class SchemaGenerator:
     # Detect floats inside quotes.
     FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
 
-    def __init__(self,
-                 input_format='json',
-                 infer_mode=False,
-                 keep_nulls=False,
-                 quoted_values_are_strings=False,
-                 debugging_interval=1000,
-                 debugging_map=False,
-                 sanitize_names=False):
+    # Valid field name characters of BigQuery
+    FIELD_NAME_MATCHER = re.compile(r'[^a-zA-Z0-9_]')
+
+    def __init__(
+        self,
+        input_format='json',
+        infer_mode=False,
+        keep_nulls=False,
+        quoted_values_are_strings=False,
+        debugging_interval=1000,
+        debugging_map=False,
+        sanitize_names=False,
+        ignore_invalid_lines=False,
+    ):
         self.input_format = input_format
         self.infer_mode = infer_mode
         self.keep_nulls = keep_nulls
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
+
+        # Make column names conform to BigQuery. Illegal characters outside the
+        # range of [a-zA-Z0-9-_] are converted into an underscore. Names longer
+        # than 128 characters are truncated to 128. This is probably useful only
+        # for CSV files because 'bq load' automatically transforms the column
+        # names. For JSON files, 'bq load' fails with error messages.
+        self.sanitize_names = sanitize_names
+
+        # Ignore invalid lines by logging an error and continuing to process the
+        # rest of the file.
+        self.ignore_invalid_lines = ignore_invalid_lines
 
         # 'infer_mode' is supported for only input_format = 'csv' because
         # the header line gives us the complete list of fields to be expected in
@@ -111,12 +128,6 @@ class SchemaGenerator:
 
         self.line_number = 0
         self.error_logs = []
-
-        # This option generally wants to be turned on as any inferred schema
-        # will not be accepted by `bq load` when it contains illegal characters.
-        # Characters such as #, / or -. Neither will it be accepted if the column name
-        # in the schema is larger than 128 characters.
-        self.sanitize_names = sanitize_names
 
     def log_error(self, msg):
         self.error_logs.append({'line': self.line_number, 'msg': msg})
@@ -183,27 +194,44 @@ class SchemaGenerator:
 
         try:
             for json_object in reader:
+
+                # Print a progress message periodically.
                 self.line_number += 1
                 if self.line_number % self.debugging_interval == 0:
                     logging.info("Processing line %s", self.line_number)
 
                 # Deduce the schema from this given data record.
                 if isinstance(json_object, dict):
-                    self.deduce_schema_for_line(json_object, schema_map)
+                    self.deduce_schema_for_line(
+                        json_object=json_object,
+                        schema_map=schema_map,
+                    )
+                elif isinstance(json_object, Exception):
+                    self.log_error(
+                        f'Record could not be parsed: Exception: {json_object}')
+                    if not self.ignore_invalid_lines:
+                        raise json_object
                 else:
                     self.log_error(
-                        'Top level record must be an Object but was a %s' %
-                        type(json_object))
+                        'Record should be a JSON Object but was a '
+                        f'{type(json_object)}'
+                    )
+                    if not self.ignore_invalid_lines:
+                        raise Exception('Record must be a JSON Object')
         finally:
             logging.info("Processed %s lines", self.line_number)
+
         return schema_map, self.error_logs
 
-    def deduce_schema_for_line(self, json_object, schema_map):
+    def deduce_schema_for_line(self, json_object, schema_map, base_path=None):
         """Figures out the BigQuery schema for the given 'json_object' and
         updates 'schema_map' with the latest info. A 'schema_map' entry of type
         'soft' is a provisional entry that can be overwritten by a subsequent
         'soft' or 'hard' entry. If both the old and new have the same type,
         then they must be compatible.
+
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry.
         """
         for key, value in json_object.items():
             sanitized_key = self.sanitize_name(key)
@@ -220,7 +248,12 @@ class SchemaGenerator:
         return new_value.lower()
 
 
-    def merge_schema_entry(self, old_schema_entry, new_schema_entry):
+    def merge_schema_entry(
+        self,
+        old_schema_entry,
+        new_schema_entry,
+        base_path=None,
+    ):
         """Merges the 'new_schema_entry' into the 'old_schema_entry' and return
         a merged schema entry. Recursively merges in sub-fields as well.
 
@@ -228,6 +261,10 @@ class SchemaGenerator:
         'old_schema_entry' and 'new_schema_entry' can be modified in place and
         returned as the new schema_entry. Returns None if the field should
         be removed from the schema due to internal consistency errors.
+
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry. This is used during
+        error logging.
 
         An Exception is thrown if an unexpected programming error is detected.
         The calling routine should stop processing the file.
@@ -303,8 +340,16 @@ class SchemaGenerator:
             new_fields = new_info['fields']
             for key, new_entry in new_fields.items():
                 old_entry = old_fields.get(key)
-                old_fields[key] = self.merge_schema_entry(old_entry, new_entry)
+                new_base_path = json_full_path(base_path, old_name)
+                old_fields[key] = self.merge_schema_entry(
+                    old_schema_entry=old_entry,
+                    new_schema_entry=new_entry,
+                    base_path=new_base_path,
+                )
             return old_schema_entry
+
+        full_old_name = json_full_path(base_path, old_name)
+        full_new_name = json_full_path(base_path, new_name)
 
         # For all other types, the old_mode must be the same as the new_mode. It
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
@@ -319,8 +364,8 @@ class SchemaGenerator:
             else:
                 self.log_error(
                     f'Ignoring non-RECORD field with mismatched mode: '
-                    f'old=({old_status},{old_name},{old_mode},{old_type}); '
-                    f'new=({new_status},{new_name},{new_mode},{new_type})')
+                    f'old=({old_status},{full_old_name},{old_mode},{old_type}); '
+                    f'new=({new_status},{full_new_name},{new_mode},{new_type})')
                 return None
 
         # Check that the converted types are compatible.
@@ -328,65 +373,86 @@ class SchemaGenerator:
         if not candidate_type:
             self.log_error(
                 f'Ignoring field with mismatched type: '
-                f'old=({old_status},{old_name},{old_mode},{old_type}); '
-                f'new=({new_status},{new_name},{new_mode},{new_type})')
+                f'old=({old_status},{full_old_name},{old_mode},{old_type}); '
+                f'new=({new_status},{full_new_name},{new_mode},{new_type})')
             return None
 
         new_info['type'] = candidate_type
         return new_schema_entry
 
-    def get_schema_entry(self, key, value):
+    def get_schema_entry(self, key, value, base_path=None):
         """Determines the 'schema_entry' of the (key, value) pair. Calls
         deduce_schema_for_line() recursively if the value is another object
         instead of a primitive (this will happen only for JSON input file).
+
+        'base_path' is the string representing the current path within the
+        nested record that leads to this specific entry.
         """
         value_mode, value_type = self.infer_bigquery_type(value)
         if not value_mode or not value_type:
             return None
         sanitized_key = self.sanitize_name(key)
 
-        # yapf: disable
         if value_type == 'RECORD':
+            new_base_path = json_full_path(base_path, key)
             # recursively figure out the RECORD
             fields = OrderedDict()
             if value_mode == 'NULLABLE':
-                self.deduce_schema_for_line(value, fields)
+                self.deduce_schema_for_line(
+                    json_object=value,
+                    schema_map=fields,
+                    base_path=new_base_path,
+                )
             else:
                 for val in value:
-                    self.deduce_schema_for_line(val, fields)
-            schema_entry = OrderedDict([('status', 'hard'),
-                                        ('filled', True),
-                                        ('info', OrderedDict([
-                                            ('fields', fields),
-                                            ('mode', value_mode),
-                                            ('name', sanitized_key),
-                                            ('type', value_type),
-                                        ]))])
+                    self.deduce_schema_for_line(
+                        json_object=val,
+                        schema_map=fields,
+                        base_path=new_base_path,
+                    )
+
+        # yapf: disable
+            schema_entry = OrderedDict([
+                ('status', 'hard'),
+                ('filled', True),
+                ('info', OrderedDict([
+                    ('fields', fields),
+                    ('mode', value_mode),
+                    ('name', sanitized_key),
+                    ('type', value_type),
+                ])),
+            ])
         elif value_type == '__null__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('mode', 'NULLABLE'),
-                                            ('name', sanitized_key),
-                                            ('type', 'STRING'),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('mode', 'NULLABLE'),
+                    ('name', sanitized_key),
+                    ('type', 'STRING'),
+                ])),
+            ])
         elif value_type == '__empty_array__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('mode', 'REPEATED'),
-                                            ('name', sanitized_key),
-                                            ('type', 'STRING'),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('mode', 'REPEATED'),
+                    ('name', sanitized_key),
+                    ('type', 'STRING'),
+                ])),
+            ])
         elif value_type == '__empty_record__':
-            schema_entry = OrderedDict([('status', 'soft'),
-                                        ('filled', False),
-                                        ('info', OrderedDict([
-                                            ('fields', OrderedDict()),
-                                            ('mode', value_mode),
-                                            ('name', sanitized_key),
-                                            ('type', 'RECORD'),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', 'soft'),
+                ('filled', False),
+                ('info', OrderedDict([
+                    ('fields', OrderedDict()),
+                    ('mode', value_mode),
+                    ('name', sanitized_key),
+                    ('type', 'RECORD'),
+                ])),
+            ])
         else:
             # Empty fields are returned as empty strings, and must be treated as
             # a (soft String) to allow clobbering by subsquent non-empty fields.
@@ -396,13 +462,15 @@ class SchemaGenerator:
             else:
                 status = 'hard'
                 filled = True
-            schema_entry = OrderedDict([('status', status),
-                                        ('filled', filled),
-                                        ('info', OrderedDict([
-                                            ('mode', value_mode),
-                                            ('name', sanitized_key),
-                                            ('type', value_type),
-                                        ]))])
+            schema_entry = OrderedDict([
+                ('status', status),
+                ('filled', filled),
+                ('info', OrderedDict([
+                    ('mode', value_mode),
+                    ('name', sanitized_key),
+                    ('type', value_type),
+                ])),
+            ])
         # yapf: enable
         return schema_entry
 
@@ -457,8 +525,8 @@ class SchemaGenerator:
                 # Implement the same type inference algorithm as 'bq load' for
                 # quoted values that look like ints, floats or bools.
                 if self.INTEGER_MATCHER.match(value):
-                    if int(value) < self.INTEGER_MIN_VALUE or \
-                        self.INTEGER_MAX_VALUE < int(value):
+                    if (int(value) < self.INTEGER_MIN_VALUE
+                            or self.INTEGER_MAX_VALUE < int(value)):
                         return 'QFLOAT'  # quoted float
                     else:
                         return 'QINTEGER'  # quoted integer
@@ -555,10 +623,16 @@ class SchemaGenerator:
 def json_reader(file):
     """A generator that converts an iterable of newline-delimited JSON objects
     ('file' could be a 'list' for testing purposes) into an iterable of Python
-    dict objects.
+    dict objects. If the line cannot be parsed as JSON, the exception thrown by
+    the json.loads() is yielded back, instead of the json object. The calling
+    code can check for this exception with an isinstance() function, then
+    continue processing the rest of the file.
     """
     for line in file:
-        yield json.loads(line)
+        try:
+            yield json.loads(line)
+        except Exception as e:
+            yield e
 
 
 def convert_type(atype, btype):
@@ -668,7 +742,8 @@ def flatten_schema_map(schema_map,
         else schema_map.items()
     for name, meta in map_items:
         # Skip over fields which have been explicitly removed
-        if not meta: continue
+        if not meta:
+            continue
 
         status = meta['status']
         filled = meta['filled']
@@ -700,8 +775,13 @@ def flatten_schema_map(schema_map,
                 else:
                     # Recursively flatten the sub-fields of a RECORD entry.
                     new_value = flatten_schema_map(
-                        value, keep_nulls, sorted_schema)
+                        schema_map=value,
+                        keep_nulls=keep_nulls,
+                        sorted_schema=sorted_schema,
+                        infer_mode=infer_mode
+                    )
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
+                # Convert QINTEGER -> INTEGER, similarly for QFLAT and QBOOLEAN.
                 new_value = value[1:]
             elif key == 'mode':
                 if infer_mode and value == 'NULLABLE' and filled:
@@ -782,6 +862,17 @@ def read_existing_schema_from_file(existing_schema_path):
             return bq_schema_to_map(existing_json_schema)
     return None
 
+def json_full_path(base_path, key):
+    """Return the dot-separated JSON full path to a particular key.
+    e.g. 'server.config.port'. Column names in CSV files are never nested,
+    so this will always return `key`.
+    """
+    if base_path is None or base_path == "":
+        return key
+    else:
+        return f'{base_path}.{key}'
+
+
 def main():
     # Configure command line flags.
     parser = argparse.ArgumentParser(
@@ -816,6 +907,10 @@ def main():
         help='Forces schema name to comply with BigQuery naming standard',
         action="store_true")
     parser.add_argument(
+        '--ignore_invalid_lines',
+        help='Ignore lines that cannot be parsed instead of stopping',
+        action="store_true")
+    parser.add_argument(
         '--existing_schema_path',
         help='File that contains the existing BigQuery schema for a table.'
         ' This can be fetched with:'
@@ -833,9 +928,12 @@ def main():
         quoted_values_are_strings=args.quoted_values_are_strings,
         debugging_interval=args.debugging_interval,
         debugging_map=args.debugging_map,
-        sanitize_names=args.sanitize_names)
+        sanitize_names=args.sanitize_names,
+        ignore_invalid_lines=args.ignore_invalid_lines,
+    )
     existing_schema_map = read_existing_schema_from_file(args.existing_schema_path)
     generator.run(schema_map=existing_schema_map)
+    generator.run()
 
 
 if __name__ == '__main__':

@@ -12,7 +12,9 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 0.5.1 (2019-06-17)
+Version: 1.2 (2020-10-27)
+
+Changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ## Background
 
@@ -43,6 +45,8 @@ load** tool to create a table that is more compatible with the data fields in
 the input dataset.
 
 ## Installation
+
+**Prerequisite**: You need have Python 3.6 or higher.
 
 Install from [PyPI](https://pypi.python.org/pypi) repository using `pip3`. There
 are too many ways to install packages in Python. The following are in order
@@ -76,18 +80,27 @@ number may be different):
 ```
 Collecting bigquery-schema-generator
 Installing collected packages: bigquery-schema-generator
-Successfully installed bigquery-schema-generator-0.3.2
+Successfully installed bigquery-schema-generator-1.1
 ```
 
-The shell script `generate-schema` is installed in the same directory as
-`pip3`.
+The shell script `generate-schema` will be installed somewhere in your system,
+depending on how your Python environment is configured. See below for
+some notes for Ubuntu Linux and MacOS.
 
-### Ubuntu Linux
+### Ubuntu Linux (18.04, 20.04)
 
-Under Ubuntu Linux, you should find the `generate-schema` script at
-`/usr/local/bin/generate-schema`.
+After running `pip3 install bigquery_schema_generator`, the `generate-schema`
+script may be installed in one the following locations:
 
-### MacOS
+* `/usr/bin/generate-schema`
+* `/usr/local/bin/generate-schema`
+* `$HOME/.local/bin/generate-schema`
+* `$HOME/.virtualenvs/{your_virtual_env}/bin/generate-schema`
+
+### MacOS (10.14 Mojave)
+
+I don't use my Mac for software development these days, and I won't upgrade to
+Catalina (10.15) or later, but here are some notes if they help.
 
 If you installed Python from
 [Python Releases for Mac OS X](https://www.python.org/downloads/mac-osx/),
@@ -100,6 +113,11 @@ The Python installer updates `$HOME/.bash_profile` to add
 `/Library/Frameworks/Python.framework/Versions/3.6/bin` to the `$PATH`
 environment variable. So you should be able to run the `generate-schema`
 command without typing in the full path.
+
+You can install Python3 using
+[Homebrew](https://docs.brew.sh/Homebrew-and-Python). In this environment, the
+`generate-schema` script will probably be installed in `/usr/local/bin` but I'm
+not completely certain.
 
 ## Usage
 
@@ -223,6 +241,7 @@ usage: generate_schema.py [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
                           [--quoted_values_are_strings] [--infer_mode]
                           [--debugging_interval DEBUGGING_INTERVAL]
                           [--debugging_map] [--sanitize_names]
+                          [--ignore_invalid_lines]
 
 Generate BigQuery schema from JSON or CSV file.
 
@@ -240,6 +259,8 @@ optional arguments:
   --debugging_map       Print the metadata schema_map instead of the schema
   --sanitize_names      Forces schema name to comply with BigQuery naming
                         standard
+  --ignore_invalid_lines
+                        Ignore lines that cannot be parsed instead of stopping
 ```
 
 #### Input Format (`--input_format`)
@@ -370,11 +391,49 @@ $ generate-schema --debugging_map < file.data.json > file.schema.json
 
 #### Sanitize Names (`--sanitize_names`)
 
-BigQuery column names are restricted to certain characters and length. With this
-flag, column names are sanitizes so that any character outside of ASCII letters,
-numbers and underscore (`[a-zA-Z0-9_]`) are converted to an underscore. (For
-example "go&2#there!" is converted to "go_2_there_".) Names longer than 128
-characters are truncated to 128.
+BigQuery column names are [restricted to certain characters and
+length](https://cloud.google.com/bigquery/docs/schemas#column_names):
+* it must contain only letters (a-z, A-Z), numbers (0-9), or underscores
+* it must start with a letter or underscore
+* the maximum length is 128 characters
+* column names are case-insensitive
+
+For CSV files, the `bq load` command seems to automatically convert invalid
+column names into valid column names. This flag attempts to perform some of the
+same transformations, to avoid having to scan through the input data twice to
+generate the schema file. The transformations are:
+
+* any character outside of ASCII letters, numbers and underscore
+  (`[a-zA-Z0-9_]`) are converted to an underscore. For example `go&2#there!` is
+  converted to `go_2_there_`;
+* names longer than 128 characters are truncated to 128.
+
+My recollection is that the `bq load` command does *not* normalize the JSON key
+names. Instead it prints an error message. So the `--sanitize_names` flag is
+useful mostly for CSV files. For JSON files, you'll have to do a second pass
+through the data files to cleanup the column names anyway. See [Issue
+#14](https://github.com/bxparks/bigquery-schema-generator/issues/14) and [Issue
+#33](https://github.com/bxparks/bigquery-schema-generator/issues/33).
+
+#### Ignore Invalid Lines (`--ignore_invalid_lines`)
+
+By default, if an error is encountered on a particular line, processing stops
+immediately with an exception. This flag causes invalid lines to be ignored and
+processing continues. A list of all errors and their line numbers will be
+printed on the STDERR after processing the entire file.
+
+This flag is currently most useful for JSON files, to ignore lines which do not
+parse correctly as a JSON object.
+
+This flag is probably not useful for CSV files. CSV files are processed by the
+`DictReader` class which performs its own line processing internally, including
+extracting the column names from the first line of the file. If the `DictReader`
+does throw an exception on a given line, we would not be able to catch it and
+continue processing. Fortunately, CSV files are fairly robust, and the schema
+deduction logic will handle any missing or extra columns gracefully.
+
+Fixes [Issue
+#49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
 
 ## Schema Types
 
@@ -659,19 +718,20 @@ took 67s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
 
 ## System Requirements
 
-This project was initially developed on Ubuntu 17.04 using Python 3.5.3. I have
-tested it on:
+This project was initially developed on Ubuntu 17.04 using Python 3.5.3, but it
+now requires Python 3.6 or higher, I think mostly due to the use of f-strings.
 
+I have tested it on:
+
+* Ubuntu 20.04, Python 3.8.5
+* Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
-* Ubuntu 17.04, Python 3.5.3
-* Ubuntu 16.04, Python 3.5.2
 * MacOS 10.14.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 * MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
 
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md).
+The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
+and 3.8.
 
 ## Authors
 
@@ -685,6 +745,9 @@ See [CHANGELOG.md](CHANGELOG.md).
   external Python code by StefanoG_ITA (StefanoGITA@).
 * Sanitizing of column names to valid BigQuery characters and length by Jon
   Warghed (jonwarghed@).
+* Bug fix in `--sanitize_names` by Riccardo M. Cefala (riccardomc@).
+* Print full path of nested JSON elements in error messages, by Austin Brogle
+  (abroglesc@).
 
 
 ## License
