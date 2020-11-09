@@ -49,9 +49,6 @@ class DataReader:
         ERRORS
         line: msg
         ...
-        ERRORS INFORMED
-        line: msg
-        ...
         SCHEMA
         bigquery_schema
         END
@@ -65,7 +62,6 @@ class DataReader:
         * an optional EXISTING_SCHEMA section contains the existing base
           BigQuery schema to build off of
         * an optional ERRORS section containing the expected error messages
-        * an optional ERRORS INFORMED section containing the expected error
           messages when the schema is known to schema decoder in advance
         * a SCHEMA section containing the expected BigQuery schema
         * comment lines start with a '#' character.
@@ -136,11 +132,7 @@ class DataReader:
         error_flags, errors = self.read_errors_section()
         if errors and error_flags:
             raise Exception("Unexpected error flags in the first ERRORS section")
-        informed_error_flags, informed_errors = self.read_errors_section()
-        if informed_errors and "INFORMED" not in informed_error_flags:
-            raise Exception("Expected INFORMED flag in the second ERRORS section")
         error_map = self.process_errors(errors or [])
-        informed_error_map = self.process_errors(informed_errors or [])
         schema = self.read_schema_section()
         self.read_end_marker()
         self.chunk_count += 1
@@ -153,8 +145,6 @@ class DataReader:
             'existing_schema': existing_schema,
             'errors': errors or [],
             'error_map': error_map,
-            'informed_errors': informed_errors,
-            'informed_error_map': informed_error_map,
             'schema': schema
         }
 
@@ -191,7 +181,7 @@ class DataReader:
         return (data_flags, records, lineno)
 
     def read_existing_schema_section(self):
-        """Returns the JSON string of the schema section.
+        """Returns the JSON string of the existing_schema section.
         """
 
         # The next tag must be 'EXISTING_SCHEMA'
@@ -213,7 +203,6 @@ class DataReader:
                     self.push_back(line)
                     break
                 schema_lines.append(line)
-
             return ''.join(schema_lines)
         else:
             self.push_back(tag_line)

@@ -425,10 +425,10 @@ class ChunksFromDataFile(object):
 
 class TestDataChunksFromFile(unittest.TestCase):
     def test_all_data_chunks(self):
+        self.maxDiff = None
         for chunk in ChunksFromDataFile().chunks():
             try:
                 self.verify_data_chunk(chunk)
-                self.verify_data_chunk_informed(chunk)
             except AssertionError as e:
                 print("\nError when processing chunk on line {}\n".format(chunk['line']))
                 raise e
@@ -446,8 +446,10 @@ class TestDataChunksFromFile(unittest.TestCase):
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']
         expected_schema = chunk['schema']
+        existing_schema = chunk['existing_schema']
 
-        print("Test chunk %s, line %s: First record: %s" % (chunk_count, line, records[0]))
+        print("Test chunk %s, line %s: First record: %s" %
+              (chunk_count, line, records[0]))
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,
@@ -455,7 +457,11 @@ class TestDataChunksFromFile(unittest.TestCase):
             keep_nulls=keep_nulls,
             quoted_values_are_strings=quoted_values_are_strings,
             sanitize_names=sanitize_names)
-        schema_map, error_logs = generator.deduce_schema(records)
+        existing_schema_map = None
+        if existing_schema:
+            existing_schema_map = bq_schema_to_map(json.loads(existing_schema))
+        schema_map, error_logs = generator.deduce_schema(
+            records, schema_map=existing_schema_map)
         schema = generator.flatten_schema(schema_map)
 
         # Check the schema, preserving order
@@ -465,52 +471,6 @@ class TestDataChunksFromFile(unittest.TestCase):
         # Check the error messages
         self.assertEqual(len(expected_errors), len(error_logs))
         self.assert_error_messages(expected_error_map, error_logs)
-
-    def verify_data_chunk_informed(self, chunk):
-        chunk_count = chunk['chunk_count']
-        line = chunk['line']
-        data_flags = chunk['data_flags']
-        input_format = 'csv' if ('csv' in data_flags) else 'json'
-        keep_nulls = ('keep_nulls' in data_flags)
-        infer_mode = ('infer_mode' in data_flags)
-        quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
-        sanitize_names = ('sanitize_names' in data_flags)
-        records = chunk['records']
-        expected_schema = chunk['schema']
-        expected_errors = chunk['informed_errors']
-        expected_error_map = chunk['informed_error_map']
-        if expected_errors is None:
-            expected_errors = chunk['errors']
-            expected_error_map = chunk['error_map']
-
-        # Check the schema, preserving order
-        expected = json.loads(expected_schema, object_pairs_hook=OrderedDict)
-
-        print("Test informed chunk %s, line %s: First record: %s" % (chunk_count, line, records[0]))
-
-        # Test deduction with preloaded schema
-
-        expected_map = bq_schema_to_map(expected)
-        generator = SchemaGenerator(
-            input_format=input_format,
-            infer_mode=infer_mode,
-            keep_nulls=keep_nulls,
-            quoted_values_are_strings=quoted_values_are_strings,
-            sanitize_names=sanitize_names)
-        schema_map, error_logs = generator.deduce_schema(records, schema_map=expected_map)
-        schema = generator.flatten_schema(schema_map)
-
-        # Check the schema, preserving order
-        self.assertEqual(expected, schema)
-
-        print('informed_expected_errors=',expected_errors,'error_logs=',error_logs)
-        self.assertEqual(len(expected_errors), len(error_logs))
-        self.assert_error_messages(expected_error_map, error_logs)
-
-        # Test roundtrip of schema -> schema_map -> schema
-        expected_map = bq_schema_to_map(expected)
-        schema = generator.flatten_schema(expected_map)
-        self.assertEqual(expected, schema)
 
     def assert_error_messages(self, expected_error_map, error_logs):
         # Convert the list of errors into a map
@@ -523,19 +483,15 @@ class TestDataChunksFromFile(unittest.TestCase):
                 error_map[line_number] = messages
             messages.append(error['msg'])
 
-        # Check that each entry in 'error_logs' is expected. Currently checks
-        # only that the number of errors matches on a per line basis.
-        # TODO: Look deeper and verify that the error message strings match as
-        # well.
         for line_number, messages in sorted(error_map.items()):
             expected_entry = expected_error_map.get(line_number)
             self.assertIsNotNone(expected_entry)
             expected_messages = expected_entry['msgs']
-            self.assertEqual(len(expected_messages), len(messages))
+            self.assertEqual(expected_messages, messages)
 
 
 class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
-    def test_bq_schema_to_map_permutations(self):
+    def test_bq_schema_to_map_round_trip_permutations(self):
         ''' This checks that each possible type of consititued schema, when generated,
             then converted to a schema_map, then back to the schema, they are equal.
 
@@ -562,7 +518,7 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                                                         quoted_values_are_strings=quote_value_are_strings)
                             flattened = generator.flatten_schema(schema_map)
                             try:
-                                self.assertEquals(schema, flattened)
+                                self.assertEqual(schema, flattened)
                             except AssertionError as e:
                                 print("test_bq_schema_to_map_permutations failed for case where: "
                                       "bq_entry={}\nschema_generator created with values:"
