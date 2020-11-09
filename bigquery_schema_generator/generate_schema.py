@@ -247,7 +247,6 @@ class SchemaGenerator:
             new_value = value
         return new_value.lower()
 
-
     def merge_schema_entry(
         self,
         old_schema_entry,
@@ -361,7 +360,7 @@ class SchemaGenerator:
             new_might_be_required = new_mode == 'NULLABLE' and\
                 new_schema_entry['filled']
             if self.infer_mode and old_mode == 'REQUIRED' and\
-                new_might_be_required:
+                    new_might_be_required:
                 new_info['mode'] = old_mode
             else:
                 self.log_error(
@@ -799,6 +798,7 @@ def flatten_schema_map(schema_map,
         schema.append(new_info)
     return schema
 
+
 def bq_schema_to_map(schema):
     """ convert BQ JSON table schema representation to SchemaGenerator
         schema_map representaton """
@@ -825,7 +825,7 @@ BQ_TYPE_ALIASES = {
     'FLOAT64': 'FLOAT',
     'BOOL': 'BOOLEAN',
     'STRUCT': 'RECORD',
-    }
+}
 
 
 def bq_type_to_entry_type(type):
@@ -861,12 +861,14 @@ def bq_schema_field_to_entry(field):
         ('info', info),
     ])
 
+
 def read_existing_schema_from_file(existing_schema_path):
     if existing_schema_path:
         with open(existing_schema_path, 'r') as f:
             existing_json_schema = json.load(f)
             return bq_schema_to_map(existing_json_schema)
     return None
+
 
 def json_full_path(base_path, key):
     """Return the dot-separated JSON full path to a particular key.

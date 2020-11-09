@@ -546,14 +546,13 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                 schema_map = bq_schema_to_map(schema)
                 for input_format_and_mode in valid_input_formats_and_modes:
                     for keep_null_param in valid_keep_null_params:
-                        for quote_value_are_strings in\
-                            valid_quoted_values_are_strings:
+                        for quotes_are_strings in\
+                                valid_quoted_values_are_strings:
                             generator = SchemaGenerator(
                                 input_format=input_format_and_mode[0],
                                 infer_mode=input_format_and_mode[1],
                                 keep_nulls=keep_null_param,
-                                quoted_values_are_strings=\
-                                    quote_value_are_strings)
+                                quoted_values_are_strings=quotes_are_strings)
                             flattened = generator.flatten_schema(schema_map)
                             try:
                                 self.assertEqual(schema, flattened)
@@ -566,7 +565,7 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                                               input_format_and_mode[0],
                                               input_format_and_mode[1],
                                               keep_null_param,
-                                              quote_value_are_strings))
+                                              quotes_are_strings))
                                 raise e
 
     def make_bq_schema_entry(self, mode, type):
