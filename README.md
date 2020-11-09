@@ -235,13 +235,14 @@ as shown by the `--help` flag below.
 
 Print the built-in help strings:
 
-```
+```bash
 $ generate-schema --help
-usage: generate_schema.py [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
-                          [--quoted_values_are_strings] [--infer_mode]
-                          [--debugging_interval DEBUGGING_INTERVAL]
-                          [--debugging_map] [--sanitize_names]
-                          [--ignore_invalid_lines]
+usage: generate-schema [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
+                       [--quoted_values_are_strings] [--infer_mode]
+                       [--debugging_interval DEBUGGING_INTERVAL]
+                       [--debugging_map] [--sanitize_names]
+                       [--ignore_invalid_lines]
+                       [--existing_schema_path EXISTING_SCHEMA_PATH]
 
 Generate BigQuery schema from JSON or CSV file.
 
@@ -261,6 +262,10 @@ optional arguments:
                         standard
   --ignore_invalid_lines
                         Ignore lines that cannot be parsed instead of stopping
+  --existing_schema_path EXISTING_SCHEMA_PATH
+                        File that contains the existing BigQuery schema for a
+                        table. This can be fetched with: `bq show --schema
+                        <project_id>:<dataset>:<table_name>
 ```
 
 #### Input Format (`--input_format`)
@@ -282,7 +287,7 @@ array or empty record as its value, the field is suppressed in the schema file.
 This flag enables this field to be included in the schema file.
 
 In other words, using a data file containing just nulls and empty values:
-```
+```bash
 $ generate_schema
 { "s": null, "a": [], "m": {} }
 ^D
@@ -291,7 +296,7 @@ INFO:root:Processed 1 lines
 ```
 
 With the `keep_nulls` flag, we get:
-```
+```bash
 $ generate-schema --keep_nulls
 { "s": null, "a": [], "m": {} }
 ^D
@@ -331,7 +336,7 @@ consistent with the algorithm used by `bq load`. However, for the `BOOLEAN`,
 normal strings instead. This flag disables type inference for `BOOLEAN`,
 `INTEGER` and `FLOAT` types inside quoted strings.
 
-```
+```bash
 $ generate-schema
 { "name": "1" }
 ^D
@@ -374,7 +379,7 @@ By default, the `generate_schema.py` script prints a short progress message
 every 1000 lines of input data. This interval can be changed using the
 `--debugging_interval` flag.
 
-```
+```bash
 $ generate-schema --debugging_interval 50 < file.data.json > file.schema.json
 ```
 
@@ -385,7 +390,7 @@ the bookkeeping metadata map which is used internally to keep track of the
 various fields and their types that were inferred using the data file. This
 flag is intended to be used for debugging.
 
-```
+```bash
 $ generate-schema --debugging_map < file.data.json > file.schema.json
 ```
 
@@ -434,6 +439,20 @@ deduction logic will handle any missing or extra columns gracefully.
 
 Fixes [Issue
 #49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
+
+#### Existing Schema Path (`--existing_schema_path`)
+There are cases where we would like to start from an existing BigQuery table schema
+rather than starting from scratch with a new batch of data we would like to load.
+In this case we can specify the path to a local file on disk that is our existing
+bigquery table schema. This can be generated via the following bq cli command:
+```bash
+bq show --schema <PROJECT_ID>:<DATASET_NAME>.<TABLE_NAME> > existing_table_schema.json
+```
+
+We can then run generate-schema with the additional option
+```bash
+--existing_schema_path existing_table_schema.json
+```
 
 ## Schema Types
 
@@ -534,7 +553,7 @@ compatibility rules implemented by **bq load**:
 Here is an example of a single JSON data record on the STDIN (the `^D` below
 means typing Control-D, which indicates "end of file" under Linux and MacOS):
 
-```
+```bash
 $ generate-schema
 { "s": "string", "b": true, "i": 1, "x": 3.1, "t": "2017-05-22T17:10:00-07:00" }
 ^D
@@ -569,7 +588,7 @@ INFO:root:Processed 1 lines
 ```
 
 In most cases, the data file will be stored in a file:
-```
+```bash
 $ cat > file.data.json
 { "a": [1, 2] }
 { "i": 3 }
@@ -596,7 +615,7 @@ $ cat file.schema.json
 Here is the schema generated from a CSV input file. The first line is the header
 containing the names of the columns, and the schema lists the columns in the
 same order as the header:
-```
+```bash
 $ generate-schema --input_format csv
 e,b,c,d,a
 1,x,true,,2.0
@@ -634,7 +653,7 @@ INFO:root:Processed 3 lines
 ```
 
 Here is an example of the schema generated with the `--infer_mode` flag:
-```
+```bash
 $ generate-schema --input_format csv --infer_mode
 name,surname,age
 John
@@ -701,7 +720,7 @@ json.dump(schema, output_file, indent=2)
 
 I wrote the `bigquery_schema_generator/anonymize.py` script to create an
 anonymized data file `tests/testdata/anon1.data.json.gz`:
-```
+```bash
 $ ./bigquery_schema_generator/anonymize.py < original.data.json \
     > anon1.data.json
 $ gzip anon1.data.json
@@ -709,7 +728,7 @@ $ gzip anon1.data.json
 This data file is 290MB (5.6MB compressed) with 103080 data records.
 
 Generating the schema using
-```
+```bash
 $ bigquery_schema_generator/generate_schema.py < anon1.data.json \
     > anon1.schema.json
 ```
