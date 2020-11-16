@@ -942,7 +942,6 @@ def main():
     existing_schema_map = read_existing_schema_from_file(
         args.existing_schema_path)
     generator.run(schema_map=existing_schema_map)
-    generator.run()
 
 
 if __name__ == '__main__':
