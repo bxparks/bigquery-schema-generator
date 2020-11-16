@@ -585,14 +585,6 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                 ('type', type),
             ])
 
-    def validate_existing_schema_to_schema_map_entry(self,
-                                                     existing_schema,
-                                                     schema_generator):
-        schema = [existing_schema]
-        schema_map = bq_schema_to_map(schema)
-        flattened = schema_generator.flatten_schema(schema_map)
-        self.assertEqual(schema, flattened)
-
 
 if __name__ == '__main__':
     unittest.main()
