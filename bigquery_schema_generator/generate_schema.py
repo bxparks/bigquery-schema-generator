@@ -234,18 +234,25 @@ class SchemaGenerator:
         nested record that leads to this specific entry.
         """
         for key, value in json_object.items():
-            sanitized_key = self.sanitize_name(key)
+            # We want to use a lowercase version of the key in the schema map so
+            # that we can aggregate keys with slightly different casing together
+            sanitized_key = self.sanitize_name(key).lower()
             schema_entry = schema_map.get(sanitized_key)
             new_schema_entry = self.get_schema_entry(key, value)
             schema_map[sanitized_key] = self.merge_schema_entry(
                 schema_entry, new_schema_entry)
 
     def sanitize_name(self, value):
+        ''' Sanitizes a column name within the schema.
+
+            We explicitly choose to not perform the lowercasing here as this
+            cause us to lose case sensitivity when generating the final schema
+        '''
         if self.sanitize_names:
             new_value = re.sub('[^a-zA-Z0-9_]', '_', value[:127])
         else:
             new_value = value
-        return new_value.lower()
+        return new_value
 
     def merge_schema_entry(
         self,
