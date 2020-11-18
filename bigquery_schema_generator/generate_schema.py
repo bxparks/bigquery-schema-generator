@@ -342,7 +342,8 @@ class SchemaGenerator:
                 # TODO: Maybe remove this warning output. It was helpful during
                 # development, but maybe it's just natural.
                 self.log_error(
-                    'Leaving schema for "%s" as REPEATED RECORD' % full_old_name)
+                    'Leaving schema for "%s" as REPEATED RECORD' %
+                    full_old_name)
 
             # RECORD type needs a recursive merging of sub-fields. We merge into
             # the 'old_schema_entry' which assumes that the 'old_schema_entry'
