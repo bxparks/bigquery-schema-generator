@@ -315,12 +315,15 @@ class SchemaGenerator:
         new_type = new_info['type']
         new_mode = new_info['mode']
 
+        full_old_name = json_full_path(base_path, old_name)
+        full_new_name = json_full_path(base_path, new_name)
+
         # Defensive check, names should always be the same.
         if old_name != new_name:
             if old_name.lower() != new_name.lower():
                 raise Exception(
                     'old_name (%s) != new_name(%s), should never happen' %
-                    (old_name, new_name))
+                    (full_old_name, full_new_name))
             else:
                 # preserve old name if case is different
                 new_info['name'] = old_info['name']
@@ -334,12 +337,12 @@ class SchemaGenerator:
                 old_info['mode'] = 'REPEATED'
                 self.log_error(
                     ('Converting schema for "%s" from NULLABLE RECORD '
-                     'into REPEATED RECORD') % old_name)
+                     'into REPEATED RECORD') % full_old_name)
             elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
                 # TODO: Maybe remove this warning output. It was helpful during
                 # development, but maybe it's just natural.
                 self.log_error(
-                    'Leaving schema for "%s" as REPEATED RECORD' % old_name)
+                    'Leaving schema for "%s" as REPEATED RECORD' % full_old_name)
 
             # RECORD type needs a recursive merging of sub-fields. We merge into
             # the 'old_schema_entry' which assumes that the 'old_schema_entry'
@@ -355,9 +358,6 @@ class SchemaGenerator:
                     base_path=new_base_path,
                 )
             return old_schema_entry
-
-        full_old_name = json_full_path(base_path, old_name)
-        full_new_name = json_full_path(base_path, new_name)
 
         # For all other types, the old_mode must be the same as the new_mode. It
         # might seem reasonable to allow a NULLABLE {primitive_type} to be
