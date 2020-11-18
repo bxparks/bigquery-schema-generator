@@ -238,9 +238,11 @@ class SchemaGenerator:
             # that we can aggregate keys with slightly different casing together
             sanitized_key = self.sanitize_name(key).lower()
             schema_entry = schema_map.get(sanitized_key)
-            new_schema_entry = self.get_schema_entry(key, value)
+            new_schema_entry = self.get_schema_entry(key,
+                                                     value,
+                                                     base_path=base_path)
             schema_map[sanitized_key] = self.merge_schema_entry(
-                schema_entry, new_schema_entry)
+                schema_entry, new_schema_entry, base_path=base_path)
 
     def sanitize_name(self, value):
         ''' Sanitizes a column name within the schema.
