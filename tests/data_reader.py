@@ -129,10 +129,7 @@ class DataReader:
         if data_flags is None:
             return None
         existing_schema = self.read_existing_schema_section()
-        error_flags, errors = self.read_errors_section()
-        if errors and error_flags:
-            raise Exception("Unexpected error flags in the first ERRORS"
-                            " section")
+        errors = self.read_errors_section()
         error_map = self.process_errors(errors or [])
         schema = self.read_schema_section()
         self.read_end_marker()
@@ -213,7 +210,7 @@ class DataReader:
         """Return a dictionary of errors which are expected from the parsing of
         the DATA section. The dict has the form:
             {
-                'line_number': line_number,
+                'line': line,
                 'msg': [ messages ...]
             }
         """
@@ -221,27 +218,26 @@ class DataReader:
         # The 'ERRORS' section is optional.
         tag_line = self.read_line()
         if tag_line is None:
-            return None, None
-        (tag, error_flags) = self.parse_tag_line(tag_line)
+            return []
+        (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'ERRORS':
             self.push_back(tag_line)
-            return None, None
+            return []
 
         # Read the ERRORS records until the next TAG_TOKEN.
         errors = []
         while True:
-            line_number = self.read_line()
-            if line_number is None:
+            line = self.read_line()
+            if line is None:
                 raise Exception("Unexpected EOF, should be SCHEMA tag")
-            (tag, _) = self.parse_tag_line(line_number)
+            (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
-                if tag == 'DATA':
-                    raise Exception("Unexpected DATA tag found in ERRORS"
-                                    " section")
-                self.push_back(line_number)
+                if tag == 'ERRORS':
+                    raise Exception("Unexpected ERRORS tag")
+                self.push_back(line)
                 break
-            errors.append(line_number)
-        return error_flags, errors
+            errors.append(line)
+        return errors
 
     def read_schema_section(self):
         """Returns the JSON string of the schema section.
