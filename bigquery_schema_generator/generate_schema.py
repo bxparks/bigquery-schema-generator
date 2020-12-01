@@ -62,7 +62,7 @@ class SchemaGenerator:
     TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
 
     # Detect integers inside quotes.
-    INTEGER_MATCHER = re.compile(r'^[-]?\d+$')
+    INTEGER_MATCHER = re.compile(r'^-?\d+\.?(?:\d+[e|E]\+\d+)?$') # match scientific notation as well as (^-?\d+$)
 
     # Max INTEGER value supported by 'bq load'.
     INTEGER_MAX_VALUE = 2**63 - 1
@@ -536,6 +536,9 @@ class SchemaGenerator:
             else:
                 return 'INTEGER'
         elif isinstance(value, float):
+            # check if float is actually an integer. This could happen when scientific notation is expanded
+            if value.is_integer():
+                return 'INTEGER'
             return 'FLOAT'
         elif value is None:
             return '__null__'

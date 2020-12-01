@@ -145,10 +145,10 @@ class TestSchemaGenerator(unittest.TestCase):
                          generator.infer_value_type('-9223372036854775809'))
 
         # FLOAT
-        self.assertEqual('FLOAT', generator.infer_value_type(2.0))
+        self.assertEqual('FLOAT', generator.infer_value_type(2.2))
 
         # Quoted FLOAT
-        self.assertEqual('QFLOAT', generator.infer_value_type('3.0'))
+        self.assertEqual('QFLOAT', generator.infer_value_type('3.3'))
         self.assertEqual('QFLOAT', generator.infer_value_type('-5.4'))
 
         # RECORD
@@ -170,7 +170,7 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual('INTEGER', generator.infer_value_type(1))
         self.assertEqual('STRING', generator.infer_value_type('1'))
 
-        self.assertEqual('FLOAT', generator.infer_value_type(1.0))
+        self.assertEqual('FLOAT', generator.infer_value_type(1.1))
         self.assertEqual('STRING', generator.infer_value_type('1.0'))
 
         self.assertEqual('BOOLEAN', generator.infer_value_type(True))
@@ -192,7 +192,7 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual(('NULLABLE', 'INTEGER'),
                          generator.infer_bigquery_type(1))
         self.assertEqual(('NULLABLE', 'FLOAT'),
-                         generator.infer_bigquery_type(2.0))
+                         generator.infer_bigquery_type(2.2))
         # yapf: disable
         self.assertEqual(('NULLABLE', 'RECORD'),
                          generator.infer_bigquery_type({'a': 1, 'b': 2}))
@@ -223,7 +223,7 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual(('REPEATED', 'INTEGER'),
                          generator.infer_bigquery_type([1, 2, 3]))
         self.assertEqual(('REPEATED', 'FLOAT'),
-                         generator.infer_bigquery_type([1.0, 2.0]))
+                         generator.infer_bigquery_type([1.1, 2.2]))
         # yapf: disable
         self.assertEqual(
             ('REPEATED', 'RECORD'),
@@ -250,7 +250,7 @@ class TestSchemaGenerator(unittest.TestCase):
         generator = SchemaGenerator()
 
         self.assertEqual('INTEGER', generator.infer_array_type([1, 1]))
-        self.assertEqual('FLOAT', generator.infer_array_type([1.0, 2.0]))
+        self.assertEqual('FLOAT', generator.infer_array_type([1.1, 2.2]))
         self.assertEqual('BOOLEAN', generator.infer_array_type([True, False]))
         self.assertEqual('STRING', generator.infer_array_type(['a', 'b']))
         self.assertEqual('DATE',
@@ -287,8 +287,8 @@ class TestSchemaGenerator(unittest.TestCase):
                              ['timestamp', '2018-02-09T10:44:00']))
 
         # Mixed FLOAT and INTEGER returns FLOAT
-        self.assertEqual('FLOAT', generator.infer_array_type([1, 2.0]))
-        self.assertEqual('FLOAT', generator.infer_array_type([1.0, 2]))
+        self.assertEqual('FLOAT', generator.infer_array_type([1, 2.2]))
+        self.assertEqual('FLOAT', generator.infer_array_type([1.1, 2]))
 
         # Invalid mixed arrays
         self.assertIsNone(generator.infer_array_type([None, 1]))
