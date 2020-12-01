@@ -458,8 +458,8 @@ class TestDataChunksFromFile(unittest.TestCase):
             try:
                 self.verify_data_chunk(chunk)
             except AssertionError as e:
-                print("\nError when processing chunk starting on line_number {}\n"
-                      .format(chunk['line_number']))
+                print("\nError when processing chunk starting on line_number {}"
+                      "\n".format(chunk['line_number']))
                 raise e
 
     def verify_data_chunk(self, chunk):

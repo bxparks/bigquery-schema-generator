@@ -254,7 +254,8 @@ class DataReader:
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'SCHEMA':
             raise Exception(
-                "Unrecoginized tag line_number '%s', should be SCHEMA" % tag_line)
+                "Unrecoginized tag line_number '%s', should be SCHEMA"
+                % tag_line)
 
         # Read the SCHEMA records until the next TAG_TOKEN
         schema_lines = []
@@ -351,7 +352,8 @@ class DataReader:
         pos = line.find(':')
         if pos < 0:
             raise Exception(
-                "Error line_number must be of the form 'line_number: msg': '%s'" % line)
+                "Error line_number must be of the form 'line_number: msg': '%s'"
+                % line)
         line_number = int(line[0:pos])
         message = line[pos + 1:].strip()
         return (line_number, message)
