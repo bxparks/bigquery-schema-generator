@@ -648,7 +648,8 @@ class SchemaGenerator:
             schema_map=schema_map,
             keep_nulls=self.keep_nulls,
             sorted_schema=self.sorted_schema,
-            infer_mode=self.infer_mode)
+            infer_mode=self.infer_mode,
+            input_format=self.input_format)
 
     def run(self, input_file=sys.stdin,
             output_file=sys.stdout, schema_map=None):
@@ -771,7 +772,8 @@ def is_string_type(thetype):
 def flatten_schema_map(schema_map,
                        keep_nulls=False,
                        sorted_schema=True,
-                       infer_mode=False):
+                       infer_mode=False,
+                       input_format='json'):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema.
 
@@ -832,13 +834,24 @@ def flatten_schema_map(schema_map,
                         schema_map=value,
                         keep_nulls=keep_nulls,
                         sorted_schema=sorted_schema,
-                        infer_mode=infer_mode
+                        infer_mode=infer_mode,
+                        input_format=input_format
                     )
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
                 # Convert QINTEGER -> INTEGER, similarly for QFLOAT and QBOOLEAN
                 new_value = value[1:]
             elif key == 'mode':
-                if infer_mode and value == 'NULLABLE' and filled:
+                # 'infer_mode' to set a field as REQUIRED is supported for only
+                # input_format = 'csv' because the header line gives us the
+                # complete list of fields to be expected in the CSV file. In
+                # JSON data files, certain fields will often be completely
+                # missing instead of being set to 'null' or "". If the field is
+                # not even present, then it becomes incredibly difficult (not
+                # impossible, but more effort than I want to expend right now)
+                # to figure out which fields are missing so that we can mark the
+                # appropriate schema entries with 'filled=False'.
+                if (infer_mode and value == 'NULLABLE' and filled
+                        and input_format == 'csv'):
                     new_value = 'REQUIRED'
                 else:
                     new_value = value
