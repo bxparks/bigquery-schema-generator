@@ -427,16 +427,10 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual('server.port', json_full_path('server', 'port'))
 
 
-class ChunksFromDataFile(object):
-    """Read the test case data from TESTDATA_FILE and verify that the expected
-    schema matches the one produced by SchemaGenerator.deduce_schema(). Multiple
-    test cases are stored in TESTDATA_FILE. The data_reader.py module knows how
-    to parse that file.
-    """
-
+class TestDataChunksFromFile(unittest.TestCase):
     TESTDATA_FILE = 'testdata.txt'
 
-    def chunks(self):
+    def test_all_data_chunks(self):
         # Find the TESTDATA_FILE in the same directory as this script file.
         dir_path = os.path.dirname(os.path.realpath(__file__))
         testdata_path = os.path.join(dir_path, self.TESTDATA_FILE)
@@ -448,19 +442,12 @@ class ChunksFromDataFile(object):
                 chunk = data_reader.read_chunk()
                 if chunk is None:
                     break
-                yield chunk
-
-
-class TestDataChunksFromFile(unittest.TestCase):
-    def test_all_data_chunks(self):
-        self.maxDiff = None
-        for chunk in ChunksFromDataFile().chunks():
-            try:
-                self.verify_data_chunk(chunk)
-            except AssertionError as e:
-                print(f"\nError when processing chunk starting on line_number"
-                      f"{chunk['line_number']}\n")
-                raise e
+                try:
+                    self.verify_data_chunk(chunk)
+                except AssertionError as e:
+                    print("Error when processing chunk starting on line_number:"
+                          f" {chunk['line_number']}\n")
+                    raise e
 
     def verify_data_chunk(self, chunk):
         chunk_count = chunk['chunk_count']
