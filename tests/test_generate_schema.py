@@ -458,13 +458,13 @@ class TestDataChunksFromFile(unittest.TestCase):
             try:
                 self.verify_data_chunk(chunk)
             except AssertionError as e:
-                print("\nError when processing chunk starting on line {}\n"
-                      .format(chunk['line']))
+                print("\nError when processing chunk starting on line_number {}\n"
+                      .format(chunk['line_number']))
                 raise e
 
     def verify_data_chunk(self, chunk):
         chunk_count = chunk['chunk_count']
-        line = chunk['line']
+        line_number = chunk['line_number']
         data_flags = chunk['data_flags']
         input_format = 'csv' if ('csv' in data_flags) else 'json'
         keep_nulls = ('keep_nulls' in data_flags)
@@ -478,8 +478,8 @@ class TestDataChunksFromFile(unittest.TestCase):
         expected_schema = chunk['schema']
         existing_schema = chunk['existing_schema']
 
-        print("Test chunk %s, line %s: First record: %s" %
-              (chunk_count, line, records[0]))
+        print("Test chunk %s, line_number %s: First record: %s" %
+              (chunk_count, line_number, records[0]))
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,
@@ -514,7 +514,7 @@ class TestDataChunksFromFile(unittest.TestCase):
         # Convert the list of errors into a map
         error_map = {}
         for error in error_logs:
-            line_number = error['line']
+            line_number = error['line_number']
             messages = error_map.get(line_number)
             if messages is None:
                 messages = []

@@ -119,7 +119,7 @@ class SchemaGenerator:
         self.error_logs = []
 
     def log_error(self, msg):
-        self.error_logs.append({'line': self.line_number, 'msg': msg})
+        self.error_logs.append({'line_number': self.line_number, 'msg': msg})
 
     # TODO: BigQuery is case-insensitive with regards to the 'name' of the
     # field. Verify that the 'name' is unique regardless of the case.

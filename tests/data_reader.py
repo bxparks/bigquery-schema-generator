@@ -36,7 +36,7 @@ class DataReader:
         existing json schema from bq api
         ...
         ERRORS
-        line: msg
+        line_number: msg
         ...
         SCHEMA
         bigquery_schema
@@ -47,7 +47,7 @@ class DataReader:
         json_records
         ...
         ERRORS
-        line: msg
+        line_number: msg
         ...
         SCHEMA
         bigquery_schema
@@ -110,7 +110,7 @@ class DataReader:
     def __init__(self, testdata_file):
         self.testdata_file = testdata_file
         self.next_line = None
-        self.lineno = 0
+        self.line_number = 0
         self.chunk_count = 0
 
     def read_chunk(self):
@@ -125,7 +125,7 @@ class DataReader:
             }
         Returns None if there are no more test chunks.
         """
-        data_flags, records, line = self.read_data_section()
+        data_flags, records, line_number = self.read_data_section()
         if data_flags is None:
             return None
         existing_schema = self.read_existing_schema_section()
@@ -140,7 +140,7 @@ class DataReader:
 
         return {
             'chunk_count': self.chunk_count,
-            'line': line,
+            'line_number': line_number,
             'data_flags': data_flags,
             'records': records,
             'existing_schema': existing_schema,
@@ -156,30 +156,30 @@ class DataReader:
 
         # First tag must be 'DATA [flags]'
         tag_line = self.read_line()
-        lineno = self.lineno
+        line_number = self.line_number
         if tag_line is None:
-            return (None, None, lineno)
+            return (None, None, line_number)
         (tag, data_flags) = self.parse_tag_line(tag_line)
         if tag != 'DATA':
             raise Exception(
-                "Unrecoginized tag line '%s', should be DATA" % tag_line)
+                "Unrecoginized tag line_number '%s', should be DATA" % tag_line)
 
         # Read the DATA records until the next TAG_TOKEN.
         records = []
         while True:
-            line = self.read_line()
-            if line is None:
+            line_number = self.read_line()
+            if line_number is None:
                 raise Exception(
                     "Unexpected EOF, should be ERRORS or SCHEMA tag")
-            (tag, _) = self.parse_tag_line(line)
+            (tag, _) = self.parse_tag_line(line_number)
             if tag in self.TAG_TOKENS:
                 if tag == 'DATA':
                     raise Exception("Unexpected DATA tag")
-                self.push_back(line)
+                self.push_back(line_number)
                 break
-            records.append(line)
+            records.append(line_number)
 
-        return (data_flags, records, lineno)
+        return (data_flags, records, line_number)
 
     def read_existing_schema_section(self):
         """Returns the JSON string of the existing_schema section.
@@ -194,16 +194,16 @@ class DataReader:
             # Read the EXISTING_SCHEMA records until the next TAG_TOKEN
             schema_lines = []
             while True:
-                line = self.read_line()
-                if line is None:
+                line_number = self.read_line()
+                if line_number is None:
                     break
-                (tag, _) = self.parse_tag_line(line)
+                (tag, _) = self.parse_tag_line(line_number)
                 if tag in self.TAG_TOKENS:
                     if tag in ('DATA', 'EXISTING_SCHEMA'):
                         raise Exception("Unexpected {} tag".format(tag))
-                    self.push_back(line)
+                    self.push_back(line_number)
                     break
-                schema_lines.append(line)
+                schema_lines.append(line_number)
             return ''.join(schema_lines)
         else:
             self.push_back(tag_line)
@@ -213,7 +213,7 @@ class DataReader:
         """Return a dictionary of errors which are expected from the parsing of
         the DATA section. The dict has the form:
             {
-                'line': line,
+                'line_number': line_number,
                 'msg': [ messages ...]
             }
         """
@@ -230,17 +230,17 @@ class DataReader:
         # Read the ERRORS records until the next TAG_TOKEN.
         errors = []
         while True:
-            line = self.read_line()
-            if line is None:
+            line_number = self.read_line()
+            if line_number is None:
                 raise Exception("Unexpected EOF, should be SCHEMA tag")
-            (tag, _) = self.parse_tag_line(line)
+            (tag, _) = self.parse_tag_line(line_number)
             if tag in self.TAG_TOKENS:
                 if tag == 'DATA':
                     raise Exception("Unexpected DATA tag found in ERRORS"
                                     " section")
-                self.push_back(line)
+                self.push_back(line_number)
                 break
-            errors.append(line)
+            errors.append(line_number)
         return error_flags, errors
 
     def read_schema_section(self):
@@ -254,21 +254,21 @@ class DataReader:
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'SCHEMA':
             raise Exception(
-                "Unrecoginized tag line '%s', should be SCHEMA" % tag_line)
+                "Unrecoginized tag line_number '%s', should be SCHEMA" % tag_line)
 
         # Read the SCHEMA records until the next TAG_TOKEN
         schema_lines = []
         while True:
-            line = self.read_line()
-            if line is None:
+            line_number = self.read_line()
+            if line_number is None:
                 break
-            (tag, _) = self.parse_tag_line(line)
+            (tag, _) = self.parse_tag_line(line_number)
             if tag in self.TAG_TOKENS:
                 if tag in ('DATA', 'ERRORS', 'EXISTING_SCHEMA', 'SCHEMA'):
                     raise Exception("Unexpected {} tag".format(tag))
-                self.push_back(line)
+                self.push_back(line_number)
                 break
-            schema_lines.append(line)
+            schema_lines.append(line_number)
 
         return ''.join(schema_lines)
 
@@ -280,21 +280,21 @@ class DataReader:
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'END':
             raise Exception(
-                "Unrecoginized tag line '%s', should be END" % tag_line)
+                "Unrecoginized tag line_number '%s', should be END" % tag_line)
 
-    def parse_tag_line(self, line):
-        """Parses a potential tag line of the form 'TAG [flags...]' where
+    def parse_tag_line(self, line_number):
+        """Parses a potential tag line_number of the form 'TAG [flags...]' where
         'flags' is a list of strings separated by spaces. Returns the tuple of
         (tag, [flags]).
         """
-        tokens = line.split()
+        tokens = line_number.split()
         if tokens:
             return (tokens[0], tokens[1:])
         else:
             return (None, [])
 
     def read_line(self):
-        """Return the next line, while supporting a one-line push_back().
+        """Return the next line_number, while supporting a one-line_number push_back().
         Comment lines begin with a '#' character and are skipped.
         Blank lines are skipped.
         Prepending and trailing whitespaces are stripped.
@@ -307,7 +307,7 @@ class DataReader:
 
         while True:
             line = self.testdata_file.readline()
-            self.lineno += 1
+            self.line_number += 1
             # EOF
             if line == '':
                 return None
@@ -338,20 +338,20 @@ class DataReader:
             (line_number, message) = self.parse_error_line(error)
             error_entry = error_map.get(line_number)
             if error_entry is None:
-                error_entry = {'line': line_number, 'msgs': []}
+                error_entry = {'line_number': line_number, 'msgs': []}
                 error_map[line_number] = error_entry
             messages = error_entry['msgs']
             messages.append(message)
         return error_map
 
     def parse_error_line(self, line):
-        """Parse the error line of the form:
-            line: msg
+        """Parse the error line_number of the form:
+            line_number: msg
         """
         pos = line.find(':')
         if pos < 0:
             raise Exception(
-                "Error line must be of the form 'line: msg': '%s'" % line)
+                "Error line_number must be of the form 'line_number: msg': '%s'" % line)
         line_number = int(line[0:pos])
         message = line[pos + 1:].strip()
         return (line_number, message)
