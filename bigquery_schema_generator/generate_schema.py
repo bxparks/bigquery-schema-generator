@@ -589,7 +589,8 @@ class SchemaGenerator:
             sanitize_names=self.sanitize_names,
         )
 
-    def run(self, input_file=sys.stdin, output_file=sys.stdout, ref_schema_map=None):
+    def run(self, input_file=sys.stdin, output_file=sys.stdout,
+            ref_schema_map=None):
         """Read the data records from the input_file and print out the BigQuery
         schema on the output_file. The error logs are printed on the sys.stderr.
         Args:
@@ -608,6 +609,7 @@ class SchemaGenerator:
             schema = self.flatten_schema(schema_map)
             json.dump(schema, output_file, indent=2)
             print(file=output_file)
+
 
 def json_reader(file):
     """A generator that converts an iterable of newline-delimited JSON objects
@@ -788,12 +790,13 @@ def flatten_schema_map(
             else:
                 new_value = value
             new_info[key] = new_value
-        # resolve collisions if the name "sanitizes" into a name that's already there
-        # sanitization should really happen much earlier in schema generation to avoid this mess
-        append=True
+        # resolve collisions if the name "sanitizes" into a name that's already
+        # there. Sanitization should really happen much earlier in schema
+        # generation to avoid this mess
+        append = True
         for i in schema:
             if new_info['name'] == i['name']:
-                append=False
+                append = False
                 break
         if append:
             schema.append(new_info)
@@ -803,28 +806,31 @@ def flatten_schema_map(
 def unflatten_schema_map(schema_map):
     """Converts the BigQuery schema into the 'schema_map'
     To test run
-            schema_map = flatten_schema_map(unflatten_schema_map(json.load(f, object_pairs_hook=OrderedDict))
+            schema_map = flatten_schema_map(unflatten_schema_map(json.load(f,
+                object_pairs_hook=OrderedDict))
     and then compare schema_map to the contents of f
     """
     if not isinstance(schema_map, list):
         raise Exception(
-            "Unexpected type '%s' for schema_map: %s" % (type(schema_map),json.dumps(schema_map)))
+            "Unexpected type '%s' for schema_map" % type(schema_map))
 
     # Build the BigQuery schema from the internal 'schema_map'.
     schema = OrderedDict()
     for s in schema_map:
-        entry={}
-        entry['status']='hard'
-        entry['filled']=True
-        # the if below is a bit awkward but it puts 'fileds' at the top in the order list. Really for beauty only.
-        entry['info']=OrderedDict()
+        entry = {}
+        entry['status'] = 'hard'
+        entry['filled'] = True
+        # the if below is a bit awkward but it puts 'fileds' at the top in
+        # the order list. Really for beauty only.
+        entry['info'] = OrderedDict()
         if 'fields' in s:
-            entry['info']['fields']=unflatten_schema_map(s['fields'])
-        entry['info']['mode']=s['mode']
-        entry['info']['name']=s['name']
-        entry['info']['type']=s['type']
-        schema[s['name']]=entry
+            entry['info']['fields'] = unflatten_schema_map(s['fields'])
+        entry['info']['mode'] = s['mode']
+        entry['info']['name'] = s['name']
+        entry['info']['type'] = s['type']
+        schema[s['name']] = entry
     return schema
+
 
 def json_full_path(base_path, key):
     """Return the dot-separated JSON full path to a particular key.
@@ -897,8 +903,10 @@ def main():
         generator.run()
     else:
         with open(args.augment) as f:
-            ref_schema_map = unflatten_schema_map(json.load(f, object_pairs_hook=OrderedDict))
+            ref_schema = json.load(f, object_pairs_hook=OrderedDict)
+            ref_schema_map = unflatten_schema_map(ref_schema)
         generator.run(ref_schema_map=ref_schema_map)
+
 
 if __name__ == '__main__':
     main()
