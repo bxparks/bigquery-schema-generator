@@ -458,8 +458,8 @@ class TestDataChunksFromFile(unittest.TestCase):
             try:
                 self.verify_data_chunk(chunk)
             except AssertionError as e:
-                print("\nError when processing chunk starting on line_number {}"
-                      "\n".format(chunk['line_number']))
+                print(f"\nError when processing chunk starting on line_number"
+                      f"{chunk['line_number']}\n")
                 raise e
 
     def verify_data_chunk(self, chunk):
@@ -565,14 +565,13 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                                 self.assertEqual(schema, flattened)
                             except AssertionError as e:
                                 print("test_bq_schema_to_map_permutations"
-                                      " failed for case where: bq_entry={}\n"
+                                      " failed for case where: "
+                                      f"bq_entry={bq_entry}\n"
                                       "schema_generator created with values:"
-                                      "{}-{}-{}-{}"
-                                      .format(bq_entry,
-                                              input_format_and_mode[0],
-                                              input_format_and_mode[1],
-                                              keep_null_param,
-                                              quotes_are_strings))
+                                      f"{input_format_and_mode[0]}"
+                                      f"-{input_format_and_mode[1]}"
+                                      f"-{keep_null_param}"
+                                      f"-{quotes_are_strings}")
                                 raise e
 
     def make_bq_schema_entry(self, mode, type):
