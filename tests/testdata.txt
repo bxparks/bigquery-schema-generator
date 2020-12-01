@@ -1754,7 +1754,7 @@ EXISTING_SCHEMA
   },
   {
     "name": "connection_info",
-    "type": "RECORD",
+    "type": "STRUCT",
     "mode": "NULLABLE",
     "fields": [
       {
@@ -1792,7 +1792,7 @@ EXISTING_SCHEMA
   },
   {
     "name": "test_boolean",
-    "type": "BOOLEAN",
+    "type": "BOOL",
     "mode": "NULLABLE"
   }
 ]
