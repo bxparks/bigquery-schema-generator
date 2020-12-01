@@ -370,6 +370,12 @@ feature for JSON files, but too difficult to implement in practice because
 fields are often completely missing from a given JSON record (instead of
 explicitly being defined to be `null`).
 
+In addition to the above, this option, when used in conjunction with
+--existing_schema_map, will allow fields to be relaxed from REQUIRED to NULLABLE
+if they were REQUIRED in the existing schema and NULL rows are found in the new
+data we are inferring a schema from. In this case it can be used with either
+input_format, CSV or JSON.
+
 See [Issue #28](https://github.com/bxparks/bigquery-schema-generator/issues/28)
 for implementation details.
 

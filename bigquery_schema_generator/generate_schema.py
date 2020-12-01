@@ -105,17 +105,6 @@ class SchemaGenerator:
         # rest of the file.
         self.ignore_invalid_lines = ignore_invalid_lines
 
-        # 'infer_mode' is supported for only input_format = 'csv' because
-        # the header line gives us the complete list of fields to be expected in
-        # the CSV file. In JSON data files, certain fields will often be
-        # completely missing instead of being set to 'null' or "". If the field
-        # is not even present, then it becomes incredibly difficult (not
-        # impossible, but more effort than I want to expend right now) to figure
-        # out which fields are missing so that we can mark the appropriate
-        # schema entries with 'filled=False'.
-        if infer_mode and input_format != 'csv':
-            raise Exception("infer_mode requires input_format=='csv'")
-
         # If CSV, force keep_nulls = True
         self.keep_nulls = True if (input_format == 'csv') else keep_nulls
 
@@ -170,7 +159,8 @@ class SchemaGenerator:
 
         The 'filled' entry indicates whether all input data records contained
         the given field. If the --infer_mode flag is given, the 'filled' entry
-        is used to convert a NULLABLE schema entry to a REQUIRED schema entry.
+        is used to convert a NULLABLE schema entry to a REQUIRED schema entry or
+        to relax an existing field in schema_map from REQUIRED to NULLABLE.
 
         The function returns a tuple of 2 things:
           * an OrderedDict which is sorted by the 'key' of the column name
@@ -294,10 +284,22 @@ class SchemaGenerator:
 
         # new 'soft' does not clobber old 'hard'
         if old_status == 'hard' and new_status == 'soft':
+            mode = self.merge_mode(old_schema_entry,
+                                   new_schema_entry,
+                                   base_path)
+            if mode is None:
+                return None
+            old_schema_entry['info']['mode'] = mode
             return old_schema_entry
 
         # new 'hard' clobbers old 'soft'
         if old_status == 'soft' and new_status == 'hard':
+            mode = self.merge_mode(old_schema_entry,
+                                   new_schema_entry,
+                                   base_path)
+            if mode is None:
+                return None
+            new_schema_entry['info']['mode'] = mode
             return new_schema_entry
 
         # Verify that it's soft->soft or hard->hard
@@ -360,37 +362,75 @@ class SchemaGenerator:
                 )
             return old_schema_entry
 
-        # For all other types, the old_mode must be the same as the new_mode. It
-        # might seem reasonable to allow a NULLABLE {primitive_type} to be
-        # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
-        # not support that so we must also follow that rule.
-        if old_mode != new_mode:
-            # primitive-types are conservatively deduced NULLABLE. In case we
-            # know a-priori that a field is REQUIRED, we accept that
-            new_might_be_required = new_mode == 'NULLABLE' and\
-                new_schema_entry['filled']
-            if self.infer_mode and old_mode == 'REQUIRED' and\
-                    new_might_be_required:
-                new_info['mode'] = old_mode
-            else:
+        new_mode = self.merge_mode(old_schema_entry,
+                                   new_schema_entry,
+                                   base_path)
+        if new_mode is None:
+            return None
+        new_schema_entry['info']['mode'] = new_mode
+
+        # For all other types...
+        if old_type != new_type:
+            # Check that the converted types are compatible.
+            candidate_type = convert_type(old_type, new_type)
+            if not candidate_type:
                 self.log_error(
-                    f'Ignoring non-RECORD field with mismatched mode: '
+                    f'Ignoring field with mismatched type: '
                     f'old=({old_status},{full_old_name},{old_mode},{old_type});'
-                    f' new=({new_status},{full_new_name},{new_mode},{new_type})'
-                )
+                    ' '
+                    f'new=({new_status},{full_new_name},{new_mode},{new_type})')
                 return None
 
-        # Check that the converted types are compatible.
-        candidate_type = convert_type(old_type, new_type)
-        if not candidate_type:
-            self.log_error(
-                f'Ignoring field with mismatched type: '
-                f'old=({old_status},{full_old_name},{old_mode},{old_type}); '
-                f'new=({new_status},{full_new_name},{new_mode},{new_type})')
-            return None
-
-        new_info['type'] = candidate_type
+            new_info['type'] = candidate_type
         return new_schema_entry
+
+    def merge_mode(self, old_schema_entry, new_schema_entry, base_path):
+        old_info = old_schema_entry['info']
+        new_info = new_schema_entry['info']
+        old_mode = old_info['mode']
+        old_name = old_info['name']
+        old_type = old_info['type']
+        old_status = old_schema_entry['status']
+        new_mode = new_info['mode']
+        new_name = new_info['name']
+        new_type = new_info['type']
+        new_status = new_schema_entry['status']
+        full_old_name = json_full_path(base_path, old_name)
+        full_new_name = json_full_path(base_path, new_name)
+        # If the old field is a REQUIRED primitive (which could only have come
+        # from an existing schema), the new field can be either a
+        # NULLABLE(filled) or a NULLABLE(unfilled).
+        if old_mode == 'REQUIRED' and new_mode == 'NULLABLE':
+            # If the new field is filled, then retain the REQUIRED.
+            if new_schema_entry['filled']:
+                return old_mode
+            else:
+                # The new field is not filled (i.e. an empty or null field).
+                # If --infer_mode is active, then we allow the REQUIRED to
+                # revert back to NULLABLE.
+                if self.infer_mode:
+                    return new_mode
+                else:
+                    self.log_error(
+                        f'Ignoring non-RECORD field with mismatched mode.'
+                        ' cannot convert to NULLABLE because infer_schema not'
+                        ' set: '
+                        f'old=({old_status},{full_old_name},{old_mode},'
+                        f'{old_type});'
+                        f' new=({new_status},{full_new_name},{new_mode},'
+                        f'{new_type})'
+                    )
+                    return None
+        elif old_mode != new_mode:
+            self.log_error(
+                f'Ignoring non-RECORD field with mismatched mode: '
+                f'old=({old_status},{full_old_name},{old_mode},'
+                f'{old_type});'
+                f' new=({new_status},{full_new_name},{new_mode},'
+                f'{new_type})'
+            )
+            return None
+        return old_mode
 
     def get_schema_entry(self, key, value, base_path=None):
         """Determines the 'schema_entry' of the (key, value) pair. Calls
@@ -795,7 +835,7 @@ def flatten_schema_map(schema_map,
                         infer_mode=infer_mode
                     )
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
-                # Convert QINTEGER -> INTEGER, similarly for QFLAT and QBOOLEAN.
+                # Convert QINTEGER -> INTEGER, similarly for QFLOAT and QBOOLEAN
                 new_value = value[1:]
             elif key == 'mode':
                 if infer_mode and value == 'NULLABLE' and filled:
@@ -909,7 +949,8 @@ def main():
         action="store_true")
     parser.add_argument(
         '--infer_mode',
-        help="Determine if mode can be 'NULLABLE' or 'REQUIRED'",
+        help="Automatically determine if mode can be 'NULLABLE' or 'REQUIRED'"
+             " instead of the default 'NULLABLE'",
         action='store_true')
     parser.add_argument(
         '--debugging_interval',

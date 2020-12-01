@@ -500,7 +500,14 @@ class TestDataChunksFromFile(unittest.TestCase):
         self.assertEqual(expected, schema)
 
         # Check the error messages
-        self.assertEqual(len(expected_errors), len(error_logs))
+        try:
+            self.assertEqual(len(expected_errors), len(error_logs))
+        except AssertionError as e:
+            print(f"Number of errors mismatched, expected:"
+                  f" {len(expected_errors)} got: {len(error_logs)}")
+            print(f"Errors: {error_logs}")
+            print(f"Expected Errors: {expected_errors}")
+            raise e
         self.assert_error_messages(expected_error_map, error_logs)
 
     def assert_error_messages(self, expected_error_map, error_logs):
