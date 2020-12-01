@@ -537,7 +537,8 @@ class SchemaGenerator:
             else:
                 return 'INTEGER'
         elif isinstance(value, float):
-            # check if float is actually an integer. This could happen when scientific notation is expanded
+            # check if float is actually an integer.
+            # This could happen when scientific notation is expanded
             if value.is_integer():
                 return 'INTEGER'
             return 'FLOAT'
