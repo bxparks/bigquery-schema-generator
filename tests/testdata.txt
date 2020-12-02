@@ -36,6 +36,37 @@ SCHEMA
 ]
 END
 
+# If 'keep_nulls' flag is given, then the input data with null values produces
+# schema which seems to be the best match. This also checks capitalization
+DATA keep_nulls
+{ "s": null, "aBc": [], "m": {} }
+SCHEMA
+[
+  {
+    "mode": "REPEATED",
+    "name": "aBc",
+    "type": "STRING"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "__unknown__",
+        "type": "STRING"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "m",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "s",
+    "type": "STRING"
+  }
+]
+END
+
 # Fields with primitive types. BYTES is not supported.
 DATA
 { "s": "string", "b": true, "d": "2017-01-01", "i": 1, "t": "17:10:00", "ts": "2017-05-22T17:10:00-07:00", "x": 3.1 }
@@ -86,8 +117,8 @@ DATA ignore_invalid_lines
 { "x": 3 }
 this is not a JSON object
 ERRORS
-1: Record should be a JSON object but was a <class 'list'>
-3: Record cannot be parsed: Exception: Expecting value: line 1 column 1 (char 0)
+1: Record should be a JSON Object but was a <class 'list'>
+3: Record could not be parsed: Exception: Expecting value: line 1 column 1 (char 0)
 SCHEMA
 [
   {
@@ -970,6 +1001,859 @@ SCHEMA
     "mode": "NULLABLE",
     "name": "eighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterseighteencharacterse",
     "type": "STRING"
+  }
+]
+END
+
+# Empty JSON input file, existing schema no modification done, purely testing round trip schema generation
+DATA keep_nulls
+{}
+EXISTING_SCHEMA
+[
+  {
+    "name": "event_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_time",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "connection_info",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "src_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "flags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      }
+    ]
+  },
+  {
+    "name": "data_sources",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "test_float",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "test_boolean",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE"
+  }
+]
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "flags",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_port",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "connection_info",
+    "type": "RECORD"
+  },
+  {
+    "mode": "REPEATED",
+    "name": "data_sources",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_boolean",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_float",
+    "type": "FLOAT"
+  }
+]
+END
+
+# JSON existing schema file valid record instead of string, no modification done
+DATA keep_nulls
+{"event_name": "test event", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_float": 17.6, "test_boolean": "True"}
+EXISTING_SCHEMA
+[
+  {
+    "name": "event_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_time",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "connection_info",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "src_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "flags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      }
+    ]
+  },
+  {
+    "name": "data_sources",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "test_float",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "test_boolean",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE"
+  }
+]
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "flags",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_port",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "connection_info",
+    "type": "RECORD"
+  },
+  {
+    "mode": "REPEATED",
+    "name": "data_sources",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_boolean",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_float",
+    "type": "FLOAT"
+  }
+]
+END
+
+# JSON existing schema changes in casing when generating schema should not result in a change from what existed already
+DATA keep_nulls
+{"eventname": "test event1", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_float": 17.6, "test_boolean": "True"}
+{"EVENTNAME": "test event2", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_float": 17.6, "test_boolean": "True"}
+EXISTING_SCHEMA
+[
+  {
+    "name": "eventName",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_time",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "connection_info",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "src_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "flags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      }
+    ]
+  },
+  {
+    "name": "data_sources",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "test_float",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "test_boolean",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE"
+  }
+]
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "flags",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_port",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "connection_info",
+    "type": "RECORD"
+  },
+  {
+    "mode": "REPEATED",
+    "name": "data_sources",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "eventName",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_boolean",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_float",
+    "type": "FLOAT"
+  }
+]
+END
+
+# JSON file field added, schema expanded
+DATA keep_nulls
+{"event_name": "test event", "extra_field": "testing", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_float": 17.6, "test_boolean": "True"}
+EXISTING_SCHEMA
+[
+  {
+    "name": "event_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_time",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "connection_info",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "src_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "flags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      }
+    ]
+  },
+  {
+    "name": "data_sources",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "test_float",
+    "type": "FLOAT",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "test_boolean",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE"
+  }
+]
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "flags",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_port",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "connection_info",
+    "type": "RECORD"
+  },
+  {
+    "mode": "REPEATED",
+    "name": "data_sources",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "extra_field",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_boolean",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_float",
+    "type": "FLOAT"
+  }
+]
+END
+
+# JSON existing schema REQUIRED to NULLABLE no infer_mode set, errors with cannot change mode
+DATA keep_nulls
+{"event_name": "test event", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_boolean": "True", "test_float": 1.3}
+{"event_name": "test event", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_boolean": "True", "test_float": null}
+EXISTING_SCHEMA
+[
+  {
+    "name": "event_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_time",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "connection_info",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "src_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "flags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      }
+    ]
+  },
+  {
+    "name": "data_sources",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "test_float",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "test_boolean",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE"
+  }
+]
+ERRORS
+2: Ignoring non-RECORD field with mismatched mode. cannot convert to NULLABLE because infer_schema not set: old=(hard,test_float,REQUIRED,FLOAT); new=(soft,test_float,NULLABLE,STRING)
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "flags",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_port",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "connection_info",
+    "type": "RECORD"
+  },
+  {
+    "mode": "REPEATED",
+    "name": "data_sources",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_boolean",
+    "type": "BOOLEAN"
+  }
+]
+END
+
+# JSON existing schema REQUIRED to NULLABLE infer_mode set so this should relax the field mode
+DATA keep_nulls infer_mode
+{"event_name": "test event", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_boolean": "True", "test_float": 1.3}
+{"event_name": "test event", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_boolean": "True", "test_float": null}
+EXISTING_SCHEMA
+[
+  {
+    "name": "event_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_time",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "connection_info",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "src_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "name": "flags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      }
+    ]
+  },
+  {
+    "name": "data_sources",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "test_float",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "test_boolean",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE"
+  }
+]
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "flags",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_port",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "connection_info",
+    "type": "RECORD"
+  },
+  {
+    "mode": "REPEATED",
+    "name": "data_sources",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_boolean",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_float",
+    "type": "FLOAT"
+  }
+]
+END
+
+# Testing standard SQL types to legacy types
+DATA keep_nulls infer_mode
+{"event_name": "test event", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_boolean": "True", "test_float": 1.3}
+{"event_name": "test event", "event_time": "2020-06-02 23:57:12.120174 UTC", "connection_info": {"src_ip": "10.0.1.102", "src_port": 53, "dest_ip": "10.0.0.1", "dest_port": 53}, "data_sources": ["dhcp", "bro", "dns"], "test_boolean": "True", "test_float": null}
+EXISTING_SCHEMA
+[
+  {
+    "name": "event_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_time",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "connection_info",
+    "type": "STRUCT",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "name": "src_port",
+        "type": "INT64"
+      },
+      {
+        "name": "dest_port",
+        "type": "INT64"
+      },
+      {
+        "name": "flags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      }
+    ]
+  },
+  {
+    "name": "data_sources",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "test_float",
+    "type": "FLOAT64",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "test_boolean",
+    "type": "BOOL",
+    "mode": "NULLABLE"
+  }
+]
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "dest_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "dest_port",
+        "type": "INTEGER"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "flags",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_ip",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "src_port",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "connection_info",
+    "type": "RECORD"
+  },
+  {
+    "mode": "REPEATED",
+    "name": "data_sources",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_boolean",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "test_float",
+    "type": "FLOAT"
   }
 ]
 END
