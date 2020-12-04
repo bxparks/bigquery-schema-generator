@@ -428,6 +428,12 @@ class TestSchemaGenerator(unittest.TestCase):
 
 
 class TestDataChunksFromFile(unittest.TestCase):
+    """Read the test case data from TESTDATA_FILE and verify that the expected
+    schema matches the one produced by SchemaGenerator.deduce_schema(). Multiple
+    test cases are stored in TESTDATA_FILE. The data_reader.py module knows how
+    to parse that file.
+    """
+
     TESTDATA_FILE = 'testdata.txt'
 
     def test_all_data_chunks(self):

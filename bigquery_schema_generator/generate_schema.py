@@ -392,6 +392,25 @@ class SchemaGenerator:
         return new_schema_entry
 
     def merge_mode(self, old_schema_entry, new_schema_entry, base_path):
+        '''
+            This method determines if the 'mode' of a schema entry can
+            transition from REQUIRED -> NULLABLE. A REQUIRED mode can only have
+            come from an existing schema (though the --existing_schema_path
+            flag), because REQUIRED is created only in the flatten_schema()
+            method. Therefore, a NULLABLE->REQUIRED transition cannot occur.
+
+            We have the following sub cases for the REQUIRED -> NULLABLE
+            transition:
+
+            1) If the target is filled=True, then we will retain the REQUIRED
+               mode.
+            2) If the target is filled=False, then we control the outcome by
+               overloading the --infer_mode flag:
+                a) If --infer_mode is given, then we allow the
+                   REQUIRED -> NULLABLE transition.
+                b) If --infer_mode is not given, then we log an error and ignore
+                   this field from the schema.
+        '''
         old_info = old_schema_entry['info']
         new_info = new_schema_entry['info']
         old_mode = old_info['mode']
@@ -402,8 +421,10 @@ class SchemaGenerator:
         new_name = new_info['name']
         new_type = new_info['type']
         new_status = new_schema_entry['status']
+
         full_old_name = json_full_path(base_path, old_name)
         full_new_name = json_full_path(base_path, new_name)
+
         # If the old field is a REQUIRED primitive (which could only have come
         # from an existing schema), the new field can be either a
         # NULLABLE(filled) or a NULLABLE(unfilled).
@@ -671,7 +692,8 @@ class SchemaGenerator:
                                                     schema_map=schema_map)
 
         for error in error_logs:
-            logging.info("Problem on line %s: %s", error['line'], error['msg'])
+            logging.info("Problem on line %s: %s", error['line_number'],
+                         error['msg'])
 
         if self.debugging_map:
             json.dump(schema_map, output_file, indent=2)
@@ -857,6 +879,11 @@ def flatten_schema_map(schema_map,
                 # impossible, but more effort than I want to expend right now)
                 # to figure out which fields are missing so that we can mark the
                 # appropriate schema entries with 'filled=False'.
+                #
+                # The --infer_mode option is activated only for
+                # input_format == 'csv' in this function, which allows us to
+                # overload the --infer_mode flag to mean that a REQUIRED mode of
+                # an existing schema can transition to a NULLABLE mode.
                 if (infer_mode and value == 'NULLABLE' and filled
                         and input_format == 'csv'):
                     new_value = 'REQUIRED'

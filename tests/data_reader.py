@@ -159,22 +159,22 @@ class DataReader:
         (tag, data_flags) = self.parse_tag_line(tag_line)
         if tag != 'DATA':
             raise Exception(
-                "Unrecoginized tag line_number '%s', should be DATA" % tag_line)
+                "Unrecoginized tag line '%s', should be DATA" % tag_line)
 
         # Read the DATA records until the next TAG_TOKEN.
         records = []
         while True:
-            line_number = self.read_line()
-            if line_number is None:
+            line = self.read_line()
+            if line is None:
                 raise Exception(
                     "Unexpected EOF, should be ERRORS or SCHEMA tag")
-            (tag, _) = self.parse_tag_line(line_number)
+            (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
                 if tag == 'DATA':
                     raise Exception("Unexpected DATA tag")
-                self.push_back(line_number)
+                self.push_back(line)
                 break
-            records.append(line_number)
+            records.append(line)
 
         return (data_flags, records, line_number)
 
@@ -191,16 +191,16 @@ class DataReader:
             # Read the EXISTING_SCHEMA records until the next TAG_TOKEN
             schema_lines = []
             while True:
-                line_number = self.read_line()
-                if line_number is None:
+                line = self.read_line()
+                if line is None:
                     break
-                (tag, _) = self.parse_tag_line(line_number)
+                (tag, _) = self.parse_tag_line(line)
                 if tag in self.TAG_TOKENS:
                     if tag in ('DATA', 'EXISTING_SCHEMA'):
                         raise Exception(f"Unexpected {tag} tag")
-                    self.push_back(line_number)
+                    self.push_back(line)
                     break
-                schema_lines.append(line_number)
+                schema_lines.append(line)
             return ''.join(schema_lines)
         else:
             self.push_back(tag_line)
@@ -256,16 +256,16 @@ class DataReader:
         # Read the SCHEMA records until the next TAG_TOKEN
         schema_lines = []
         while True:
-            line_number = self.read_line()
-            if line_number is None:
+            line = self.read_line()
+            if line is None:
                 break
-            (tag, _) = self.parse_tag_line(line_number)
+            (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
                 if tag in ('DATA', 'ERRORS', 'EXISTING_SCHEMA', 'SCHEMA'):
                     raise Exception(f"Unexpected {tag} tag")
-                self.push_back(line_number)
+                self.push_back(line)
                 break
-            schema_lines.append(line_number)
+            schema_lines.append(line)
 
         return ''.join(schema_lines)
 
@@ -277,21 +277,21 @@ class DataReader:
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'END':
             raise Exception(
-                "Unrecoginized tag line_number '%s', should be END" % tag_line)
+                "Unrecoginized tag line '%s', should be END" % tag_line)
 
-    def parse_tag_line(self, line_number):
-        """Parses a potential tag line_number of the form 'TAG [flags...]' where
+    def parse_tag_line(self, line):
+        """Parses a potential tag line of the form 'TAG [flags...]' where
         'flags' is a list of strings separated by spaces. Returns the tuple of
         (tag, [flags]).
         """
-        tokens = line_number.split()
+        tokens = line.split()
         if tokens:
             return (tokens[0], tokens[1:])
         else:
             return (None, [])
 
     def read_line(self):
-        """Return the next line_number, while supporting a one-line_number push_back().
+        """Return the next line, while supporting a one-line push_back().
         Comment lines begin with a '#' character and are skipped.
         Blank lines are skipped.
         Prepending and trailing whitespaces are stripped.
@@ -342,13 +342,13 @@ class DataReader:
         return error_map
 
     def parse_error_line(self, line):
-        """Parse the error line_number of the form:
+        """Parse the error line of the form:
             line_number: msg
         """
         pos = line.find(':')
         if pos < 0:
             raise Exception(
-                "Error line_number must be of the form 'line_number: msg': '%s'"
+                "Error line must be of the form 'line_number: msg': '%s'"
                 % line)
         line_number = int(line[0:pos])
         message = line[pos + 1:].strip()

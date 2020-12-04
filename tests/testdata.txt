@@ -1857,3 +1857,36 @@ SCHEMA
   }
 ]
 END
+
+# Verify that the --infer_mode flag for JSON input does NOT cause the schema mode to
+# become REQUIRED, even though in the following, it will mistakenly think that every field
+# defined for all records, because it cannot (easily) detect the absence of a field in a record.
+DATA infer_mode
+{ "i" : 1, "f": 1.0, "r": {"a": 1} }
+{ "f": 1.0 }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "f",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  },
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "a",
+        "type": "INTEGER"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "r",
+    "type": "RECORD"
+  }
+]
+END
