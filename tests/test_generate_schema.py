@@ -471,8 +471,10 @@ class TestDataChunksFromFile(unittest.TestCase):
         expected_schema = chunk['schema']
         existing_schema = chunk['existing_schema']
 
-        print("Test chunk %s, line_number %s: First record: %s" %
-              (chunk_count, line_number, records[0]))
+        print(
+            f"Test chunk: {chunk_count}; line_number: {line_number}; "
+            f"first record: {records[0]}"
+        )
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,

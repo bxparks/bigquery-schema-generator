@@ -175,7 +175,7 @@ class SchemaGenerator:
         elif self.input_format == 'json' or self.input_format is None:
             reader = json_reader(file)
         else:
-            raise Exception("Unknown input_format '%s'" % self.input_format)
+            raise Exception(f"Unknown input_format '{self.input_format}'")
 
         if schema_map is None:
             schema_map = OrderedDict()
@@ -186,7 +186,7 @@ class SchemaGenerator:
                 # Print a progress message periodically.
                 self.line_number += 1
                 if self.line_number % self.debugging_interval == 0:
-                    logging.info("Processing line %s", self.line_number)
+                    logging.info(f'Processing line {self.line_number}')
 
                 # Deduce the schema from this given data record.
                 if isinstance(json_object, dict):
@@ -196,18 +196,19 @@ class SchemaGenerator:
                     )
                 elif isinstance(json_object, Exception):
                     self.log_error(
-                        f'Record could not be parsed: Exception: {json_object}')
+                        f'Record could not be parsed: Exception: {json_object}'
+                    )
                     if not self.ignore_invalid_lines:
                         raise json_object
                 else:
                     self.log_error(
-                        'Record should be a JSON Object but was a '
-                        f'{type(json_object)}'
+                        'Record should be a JSON Object but was a'
+                        f' {type(json_object)}'
                     )
                     if not self.ignore_invalid_lines:
                         raise Exception('Record must be a JSON Object')
         finally:
-            logging.info("Processed %s lines", self.line_number)
+            logging.info(f'Processed {self.line_number} lines')
 
         return schema_map, self.error_logs
 
@@ -310,8 +311,9 @@ class SchemaGenerator:
         # Verify that it's soft->soft or hard->hard
         if old_status != new_status:
             raise Exception(
-                ('Unexpected schema_entry type, this should never happen: '
-                 'old (%s); new (%s)') % (old_status, new_status))
+                f'Unexpected schema_entry type, this should never happen: '
+                f'old ({old_status}); new ({new_status})'
+            )
 
         old_info = old_schema_entry['info']
         old_name = old_info['name']
@@ -329,8 +331,9 @@ class SchemaGenerator:
         if old_name != new_name:
             if old_name.lower() != new_name.lower():
                 raise Exception(
-                    'old_name (%s) != new_name(%s), should never happen' %
-                    (full_old_name, full_new_name))
+                    'Unexpected difference in name, should never happen:'
+                    f' old_name ({full_old_name}) != new_name ({full_new_name})'
+                )
             else:
                 # preserve old name if case is different
                 new_info['name'] = old_info['name']
@@ -343,14 +346,15 @@ class SchemaGenerator:
             if old_mode == 'NULLABLE' and new_mode == 'REPEATED':
                 old_info['mode'] = 'REPEATED'
                 self.log_error(
-                    ('Converting schema for "%s" from NULLABLE RECORD '
-                     'into REPEATED RECORD') % full_old_name)
+                    f'Converting schema for "{full_old_name}" from '
+                    'NULLABLE RECORD into REPEATED RECORD'
+                )
             elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
                 # TODO: Maybe remove this warning output. It was helpful during
                 # development, but maybe it's just natural.
                 self.log_error(
-                    'Leaving schema for "%s" as REPEATED RECORD' %
-                    full_old_name)
+                    f'Leaving schema for "{full_old_name}" as REPEATED RECORD'
+                )
 
             # RECORD type needs a recursive merging of sub-fields. We merge into
             # the 'old_schema_entry' which assumes that the 'old_schema_entry'
@@ -382,8 +386,7 @@ class SchemaGenerator:
                 self.log_error(
                     f'Ignoring field with mismatched type: '
                     f'old=({old_status},{full_old_name},{old_mode},{old_type});'
-                    ' '
-                    f'new=({new_status},{full_new_name},{new_mode},{new_type})'
+                    f' new=({new_status},{full_new_name},{new_mode},{new_type})'
                 )
                 return None
 
@@ -440,8 +443,8 @@ class SchemaGenerator:
                     self.log_error(
                         f'Ignoring non-RECORD field with mismatched mode.'
                         ' cannot convert to NULLABLE because infer_schema not'
-                        ' set: '
-                        f'old=({old_status},{full_old_name},{old_mode},'
+                        ' set:'
+                        f' old=({old_status},{full_old_name},{old_mode},'
                         f'{old_type});'
                         f' new=({new_status},{full_new_name},{new_mode},'
                         f'{new_type})'
@@ -566,15 +569,16 @@ class SchemaGenerator:
         array_type = self.infer_array_type(node_value)
         if not array_type:
             self.log_error(
-                "All array elements must be the same compatible type: %s" %
-                node_value)
+                'All array elements must be the same compatible type:'
+                f' {node_value}'
+            )
             return (None, None)
 
         # Disallow array of special types (with '__' not supported).
         # EXCEPTION: allow (REPEATED __empty_record) ([{}]) because it is
         # allowed by 'bq load'.
         if '__' in array_type and array_type != '__empty_record__':
-            self.log_error('Unsupported array element type: %s' % array_type)
+            self.log_error(f'Unsupported array element type: {array_type}')
             return (None, None)
 
         return ('REPEATED', array_type)
@@ -640,7 +644,8 @@ class SchemaGenerator:
                 return '__empty_array__'
         else:
             raise Exception(
-                'Unsupported node type: %s (should not happen)' % type(value))
+                f'Unsupported node type: {type(value)} (should not happen)'
+            )
 
     def infer_array_type(self, elements):
         """Return the type of all the array elements, accounting for the same
@@ -696,8 +701,9 @@ class SchemaGenerator:
         )
 
         for error in error_logs:
-            logging.info("Problem on line %s: %s", error['line_number'],
-                         error['msg'])
+            logging.info(
+                f"Problem on line {error['line_number']}: {error['msg']}"
+            )
 
         if self.debugging_map:
             json.dump(schema_map, output_file, indent=2)
@@ -828,7 +834,8 @@ def flatten_schema_map(
     """
     if not isinstance(schema_map, dict):
         raise Exception(
-            "Unexpected type '%s' for schema_map" % type(schema_map))
+            f"Unexpected type '{type(schema_map)}' for schema_map"
+        )
 
     # Build the BigQuery schema from the internal 'schema_map'.
     schema = []

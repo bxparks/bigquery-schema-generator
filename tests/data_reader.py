@@ -159,7 +159,8 @@ class DataReader:
         (tag, data_flags) = self.parse_tag_line(tag_line)
         if tag != 'DATA':
             raise Exception(
-                "Unrecoginized tag line '%s', should be DATA" % tag_line)
+                f"Unrecoginized tag line '{tag_line}', should be DATA"
+            )
 
         # Read the DATA records until the next TAG_TOKEN.
         records = []
@@ -250,8 +251,8 @@ class DataReader:
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'SCHEMA':
             raise Exception(
-                "Unrecoginized tag line_number '%s', should be SCHEMA"
-                % tag_line)
+                f"Unrecoginized tag line_number '{tag_line}', should be SCHEMA"
+            )
 
         # Read the SCHEMA records until the next TAG_TOKEN
         schema_lines = []
@@ -277,7 +278,8 @@ class DataReader:
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'END':
             raise Exception(
-                "Unrecoginized tag line '%s', should be END" % tag_line)
+                f"Unrecoginized tag line '{tag_line}', should be END"
+            )
 
     def parse_tag_line(self, line):
         """Parses a potential tag line of the form 'TAG [flags...]' where
@@ -348,8 +350,8 @@ class DataReader:
         pos = line.find(':')
         if pos < 0:
             raise Exception(
-                "Error line must be of the form 'line_number: msg': '%s'"
-                % line)
+                f"Error line must be of the form 'line_number: msg': '{line}'"
+            )
         line_number = int(line[0:pos])
         message = line[pos + 1:].strip()
         return (line_number, message)
@@ -367,12 +369,13 @@ def main():
         chunk = data_reader.read_chunk()
         if chunk is None:
             break
-        print("DATA_FLAGS: %s" % chunk['data_flags'])
-        print("DATA: %s" % chunk['records'])
-        print("EXISTING_SCHEMA: %s" % chunk['existing_schema'])
-        print("ERRORS: %s" % chunk['errors'])
-        print("ERROR_MAP: %s" % chunk['error_map'])
-        print("SCHEMA: %s" % chunk['schema'])
+        print(f"DATA_FLAGS: {chunk['data_flags']}")
+        print(f"DATA: {chunk['records']}")
+        print(f"EXISTING_SCHEMA: {chunk['existing_schema']}")
+        print(f"ERRORS: {chunk['errors']}")
+        print(f"ERROR_MAP: {chunk['error_map']}")
+        print(f"SCHEMA: {chunk['schema']}")
+        print()
 
 
 if __name__ == '__main__':
