@@ -12,7 +12,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 1.2 (2020-10-27)
+Version: 1.3 (2020-12-05)
 
 Changelog: [CHANGELOG.md](CHANGELOG.md)
 
@@ -791,6 +791,8 @@ and 3.8.
 * Bug fix in `--sanitize_names` by Riccardo M. Cefala (riccardomc@).
 * Print full path of nested JSON elements in error messages, by Austin Brogle
   (abroglesc@).
+* Allow an existing schema file to be specified using `--existing_schema_path`,
+  by Austin Brogle (abroglesc@) and Bozo Dragojevic (bozzzzo@).
 
 
 ## License
