@@ -32,8 +32,11 @@ class DataReader:
         DATA [flags]
         json_records
         ...
+        EXISTING_SCHEMA
+        existing json schema from bq api
+        ...
         ERRORS
-        line: msg
+        line_number: msg
         ...
         SCHEMA
         bigquery_schema
@@ -44,7 +47,7 @@ class DataReader:
         json_records
         ...
         ERRORS
-        line: msg
+        line_number: msg
         ...
         SCHEMA
         bigquery_schema
@@ -56,7 +59,10 @@ class DataReader:
     the following components:
 
         * a DATA section containing the newline-separated JSON data records
+        * an optional EXISTING_SCHEMA section contains the existing base
+          BigQuery schema to build off of
         * an optional ERRORS section containing the expected error messages
+          messages when the schema is known to schema decoder in advance
         * a SCHEMA section containing the expected BigQuery schema
         * comment lines start with a '#' character.
 
@@ -92,17 +98,20 @@ class DataReader:
             data_flags = chunk['data_flags']
             keep_nulls = ('keep_nulls' in data_flags)
             records = chunk['records']
+            existing_schema = chunk['existing_schema']
             schema = chunk['schema']
             ...
     """
 
     # Recognized tags.
     # TODO: Change to a hash set to speed up the lookup if many are added.
-    TAG_TOKENS = ['DATA', 'ERRORS', 'SCHEMA', 'END']
+    TAG_TOKENS = ['DATA', 'ERRORS', 'EXISTING_SCHEMA', 'SCHEMA', 'END']
 
     def __init__(self, testdata_file):
         self.testdata_file = testdata_file
         self.next_line = None
+        self.line_number = 0
+        self.chunk_count = 0
 
     def read_chunk(self):
         """Returns a dict with the next test chunk from the data file,
@@ -111,22 +120,28 @@ class DataReader:
                 'data_flags': [data_flags],
                 'data': [data lines],
                 'errors': {errors},
+                'existing_schema': schema_string,
                 'schema': schema_string
             }
         Returns None if there are no more test chunks.
         """
-        data_flags, records = self.read_data_section()
+        data_flags, records, line_number = self.read_data_section()
         if data_flags is None:
             return None
+        existing_schema = self.read_existing_schema_section()
         errors = self.read_errors_section()
-        error_map = self.process_errors(errors)
+        error_map = self.process_errors(errors or [])
         schema = self.read_schema_section()
         self.read_end_marker()
+        self.chunk_count += 1
 
         return {
+            'chunk_count': self.chunk_count,
+            'line_number': line_number,
             'data_flags': data_flags,
             'records': records,
-            'errors': errors,
+            'existing_schema': existing_schema,
+            'errors': errors or [],
             'error_map': error_map,
             'schema': schema
         }
@@ -138,8 +153,9 @@ class DataReader:
 
         # First tag must be 'DATA [flags]'
         tag_line = self.read_line()
+        line_number = self.line_number
         if tag_line is None:
-            return (None, None)
+            return (None, None, line_number)
         (tag, data_flags) = self.parse_tag_line(tag_line)
         if tag != 'DATA':
             raise Exception(
@@ -160,7 +176,35 @@ class DataReader:
                 break
             records.append(line)
 
-        return (data_flags, records)
+        return (data_flags, records, line_number)
+
+    def read_existing_schema_section(self):
+        """Returns the JSON string of the existing_schema section.
+        """
+
+        # The next tag must be 'EXISTING_SCHEMA'
+        tag_line = self.read_line()
+        if tag_line is None:
+            raise Exception("Unexpected EOF, should be EXISTING_SCHEMA tag")
+        (tag, _) = self.parse_tag_line(tag_line)
+        if tag == 'EXISTING_SCHEMA':
+            # Read the EXISTING_SCHEMA records until the next TAG_TOKEN
+            schema_lines = []
+            while True:
+                line = self.read_line()
+                if line is None:
+                    break
+                (tag, _) = self.parse_tag_line(line)
+                if tag in self.TAG_TOKENS:
+                    if tag in ('DATA', 'EXISTING_SCHEMA'):
+                        raise Exception(f"Unexpected {tag} tag")
+                    self.push_back(line)
+                    break
+                schema_lines.append(line)
+            return ''.join(schema_lines)
+        else:
+            self.push_back(tag_line)
+            return []
 
     def read_errors_section(self):
         """Return a dictionary of errors which are expected from the parsing of
@@ -206,7 +250,8 @@ class DataReader:
         (tag, _) = self.parse_tag_line(tag_line)
         if tag != 'SCHEMA':
             raise Exception(
-                "Unrecoginized tag line '%s', should be SCHEMA" % tag_line)
+                "Unrecoginized tag line_number '%s', should be SCHEMA"
+                % tag_line)
 
         # Read the SCHEMA records until the next TAG_TOKEN
         schema_lines = []
@@ -216,8 +261,8 @@ class DataReader:
                 break
             (tag, _) = self.parse_tag_line(line)
             if tag in self.TAG_TOKENS:
-                if tag == 'SCHEMA':
-                    raise Exception("Unexpected SCHEMA tag")
+                if tag in ('DATA', 'ERRORS', 'EXISTING_SCHEMA', 'SCHEMA'):
+                    raise Exception(f"Unexpected {tag} tag")
                 self.push_back(line)
                 break
             schema_lines.append(line)
@@ -259,6 +304,7 @@ class DataReader:
 
         while True:
             line = self.testdata_file.readline()
+            self.line_number += 1
             # EOF
             if line == '':
                 return None
@@ -289,7 +335,7 @@ class DataReader:
             (line_number, message) = self.parse_error_line(error)
             error_entry = error_map.get(line_number)
             if error_entry is None:
-                error_entry = {'line': line_number, 'msgs': []}
+                error_entry = {'line_number': line_number, 'msgs': []}
                 error_map[line_number] = error_entry
             messages = error_entry['msgs']
             messages.append(message)
@@ -297,12 +343,13 @@ class DataReader:
 
     def parse_error_line(self, line):
         """Parse the error line of the form:
-            line: msg
+            line_number: msg
         """
         pos = line.find(':')
         if pos < 0:
             raise Exception(
-                "Error line must be of the form 'line: msg': '%s'" % line)
+                "Error line must be of the form 'line_number: msg': '%s'"
+                % line)
         line_number = int(line[0:pos])
         message = line[pos + 1:].strip()
         return (line_number, message)
@@ -322,6 +369,7 @@ def main():
             break
         print("DATA_FLAGS: %s" % chunk['data_flags'])
         print("DATA: %s" % chunk['records'])
+        print("EXISTING_SCHEMA: %s" % chunk['existing_schema'])
         print("ERRORS: %s" % chunk['errors'])
         print("ERROR_MAP: %s" % chunk['error_map'])
         print("SCHEMA: %s" % chunk['schema'])

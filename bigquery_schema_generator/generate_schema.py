@@ -105,17 +105,6 @@ class SchemaGenerator:
         # rest of the file.
         self.ignore_invalid_lines = ignore_invalid_lines
 
-        # 'infer_mode' is supported for only input_format = 'csv' because
-        # the header line gives us the complete list of fields to be expected in
-        # the CSV file. In JSON data files, certain fields will often be
-        # completely missing instead of being set to 'null' or "". If the field
-        # is not even present, then it becomes incredibly difficult (not
-        # impossible, but more effort than I want to expend right now) to figure
-        # out which fields are missing so that we can mark the appropriate
-        # schema entries with 'filled=False'.
-        if infer_mode and input_format != 'csv':
-            raise Exception("infer_mode requires input_format=='csv'")
-
         # If CSV, force keep_nulls = True
         self.keep_nulls = True if (input_format == 'csv') else keep_nulls
 
@@ -130,11 +119,11 @@ class SchemaGenerator:
         self.error_logs = []
 
     def log_error(self, msg):
-        self.error_logs.append({'line': self.line_number, 'msg': msg})
+        self.error_logs.append({'line_number': self.line_number, 'msg': msg})
 
     # TODO: BigQuery is case-insensitive with regards to the 'name' of the
     # field. Verify that the 'name' is unique regardless of the case.
-    def deduce_schema(self, file):
+    def deduce_schema(self, file, *, schema_map=None):
         """Loop through each newlined-delimited line of 'file' and
         deduce the BigQuery schema. The schema is returned as a recursive map
         that contains both the database schema and some additional metadata
@@ -170,7 +159,8 @@ class SchemaGenerator:
 
         The 'filled' entry indicates whether all input data records contained
         the given field. If the --infer_mode flag is given, the 'filled' entry
-        is used to convert a NULLABLE schema entry to a REQUIRED schema entry.
+        is used to convert a NULLABLE schema entry to a REQUIRED schema entry or
+        to relax an existing field in schema_map from REQUIRED to NULLABLE.
 
         The function returns a tuple of 2 things:
           * an OrderedDict which is sorted by the 'key' of the column name
@@ -189,7 +179,9 @@ class SchemaGenerator:
         else:
             raise Exception("Unknown input_format '%s'" % self.input_format)
 
-        schema_map = OrderedDict()
+        if schema_map is None:
+            schema_map = OrderedDict()
+
         try:
             for json_object in reader:
 
@@ -232,17 +224,34 @@ class SchemaGenerator:
         nested record that leads to this specific entry.
         """
         for key, value in json_object.items():
-            schema_entry = schema_map.get(key)
+            # The canonical key is the lower-cased version of the sanitized key
+            # so that the case of the field name is preserved when generating
+            # the schema but we don't create invalid, duplicate, fields since
+            # BigQuery is case insensitive
+            canonical_key = self.sanitize_name(key).lower()
+            schema_entry = schema_map.get(canonical_key)
             new_schema_entry = self.get_schema_entry(
                 key=key,
                 value=value,
-                base_path=base_path,
+                base_path=base_path
             )
-            schema_map[key] = self.merge_schema_entry(
+            schema_map[canonical_key] = self.merge_schema_entry(
                 old_schema_entry=schema_entry,
                 new_schema_entry=new_schema_entry,
-                base_path=base_path,
+                base_path=base_path
             )
+
+    def sanitize_name(self, value):
+        ''' Sanitizes a column name within the schema.
+
+            We explicitly choose to not perform the lowercasing here as this
+            cause us to lose case sensitivity when generating the final schema
+        '''
+        if self.sanitize_names:
+            new_value = re.sub('[^a-zA-Z0-9_]', '_', value[:127])
+        else:
+            new_value = value
+        return new_value
 
     def merge_schema_entry(
         self,
@@ -282,10 +291,22 @@ class SchemaGenerator:
 
         # new 'soft' does not clobber old 'hard'
         if old_status == 'hard' and new_status == 'soft':
+            mode = self.merge_mode(old_schema_entry,
+                                   new_schema_entry,
+                                   base_path)
+            if mode is None:
+                return None
+            old_schema_entry['info']['mode'] = mode
             return old_schema_entry
 
         # new 'hard' clobbers old 'soft'
         if old_status == 'soft' and new_status == 'hard':
+            mode = self.merge_mode(old_schema_entry,
+                                   new_schema_entry,
+                                   base_path)
+            if mode is None:
+                return None
+            new_schema_entry['info']['mode'] = mode
             return new_schema_entry
 
         # Verify that it's soft->soft or hard->hard
@@ -303,11 +324,18 @@ class SchemaGenerator:
         new_type = new_info['type']
         new_mode = new_info['mode']
 
+        full_old_name = json_full_path(base_path, old_name)
+        full_new_name = json_full_path(base_path, new_name)
+
         # Defensive check, names should always be the same.
         if old_name != new_name:
-            raise Exception(
-                'old_name (%s) != new_name(%s), should never happen' %
-                (old_name, new_name))
+            if old_name.lower() != new_name.lower():
+                raise Exception(
+                    'old_name (%s) != new_name(%s), should never happen' %
+                    (full_old_name, full_new_name))
+            else:
+                # preserve old name if case is different
+                new_info['name'] = old_info['name']
 
         # Recursively merge in the subfields of a RECORD, allowing
         # NULLABLE to become REPEATED (because 'bq load' allows it).
@@ -318,12 +346,13 @@ class SchemaGenerator:
                 old_info['mode'] = 'REPEATED'
                 self.log_error(
                     ('Converting schema for "%s" from NULLABLE RECORD '
-                     'into REPEATED RECORD') % old_name)
+                     'into REPEATED RECORD') % full_old_name)
             elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
                 # TODO: Maybe remove this warning output. It was helpful during
                 # development, but maybe it's just natural.
                 self.log_error(
-                    'Leaving schema for "%s" as REPEATED RECORD' % old_name)
+                    'Leaving schema for "%s" as REPEATED RECORD' %
+                    full_old_name)
 
             # RECORD type needs a recursive merging of sub-fields. We merge into
             # the 'old_schema_entry' which assumes that the 'old_schema_entry'
@@ -340,31 +369,96 @@ class SchemaGenerator:
                 )
             return old_schema_entry
 
+        new_mode = self.merge_mode(old_schema_entry,
+                                   new_schema_entry,
+                                   base_path)
+        if new_mode is None:
+            return None
+        new_schema_entry['info']['mode'] = new_mode
+
+        # For all other types...
+        if old_type != new_type:
+            # Check that the converted types are compatible.
+            candidate_type = convert_type(old_type, new_type)
+            if not candidate_type:
+                self.log_error(
+                    f'Ignoring field with mismatched type: '
+                    f'old=({old_status},{full_old_name},{old_mode},{old_type});'
+                    ' '
+                    f'new=({new_status},{full_new_name},{new_mode},{new_type})')
+                return None
+
+            new_info['type'] = candidate_type
+        return new_schema_entry
+
+    def merge_mode(self, old_schema_entry, new_schema_entry, base_path):
+        '''
+            This method determines if the 'mode' of a schema entry can
+            transition from REQUIRED -> NULLABLE. A REQUIRED mode can only have
+            come from an existing schema (though the --existing_schema_path
+            flag), because REQUIRED is created only in the flatten_schema()
+            method. Therefore, a NULLABLE->REQUIRED transition cannot occur.
+
+            We have the following sub cases for the REQUIRED -> NULLABLE
+            transition:
+
+            1) If the target is filled=True, then we will retain the REQUIRED
+               mode.
+            2) If the target is filled=False, then we control the outcome by
+               overloading the --infer_mode flag:
+                a) If --infer_mode is given, then we allow the
+                   REQUIRED -> NULLABLE transition.
+                b) If --infer_mode is not given, then we log an error and ignore
+                   this field from the schema.
+        '''
+        old_info = old_schema_entry['info']
+        new_info = new_schema_entry['info']
+        old_mode = old_info['mode']
+        old_name = old_info['name']
+        old_type = old_info['type']
+        old_status = old_schema_entry['status']
+        new_mode = new_info['mode']
+        new_name = new_info['name']
+        new_type = new_info['type']
+        new_status = new_schema_entry['status']
+
         full_old_name = json_full_path(base_path, old_name)
         full_new_name = json_full_path(base_path, new_name)
 
-        # For all other types, the old_mode must be the same as the new_mode. It
-        # might seem reasonable to allow a NULLABLE {primitive_type} to be
-        # upgraded to a REPEATED {primitive_type}, but currently 'bq load' does
-        # not support that so we must also follow that rule.
-        if old_mode != new_mode:
+        # If the old field is a REQUIRED primitive (which could only have come
+        # from an existing schema), the new field can be either a
+        # NULLABLE(filled) or a NULLABLE(unfilled).
+        if old_mode == 'REQUIRED' and new_mode == 'NULLABLE':
+            # If the new field is filled, then retain the REQUIRED.
+            if new_schema_entry['filled']:
+                return old_mode
+            else:
+                # The new field is not filled (i.e. an empty or null field).
+                # If --infer_mode is active, then we allow the REQUIRED to
+                # revert back to NULLABLE.
+                if self.infer_mode:
+                    return new_mode
+                else:
+                    self.log_error(
+                        f'Ignoring non-RECORD field with mismatched mode.'
+                        ' cannot convert to NULLABLE because infer_schema not'
+                        ' set: '
+                        f'old=({old_status},{full_old_name},{old_mode},'
+                        f'{old_type});'
+                        f' new=({new_status},{full_new_name},{new_mode},'
+                        f'{new_type})'
+                    )
+                    return None
+        elif old_mode != new_mode:
             self.log_error(
                 f'Ignoring non-RECORD field with mismatched mode: '
-                f'old=({old_status},{full_old_name},{old_mode},{old_type}); '
-                f'new=({new_status},{full_new_name},{new_mode},{new_type})')
+                f'old=({old_status},{full_old_name},{old_mode},'
+                f'{old_type});'
+                f' new=({new_status},{full_new_name},{new_mode},'
+                f'{new_type})'
+            )
             return None
-
-        # Check that the converted types are compatible.
-        candidate_type = convert_type(old_type, new_type)
-        if not candidate_type:
-            self.log_error(
-                f'Ignoring field with mismatched type: '
-                f'old=({old_status},{full_old_name},{old_mode},{old_type}); '
-                f'new=({new_status},{full_new_name},{new_mode},{new_type})')
-            return None
-
-        new_info['type'] = candidate_type
-        return new_schema_entry
+        return old_mode
 
     def get_schema_entry(self, key, value, base_path=None):
         """Determines the 'schema_entry' of the (key, value) pair. Calls
@@ -377,6 +471,7 @@ class SchemaGenerator:
         value_mode, value_type = self.infer_bigquery_type(value)
         if not value_mode or not value_type:
             return None
+        sanitized_key = self.sanitize_name(key)
 
         if value_type == 'RECORD':
             new_base_path = json_full_path(base_path, key)
@@ -403,7 +498,7 @@ class SchemaGenerator:
                 ('info', OrderedDict([
                     ('fields', fields),
                     ('mode', value_mode),
-                    ('name', key),
+                    ('name', sanitized_key),
                     ('type', value_type),
                 ])),
             ])
@@ -413,7 +508,7 @@ class SchemaGenerator:
                 ('filled', False),
                 ('info', OrderedDict([
                     ('mode', 'NULLABLE'),
-                    ('name', key),
+                    ('name', sanitized_key),
                     ('type', 'STRING'),
                 ])),
             ])
@@ -423,7 +518,7 @@ class SchemaGenerator:
                 ('filled', False),
                 ('info', OrderedDict([
                     ('mode', 'REPEATED'),
-                    ('name', key),
+                    ('name', sanitized_key),
                     ('type', 'STRING'),
                 ])),
             ])
@@ -434,7 +529,7 @@ class SchemaGenerator:
                 ('info', OrderedDict([
                     ('fields', OrderedDict()),
                     ('mode', value_mode),
-                    ('name', key),
+                    ('name', sanitized_key),
                     ('type', 'RECORD'),
                 ])),
             ])
@@ -452,7 +547,7 @@ class SchemaGenerator:
                 ('filled', filled),
                 ('info', OrderedDict([
                     ('mode', value_mode),
-                    ('name', key),
+                    ('name', sanitized_key),
                     ('type', value_type),
                 ])),
             ])
@@ -582,20 +677,23 @@ class SchemaGenerator:
             keep_nulls=self.keep_nulls,
             sorted_schema=self.sorted_schema,
             infer_mode=self.infer_mode,
-            sanitize_names=self.sanitize_names,
-        )
+            input_format=self.input_format)
 
-    def run(self, input_file=sys.stdin, output_file=sys.stdout):
+    def run(self, input_file=sys.stdin,
+            output_file=sys.stdout, schema_map=None):
         """Read the data records from the input_file and print out the BigQuery
         schema on the output_file. The error logs are printed on the sys.stderr.
         Args:
             input_file: a file-like object (default: sys.stdin)
             output_file: a file-like object (default: sys.stdout)
+            schema_map: the existing bigquery schema_map we start with
         """
-        schema_map, error_logs = self.deduce_schema(input_file)
+        schema_map, error_logs = self.deduce_schema(input_file,
+                                                    schema_map=schema_map)
 
         for error in error_logs:
-            logging.info("Problem on line %s: %s", error['line'], error['msg'])
+            logging.info("Problem on line %s: %s", error['line_number'],
+                         error['msg'])
 
         if self.debugging_map:
             json.dump(schema_map, output_file, indent=2)
@@ -700,13 +798,11 @@ def is_string_type(thetype):
     ]
 
 
-def flatten_schema_map(
-        schema_map,
-        keep_nulls=False,
-        sorted_schema=True,
-        infer_mode=False,
-        sanitize_names=False,
-):
+def flatten_schema_map(schema_map,
+                       keep_nulls=False,
+                       sorted_schema=True,
+                       infer_mode=False,
+                       input_format='json'):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema.
 
@@ -768,25 +864,107 @@ def flatten_schema_map(
                         keep_nulls=keep_nulls,
                         sorted_schema=sorted_schema,
                         infer_mode=infer_mode,
-                        sanitize_names=sanitize_names,
+                        input_format=input_format
                     )
             elif key == 'type' and value in ['QINTEGER', 'QFLOAT', 'QBOOLEAN']:
-                # Convert QINTEGER -> INTEGER, similarly for QFLAT and QBOOLEAN.
+                # Convert QINTEGER -> INTEGER, similarly for QFLOAT and QBOOLEAN
                 new_value = value[1:]
             elif key == 'mode':
-                if infer_mode and value == 'NULLABLE' and filled:
+                # 'infer_mode' to set a field as REQUIRED is supported for only
+                # input_format = 'csv' because the header line gives us the
+                # complete list of fields to be expected in the CSV file. In
+                # JSON data files, certain fields will often be completely
+                # missing instead of being set to 'null' or "". If the field is
+                # not even present, then it becomes incredibly difficult (not
+                # impossible, but more effort than I want to expend right now)
+                # to figure out which fields are missing so that we can mark the
+                # appropriate schema entries with 'filled=False'.
+                #
+                # The --infer_mode option is activated only for
+                # input_format == 'csv' in this function, which allows us to
+                # overload the --infer_mode flag to mean that a REQUIRED mode of
+                # an existing schema can transition to a NULLABLE mode.
+                if (infer_mode and value == 'NULLABLE' and filled
+                        and input_format == 'csv'):
                     new_value = 'REQUIRED'
                 else:
                     new_value = value
-            elif key == 'name' and sanitize_names:
-                new_value = SchemaGenerator.FIELD_NAME_MATCHER.sub(
-                    '_', value,
-                )[0:127]
             else:
                 new_value = value
             new_info[key] = new_value
         schema.append(new_info)
     return schema
+
+
+def bq_schema_to_map(schema):
+    """ convert BQ JSON table schema representation to SchemaGenerator
+        schema_map representaton """
+    if isinstance(schema, dict):
+        schema = schema['fields']
+    return OrderedDict((f['name'].lower(), bq_schema_field_to_entry(f))
+                       for f in schema)
+
+
+BQ_TYPES = frozenset(
+    '''STRING
+    BYTES
+    INTEGER
+    FLOAT
+    BOOLEAN
+    TIMESTAMP
+    DATE
+    TIME
+    DATETIME
+    RECORD'''.split())
+
+BQ_TYPE_ALIASES = {
+    'INT64': 'INTEGER',
+    'FLOAT64': 'FLOAT',
+    'BOOL': 'BOOLEAN',
+    'STRUCT': 'RECORD',
+}
+
+
+def bq_type_to_entry_type(type):
+    if type in BQ_TYPES:
+        return type
+    if type in BQ_TYPE_ALIASES:
+        return BQ_TYPE_ALIASES[type]
+    raise TypeError(f'Unknown BQ type ""{type}"')
+
+
+def bq_schema_field_to_entry(field):
+    type = bq_type_to_entry_type(field['type'])
+    # In some cases with nested fields within a record, bigquery does not
+    # populate a mode field. We will assume this is NULLABLE in this case
+    mode = field.get('mode', 'NULLABLE')
+    # maintain order of info fields
+    if type == 'RECORD':
+        info = OrderedDict([
+            ('fields', bq_schema_to_map(field['fields'])),
+            ('mode', mode),
+            ('name', field['name']),
+            ('type', type),
+        ])
+    else:
+        info = OrderedDict([
+            ('mode', mode),
+            ('name', field['name']),
+            ('type', type),
+        ])
+    return OrderedDict([
+        ('status', 'hard'),
+        ('filled', mode != 'NULLABLE'),
+        ('info', info),
+    ])
+
+
+def read_existing_schema_from_file(existing_schema_path):
+    if existing_schema_path:
+        with open(existing_schema_path, 'r') as f:
+            existing_json_schema = json.load(f)
+            return bq_schema_to_map(existing_json_schema)
+    return None
 
 
 def json_full_path(base_path, key):
@@ -818,7 +996,8 @@ def main():
         action="store_true")
     parser.add_argument(
         '--infer_mode',
-        help="Determine if mode can be 'NULLABLE' or 'REQUIRED'",
+        help="Automatically determine if mode can be 'NULLABLE' or 'REQUIRED'"
+             " instead of the default 'NULLABLE'",
         action='store_true')
     parser.add_argument(
         '--debugging_interval',
@@ -837,6 +1016,12 @@ def main():
         '--ignore_invalid_lines',
         help='Ignore lines that cannot be parsed instead of stopping',
         action="store_true")
+    parser.add_argument(
+        '--existing_schema_path',
+        help='File that contains the existing BigQuery schema for a table.'
+        ' This can be fetched with:'
+        ' `bq show --schema <project_id>:<dataset>:<table_name>',
+        default=None)
     args = parser.parse_args()
 
     # Configure logging.
@@ -852,7 +1037,9 @@ def main():
         sanitize_names=args.sanitize_names,
         ignore_invalid_lines=args.ignore_invalid_lines,
     )
-    generator.run()
+    existing_schema_map = read_existing_schema_from_file(
+        args.existing_schema_path)
+    generator.run(schema_map=existing_schema_map)
 
 
 if __name__ == '__main__':
