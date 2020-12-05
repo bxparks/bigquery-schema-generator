@@ -121,13 +121,11 @@ class SchemaGenerator:
     def log_error(self, msg):
         self.error_logs.append({'line_number': self.line_number, 'msg': msg})
 
-    # TODO: BigQuery is case-insensitive with regards to the 'name' of the
-    # field. Verify that the 'name' is unique regardless of the case.
     def deduce_schema(self, file, *, schema_map=None):
-        """Loop through each newlined-delimited line of 'file' and
-        deduce the BigQuery schema. The schema is returned as a recursive map
-        that contains both the database schema and some additional metadata
-        about each entry. It has the following form:
+        """Loop through each newlined-delimited line of 'file' and deduce the
+        BigQuery schema. The schema is returned as a recursive map that contains
+        both the database schema and some additional metadata about each entry.
+        It has the following form:
 
           schema_map := {
             key: schema_entry
@@ -242,11 +240,11 @@ class SchemaGenerator:
             )
 
     def sanitize_name(self, value):
-        ''' Sanitizes a column name within the schema.
+        """Sanitizes a column name within the schema.
 
-            We explicitly choose to not perform the lowercasing here as this
-            cause us to lose case sensitivity when generating the final schema
-        '''
+        We explicitly choose to not perform the lowercasing here as this
+        cause us to lose case sensitivity when generating the final schema
+        """
         if self.sanitize_names:
             new_value = re.sub('[^a-zA-Z0-9_]', '_', value[:127])
         else:
@@ -385,32 +383,32 @@ class SchemaGenerator:
                     f'Ignoring field with mismatched type: '
                     f'old=({old_status},{full_old_name},{old_mode},{old_type});'
                     ' '
-                    f'new=({new_status},{full_new_name},{new_mode},{new_type})')
+                    f'new=({new_status},{full_new_name},{new_mode},{new_type})'
+                )
                 return None
 
             new_info['type'] = candidate_type
         return new_schema_entry
 
     def merge_mode(self, old_schema_entry, new_schema_entry, base_path):
-        '''
-            This method determines if the 'mode' of a schema entry can
-            transition from REQUIRED -> NULLABLE. A REQUIRED mode can only have
-            come from an existing schema (though the --existing_schema_path
-            flag), because REQUIRED is created only in the flatten_schema()
-            method. Therefore, a NULLABLE->REQUIRED transition cannot occur.
+        """This method determines if the 'mode' of a schema entry can
+        transition from REQUIRED -> NULLABLE. A REQUIRED mode can only have
+        come from an existing schema (though the --existing_schema_path
+        flag), because REQUIRED is created only in the flatten_schema()
+        method. Therefore, a NULLABLE->REQUIRED transition cannot occur.
 
-            We have the following sub cases for the REQUIRED -> NULLABLE
-            transition:
+        We have the following sub cases for the REQUIRED -> NULLABLE
+        transition:
 
-            1) If the target is filled=True, then we will retain the REQUIRED
-               mode.
-            2) If the target is filled=False, then we control the outcome by
-               overloading the --infer_mode flag:
-                a) If --infer_mode is given, then we allow the
-                   REQUIRED -> NULLABLE transition.
-                b) If --infer_mode is not given, then we log an error and ignore
-                   this field from the schema.
-        '''
+        1) If the target is filled=True, then we will retain the REQUIRED
+            mode.
+        2) If the target is filled=False, then we control the outcome by
+            overloading the --infer_mode flag:
+            a) If --infer_mode is given, then we allow the
+                REQUIRED -> NULLABLE transition.
+            b) If --infer_mode is not given, then we log an error and ignore
+                this field from the schema.
+        """
         old_info = old_schema_entry['info']
         new_info = new_schema_entry['info']
         old_mode = old_info['mode']
@@ -473,6 +471,7 @@ class SchemaGenerator:
             return None
         sanitized_key = self.sanitize_name(key)
 
+        # yapf: disable
         if value_type == 'RECORD':
             new_base_path = json_full_path(base_path, key)
             # recursively figure out the RECORD
@@ -491,7 +490,6 @@ class SchemaGenerator:
                         base_path=new_base_path,
                     )
 
-        # yapf: disable
             schema_entry = OrderedDict([
                 ('status', 'hard'),
                 ('filled', True),
@@ -677,10 +675,15 @@ class SchemaGenerator:
             keep_nulls=self.keep_nulls,
             sorted_schema=self.sorted_schema,
             infer_mode=self.infer_mode,
-            input_format=self.input_format)
+            input_format=self.input_format,
+        )
 
-    def run(self, input_file=sys.stdin,
-            output_file=sys.stdout, schema_map=None):
+    def run(
+        self,
+        input_file=sys.stdin,
+        output_file=sys.stdout,
+        schema_map=None,
+    ):
         """Read the data records from the input_file and print out the BigQuery
         schema on the output_file. The error logs are printed on the sys.stderr.
         Args:
@@ -688,8 +691,9 @@ class SchemaGenerator:
             output_file: a file-like object (default: sys.stdout)
             schema_map: the existing bigquery schema_map we start with
         """
-        schema_map, error_logs = self.deduce_schema(input_file,
-                                                    schema_map=schema_map)
+        schema_map, error_logs = self.deduce_schema(
+            input_file, schema_map=schema_map
+        )
 
         for error in error_logs:
             logging.info("Problem on line %s: %s", error['line_number'],
@@ -790,19 +794,24 @@ def convert_type(atype, btype):
     return None
 
 
+STRING_TYPES = frozenset([
+    'STRING', 'TIMESTAMP', 'DATE', 'TIME', 'QINTEGER', 'QFLOAT', 'QBOOLEAN'
+])
+
+
 def is_string_type(thetype):
     """Returns true if the type is one of: STRING, TIMESTAMP, DATE, or
     TIME."""
-    return thetype in [
-        'STRING', 'TIMESTAMP', 'DATE', 'TIME', 'QINTEGER', 'QFLOAT', 'QBOOLEAN'
-    ]
+    return thetype in STRING_TYPES
 
 
-def flatten_schema_map(schema_map,
-                       keep_nulls=False,
-                       sorted_schema=True,
-                       infer_mode=False,
-                       input_format='json'):
+def flatten_schema_map(
+    schema_map,
+    keep_nulls=False,
+    sorted_schema=True,
+    infer_mode=False,
+    input_format='json',
+):
     """Converts the 'schema_map' into a more flatten version which is
     compatible with BigQuery schema.
 
@@ -905,17 +914,18 @@ def bq_schema_to_map(schema):
                        for f in schema)
 
 
-BQ_TYPES = frozenset(
-    '''STRING
-    BYTES
-    INTEGER
-    FLOAT
-    BOOLEAN
-    TIMESTAMP
-    DATE
-    TIME
-    DATETIME
-    RECORD'''.split())
+BQ_TYPES = frozenset([
+    'STRING',
+    'BYTES',
+    'INTEGER',
+    'FLOAT',
+    'BOOLEAN',
+    'TIMESTAMP',
+    'DATE',
+    'TIME',
+    'DATETIME',
+    'RECORD',
+])
 
 BQ_TYPE_ALIASES = {
     'INT64': 'INTEGER',

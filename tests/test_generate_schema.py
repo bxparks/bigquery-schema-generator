@@ -523,20 +523,21 @@ class TestDataChunksFromFile(unittest.TestCase):
 
 class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
     def test_bq_schema_to_map_round_trip_permutations(self):
-        ''' This checks that each possible type of consititued schema, when
-            generated, then converted to a schema_map, then back to the schema,
-            they are equal.
+        """This checks that each possible type of consititued schema, when
+        generated, then converted to a schema_map, then back to the schema, they
+        are equal.
 
-            This function is really ugly but has good coverage. This was
-            migrated from pytest fixtures which were a bit cleaner but we
-            ideally did not want to add a new dependency / library that is used
-            for testing.
-        '''
+        This function is really ugly but has good coverage. This was migrated
+        from pytest fixtures which were a bit cleaner but we ideally did not
+        want to add a new dependency / library that is used for testing.
+        """
         valid_types = BQ_TYPES
         valid_modes = ['NULLABLE', 'REQUIRED', 'REPEATED']
-        valid_input_formats_and_modes = [('csv', True),
-                                         ('csv', False),
-                                         ('json', False)]
+        valid_input_formats_and_modes = [
+            ('csv', True),
+            ('csv', False),
+            ('json', False),
+        ]
         valid_keep_null_params = [True, False]
         valid_quoted_values_are_strings = [True, False]
         for valid_type in valid_types:
@@ -568,8 +569,8 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                                 raise e
 
     def make_bq_schema_entry(self, mode, type):
-        ''' Creates a bigquery schema entry
-        '''
+        """Creates a bigquery schema entry
+        """
         if type == 'RECORD':
             return OrderedDict([
                 ('fields', [self.make_bq_schema_entry('NULLABLE', 'STRING')]),
