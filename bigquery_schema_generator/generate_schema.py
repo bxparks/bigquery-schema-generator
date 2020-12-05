@@ -190,7 +190,7 @@ class SchemaGenerator:
 
                 # Deduce the schema from this given data record.
                 if isinstance(json_object, dict):
-                    self.deduce_schema_for_line(
+                    self.deduce_schema_for_record(
                         json_object=json_object,
                         schema_map=schema_map,
                     )
@@ -212,7 +212,7 @@ class SchemaGenerator:
 
         return schema_map, self.error_logs
 
-    def deduce_schema_for_line(self, json_object, schema_map, base_path=None):
+    def deduce_schema_for_record(self, json_object, schema_map, base_path=None):
         """Figures out the BigQuery schema for the given 'json_object' and
         updates 'schema_map' with the latest info. A 'schema_map' entry of type
         'soft' is a provisional entry that can be overwritten by a subsequent
@@ -463,7 +463,7 @@ class SchemaGenerator:
 
     def get_schema_entry(self, key, value, base_path=None):
         """Determines the 'schema_entry' of the (key, value) pair. Calls
-        deduce_schema_for_line() recursively if the value is another object
+        deduce_schema_for_record() recursively if the value is another object
         instead of a primitive (this will happen only for JSON input file).
 
         'base_path' is the string representing the current path within the
@@ -480,14 +480,14 @@ class SchemaGenerator:
             # recursively figure out the RECORD
             fields = OrderedDict()
             if value_mode == 'NULLABLE':
-                self.deduce_schema_for_line(
+                self.deduce_schema_for_record(
                     json_object=value,
                     schema_map=fields,
                     base_path=new_base_path,
                 )
             else:
                 for val in value:
-                    self.deduce_schema_for_line(
+                    self.deduce_schema_for_record(
                         json_object=val,
                         schema_map=fields,
                         base_path=new_base_path,
