@@ -19,9 +19,11 @@ import os
 import json
 from io import StringIO
 from collections import OrderedDict
+from bigquery_schema_generator.generate_schema import BQ_TYPES
 from bigquery_schema_generator.generate_schema import SchemaGenerator
-from bigquery_schema_generator.generate_schema import is_string_type
+from bigquery_schema_generator.generate_schema import bq_schema_to_map
 from bigquery_schema_generator.generate_schema import convert_type
+from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import json_full_path
 from .data_reader import DataReader
 
@@ -425,7 +427,7 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertEqual('server.port', json_full_path('server', 'port'))
 
 
-class TestFromDataFile(unittest.TestCase):
+class TestDataChunksFromFile(unittest.TestCase):
     """Read the test case data from TESTDATA_FILE and verify that the expected
     schema matches the one produced by SchemaGenerator.deduce_schema(). Multiple
     test cases are stored in TESTDATA_FILE. The data_reader.py module knows how
@@ -434,7 +436,7 @@ class TestFromDataFile(unittest.TestCase):
 
     TESTDATA_FILE = 'testdata.txt'
 
-    def test(self):
+    def test_all_data_chunks(self):
         # Find the TESTDATA_FILE in the same directory as this script file.
         dir_path = os.path.dirname(os.path.realpath(__file__))
         testdata_path = os.path.join(dir_path, self.TESTDATA_FILE)
@@ -442,15 +444,20 @@ class TestFromDataFile(unittest.TestCase):
         # Read each test case (data chunk) and verify the expected schema.
         with open(testdata_path) as testdatafile:
             data_reader = DataReader(testdatafile)
-            chunk_count = 0
             while True:
                 chunk = data_reader.read_chunk()
                 if chunk is None:
                     break
-                chunk_count += 1
-                self.verify_data_chunk(chunk_count, chunk)
+                try:
+                    self.verify_data_chunk(chunk)
+                except AssertionError as e:
+                    print("Error when processing chunk starting on line_number:"
+                          f" {chunk['line_number']}\n")
+                    raise e
 
-    def verify_data_chunk(self, chunk_count, chunk):
+    def verify_data_chunk(self, chunk):
+        chunk_count = chunk['chunk_count']
+        line_number = chunk['line_number']
         data_flags = chunk['data_flags']
         input_format = 'csv' if ('csv' in data_flags) else 'json'
         keep_nulls = ('keep_nulls' in data_flags)
@@ -462,8 +469,12 @@ class TestFromDataFile(unittest.TestCase):
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']
         expected_schema = chunk['schema']
+        existing_schema = chunk['existing_schema']
 
-        print("Test chunk %s: First record: %s" % (chunk_count, records[0]))
+        print(
+            f"Test chunk: {chunk_count}; line_number: {line_number}; "
+            f"first record: {records[0]}"
+        )
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,
@@ -471,9 +482,12 @@ class TestFromDataFile(unittest.TestCase):
             keep_nulls=keep_nulls,
             quoted_values_are_strings=quoted_values_are_strings,
             sanitize_names=sanitize_names,
-            ignore_invalid_lines=ignore_invalid_lines,
-        )
-        schema_map, error_logs = generator.deduce_schema(records)
+            ignore_invalid_lines=ignore_invalid_lines)
+        existing_schema_map = None
+        if existing_schema:
+            existing_schema_map = bq_schema_to_map(json.loads(existing_schema))
+        schema_map, error_logs = generator.deduce_schema(
+            records, schema_map=existing_schema_map)
         schema = generator.flatten_schema(schema_map)
 
         # Check the schema, preserving order
@@ -481,29 +495,97 @@ class TestFromDataFile(unittest.TestCase):
         self.assertEqual(expected, schema)
 
         # Check the error messages
-        self.assertEqual(len(expected_errors), len(error_logs))
+        try:
+            self.assertEqual(len(expected_errors), len(error_logs))
+        except AssertionError as e:
+            print(f"Number of errors mismatched, expected:"
+                  f" {len(expected_errors)} got: {len(error_logs)}")
+            print(f"Errors: {error_logs}")
+            print(f"Expected Errors: {expected_errors}")
+            raise e
         self.assert_error_messages(expected_error_map, error_logs)
 
     def assert_error_messages(self, expected_error_map, error_logs):
         # Convert the list of errors into a map
         error_map = {}
         for error in error_logs:
-            line_number = error['line']
+            line_number = error['line_number']
             messages = error_map.get(line_number)
             if messages is None:
                 messages = []
                 error_map[line_number] = messages
             messages.append(error['msg'])
 
-        # Check that each entry in 'error_logs' is expected. Currently checks
-        # only that the number of errors matches on a per line basis.
-        # TODO: Look deeper and verify that the error message strings match as
-        # well.
         for line_number, messages in sorted(error_map.items()):
             expected_entry = expected_error_map.get(line_number)
             self.assertIsNotNone(expected_entry)
             expected_messages = expected_entry['msgs']
-            self.assertEqual(len(expected_messages), len(messages))
+            self.assertEqual(expected_messages, messages)
+
+
+class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
+    def test_bq_schema_to_map_round_trip_permutations(self):
+        """This checks that each possible type of consititued schema, when
+        generated, then converted to a schema_map, then back to the schema, they
+        are equal.
+
+        This function is really ugly but has good coverage. This was migrated
+        from pytest fixtures which were a bit cleaner but we ideally did not
+        want to add a new dependency / library that is used for testing.
+        """
+        valid_types = BQ_TYPES
+        valid_modes = ['NULLABLE', 'REQUIRED', 'REPEATED']
+        valid_input_formats_and_modes = [
+            ('csv', True),
+            ('csv', False),
+            ('json', False),
+        ]
+        valid_keep_null_params = [True, False]
+        valid_quoted_values_are_strings = [True, False]
+        for valid_type in valid_types:
+            for valid_mode in valid_modes:
+                bq_entry = self.make_bq_schema_entry(valid_mode, valid_type)
+                schema = [bq_entry]
+                schema_map = bq_schema_to_map(schema)
+                for input_format_and_mode in valid_input_formats_and_modes:
+                    for keep_null_param in valid_keep_null_params:
+                        for quotes_are_strings in\
+                                valid_quoted_values_are_strings:
+                            generator = SchemaGenerator(
+                                input_format=input_format_and_mode[0],
+                                infer_mode=input_format_and_mode[1],
+                                keep_nulls=keep_null_param,
+                                quoted_values_are_strings=quotes_are_strings)
+                            flattened = generator.flatten_schema(schema_map)
+                            try:
+                                self.assertEqual(schema, flattened)
+                            except AssertionError as e:
+                                print("test_bq_schema_to_map_permutations"
+                                      " failed for case where: "
+                                      f"bq_entry={bq_entry}\n"
+                                      "schema_generator created with values:"
+                                      f"{input_format_and_mode[0]}"
+                                      f"-{input_format_and_mode[1]}"
+                                      f"-{keep_null_param}"
+                                      f"-{quotes_are_strings}")
+                                raise e
+
+    def make_bq_schema_entry(self, mode, type):
+        """Creates a bigquery schema entry
+        """
+        if type == 'RECORD':
+            return OrderedDict([
+                ('fields', [self.make_bq_schema_entry('NULLABLE', 'STRING')]),
+                ('mode', mode),
+                ('name', 'a'),
+                ('type', type),
+            ])
+        else:
+            return OrderedDict([
+                ('mode', mode),
+                ('name', 'a'),
+                ('type', type),
+            ])
 
 
 if __name__ == '__main__':

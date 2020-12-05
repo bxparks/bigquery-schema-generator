@@ -1,6 +1,11 @@
 # Changelog
 
 * Unreleased
+* 1.3 (2020-12-05)
+    * Allow an existing schema file to be specified using
+      `--existing_schema_path` flag, so that new data can be merged into it.
+      See #40, #57, and #61.
+      (Thanks to abroglesc@ and bozzzzo@).
 * 1.2 (2020-10-27)
     * Print full path of nested JSON elements in error messages (See #52;
       thanks abroglesc@).
