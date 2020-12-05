@@ -371,10 +371,10 @@ fields are often completely missing from a given JSON record (instead of
 explicitly being defined to be `null`).
 
 In addition to the above, this option, when used in conjunction with
---existing_schema_map, will allow fields to be relaxed from REQUIRED to NULLABLE
-if they were REQUIRED in the existing schema and NULL rows are found in the new
-data we are inferring a schema from. In this case it can be used with either
-input_format, CSV or JSON.
+`--existing_schema_map`, will allow fields to be relaxed from REQUIRED to
+NULLABLE if they were REQUIRED in the existing schema and NULL rows are found in
+the new data we are inferring a schema from. In this case it can be used with
+either input_format, CSV or JSON.
 
 See [Issue #28](https://github.com/bxparks/bigquery-schema-generator/issues/28)
 for implementation details.
@@ -422,9 +422,9 @@ generate the schema file. The transformations are:
 My recollection is that the `bq load` command does *not* normalize the JSON key
 names. Instead it prints an error message. So the `--sanitize_names` flag is
 useful mostly for CSV files. For JSON files, you'll have to do a second pass
-through the data files to cleanup the column names anyway. See [Issue
-#14](https://github.com/bxparks/bigquery-schema-generator/issues/14) and [Issue
-#33](https://github.com/bxparks/bigquery-schema-generator/issues/33).
+through the data files to cleanup the column names anyway. See
+[Issue #14](https://github.com/bxparks/bigquery-schema-generator/issues/14) and
+[Issue #33](https://github.com/bxparks/bigquery-schema-generator/issues/33).
 
 #### Ignore Invalid Lines (`--ignore_invalid_lines`)
 
@@ -443,14 +443,16 @@ does throw an exception on a given line, we would not be able to catch it and
 continue processing. Fortunately, CSV files are fairly robust, and the schema
 deduction logic will handle any missing or extra columns gracefully.
 
-Fixes [Issue
-#49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
+Fixes
+[Issue #49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
 
 #### Existing Schema Path (`--existing_schema_path`)
-There are cases where we would like to start from an existing BigQuery table schema
-rather than starting from scratch with a new batch of data we would like to load.
-In this case we can specify the path to a local file on disk that is our existing
-bigquery table schema. This can be generated via the following bq cli command:
+
+There are cases where we would like to start from an existing BigQuery table
+schema rather than starting from scratch with a new batch of data we would like
+to load. In this case we can specify the path to a local file on disk that is
+our existing bigquery table schema. This can be generated via the following `bq
+show --schema` command:
 ```bash
 bq show --schema <PROJECT_ID>:<DATASET_NAME>.<TABLE_NAME> > existing_table_schema.json
 ```
@@ -460,11 +462,27 @@ We can then run generate-schema with the additional option
 --existing_schema_path existing_table_schema.json
 ```
 
+There is some subtle interaction between the `--existing_schema_path` and fields
+which are marked with a `mode` of `REQUIRED` in the existing schema. If the new
+data contains a `null` value (either in a CSV or JSON data file), it is not
+clear if the schema should be changed to `mode=NULLABLE` or whether the new data
+should be ignored and the schema should remain `mode=REQUIRED`. The choice is
+determined by overloading the `--infer_mode` flag:
+
+* If `--infer_mode` is given, the new schema will be allowed to revert back to
+  `NULLABLE`.
+* If `--infer_mode` is not given, the offending new record will be ignored
+  and the new schema will remain `REQUIRED`.
+
+See discussion in
+[PR #57](https://github.com/bxparks/bigquery-schema-generator/pull/57) for
+more details.
+
 ## Schema Types
 
 ### Supported Types
 
-The **bq show --schema** command produces a JSON schema file that uses the
+The `bq show --schema` command produces a JSON schema file that uses the
 older [Legacy SQL date types](https://cloud.google.com/bigquery/data-types).
 For compatibility, **generate-schema** script will also generate a schema file
 using the legacy data types.
