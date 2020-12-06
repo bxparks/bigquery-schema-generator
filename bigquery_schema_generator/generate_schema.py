@@ -204,12 +204,12 @@ class SchemaGenerator:
                         raise json_object
                 else:
                     self.log_error(
-                        'Record should be a JSON Object but was a'
-                        f' {type(json_object)}'
+                        'Record should be a JSON Object '
+                        f'but was a {type(json_object)}'
                     )
                     if not self.ignore_invalid_lines:
-                        raise Exception(f'Record must be a JSON Object but was a'
-                                        f' {type(json_object)}')
+                        raise Exception(f'Record must be a JSON Object '
+                                        f'but was a {type(json_object)}')
         finally:
             logging.info(f'Processed {self.line_number} lines')
 
@@ -719,11 +719,11 @@ class SchemaGenerator:
 
 def json_reader(input_data):
     """A generator that converts an iterable of newline-delimited JSON objects
-    ('input_data' could be a 'list' for testing purposes) into an iterable of Python
-    dict objects. If the line cannot be parsed as JSON, the exception thrown by
-    the json.loads() is yielded back, instead of the json object. The calling
-    code can check for this exception with an isinstance() function, then
-    continue processing the rest of the file.
+    ('input_data' could be a 'list' for testing purposes) into an iterable of
+    Python dict objects. If the line cannot be parsed as JSON, the exception
+    thrown by the json.loads() is yielded back, instead of the json object.
+    The calling code can check for this exception with an isinstance() function,
+    then continue processing the rest of the file.
     """
     for line in input_data:
         try:

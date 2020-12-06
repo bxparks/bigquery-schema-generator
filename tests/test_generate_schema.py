@@ -470,13 +470,15 @@ class TestDataChunksFromFile(unittest.TestCase):
                 ignore_invalid_lines=ignore_invalid_lines)
             existing_schema_map = None
             if existing_schema:
-                existing_schema_map = bq_schema_to_map(json.loads(existing_schema))
+                existing_schema_map = \
+                    bq_schema_to_map(json.loads(existing_schema))
             schema_map, error_logs = generator.deduce_schema(
                 records, schema_map=existing_schema_map)
             schema = generator.flatten_schema(schema_map)
 
             # Check the schema, preserving order
-            expected = json.loads(expected_schema, object_pairs_hook=OrderedDict)
+            expected = json.loads(expected_schema,
+                                  object_pairs_hook=OrderedDict)
             self.assertEqual(expected, schema)
 
             # Check the error messages
