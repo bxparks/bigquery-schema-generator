@@ -458,40 +458,15 @@ class TestDataChunksFromFile(unittest.TestCase):
                     raise e
 
     def verify_data_chunk(self, chunk):
+        self.verify_data_chunk_as_csv_json_dict(chunk=chunk, as_dict=False)
+        self.verify_data_chunk_as_csv_json_dict(chunk=chunk, as_dict=True)
 
-        def verify_input_data():
-            # Generate schema.
-            generator = SchemaGenerator(
-                input_format=input_format,
-                infer_mode=infer_mode,
-                keep_nulls=keep_nulls,
-                quoted_values_are_strings=quoted_values_are_strings,
-                sanitize_names=sanitize_names,
-                ignore_invalid_lines=ignore_invalid_lines)
-            existing_schema_map = None
-            if existing_schema:
-                existing_schema_map = \
-                    bq_schema_to_map(json.loads(existing_schema))
-            schema_map, error_logs = generator.deduce_schema(
-                records, schema_map=existing_schema_map)
-            schema = generator.flatten_schema(schema_map)
-
-            # Check the schema, preserving order
-            expected = json.loads(expected_schema,
-                                  object_pairs_hook=OrderedDict)
-            self.assertEqual(expected, schema)
-
-            # Check the error messages
-            try:
-                self.assertEqual(len(expected_errors), len(error_logs))
-            except AssertionError as e:
-                print(f"Number of errors mismatched, expected:"
-                      f" {len(expected_errors)} got: {len(error_logs)}")
-                print(f"Errors: {error_logs}")
-                print(f"Expected Errors: {expected_errors}")
-                raise e
-            self.assert_error_messages(expected_error_map, error_logs)
-
+    def verify_data_chunk_as_csv_json_dict(self, *, chunk, as_dict):
+        """Verify the given chunk from the testdata.txt file. If `as_dict` is
+        True, then if the input_format of the chunk is 'json', pretend
+        that the input data was given as an internal Python dict, and verify
+        the 'input_format=dict' code path in SchemaGenerator.
+        """
         chunk_count = chunk['chunk_count']
         line_number = chunk['line_number']
         data_flags = chunk['data_flags']
@@ -507,24 +482,52 @@ class TestDataChunksFromFile(unittest.TestCase):
         expected_schema = chunk['schema']
         existing_schema = chunk['existing_schema']
 
-        # Verify chunk for the given input format.
-        print(
-            f"Test chunk: {chunk_count}; line_number: {line_number}; "
-            f"first record: {records[0]}; "
-            f"input_format: {input_format}"
-        )
-        verify_input_data()
-
-        # If json, also verify the chunk data as a dict.
-        if input_format == 'json':
-            input_format = 'dict'
-            # convert to an iterable of Python dict objects
-            records = json_reader(records)
+        if as_dict:
+            if input_format == 'json':
+                print(
+                    f"Test chunk: {chunk_count}; line_number: {line_number}; "
+                    f"input_format='dict'"
+                )
+                input_format = 'dict'
+                records = json_reader(records)
+            else:
+                # Don't bother converting CSV data chunks into Python dict.
+                return
+        else:
             print(
                 f"Test chunk: {chunk_count}; line_number: {line_number}; "
-                f"input_format: {input_format}"
+                f"first record: {records[0]}"
             )
-            verify_input_data()
+
+        # Generate schema.
+        generator = SchemaGenerator(
+            input_format=input_format,
+            infer_mode=infer_mode,
+            keep_nulls=keep_nulls,
+            quoted_values_are_strings=quoted_values_are_strings,
+            sanitize_names=sanitize_names,
+            ignore_invalid_lines=ignore_invalid_lines)
+        existing_schema_map = None
+        if existing_schema:
+            existing_schema_map = bq_schema_to_map(json.loads(existing_schema))
+        schema_map, error_logs = generator.deduce_schema(
+            records, schema_map=existing_schema_map)
+        schema = generator.flatten_schema(schema_map)
+
+        # Check the schema, preserving order
+        expected = json.loads(expected_schema, object_pairs_hook=OrderedDict)
+        self.assertEqual(expected, schema)
+
+        # Check the error messages
+        try:
+            self.assertEqual(len(expected_errors), len(error_logs))
+        except AssertionError as e:
+            print(f"Number of errors mismatched, expected:"
+                  f" {len(expected_errors)} got: {len(error_logs)}")
+            print(f"Errors: {error_logs}")
+            print(f"Expected Errors: {expected_errors}")
+            raise e
+        self.assert_error_messages(expected_error_map, error_logs)
 
     def assert_error_messages(self, expected_error_map, error_logs):
         # Convert the list of errors into a map
@@ -570,7 +573,7 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                 schema_map = bq_schema_to_map(schema)
                 for input_format_and_mode in valid_input_formats_and_modes:
                     for keep_null_param in valid_keep_null_params:
-                        for quotes_are_strings in\
+                        for quotes_are_strings in \
                                 valid_quoted_values_are_strings:
                             generator = SchemaGenerator(
                                 input_format=input_format_and_mode[0],
