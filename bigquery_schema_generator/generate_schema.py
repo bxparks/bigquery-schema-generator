@@ -62,7 +62,7 @@ class SchemaGenerator:
     TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
 
     # Detect integers inside quotes.
-    INTEGER_MATCHER = re.compile(r'^[-]?\d+$')
+    INTEGER_MATCHER = re.compile(r'^[-+]?\d+$')
 
     # Max INTEGER value supported by 'bq load'.
     INTEGER_MAX_VALUE = 2**63 - 1
@@ -71,7 +71,7 @@ class SchemaGenerator:
     INTEGER_MIN_VALUE = -2**63
 
     # Detect floats inside quotes.
-    FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
+    FLOAT_MATCHER = re.compile(r'^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$')
 
     # Valid field name characters of BigQuery
     FIELD_NAME_MATCHER = re.compile(r'[^a-zA-Z0-9_]')

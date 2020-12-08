@@ -107,6 +107,95 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertFalse(
             SchemaGenerator.TIME_MATCHER.match('12:33:01.1234567'))
 
+    def test_integer_matcher_valid(self):
+        self.assertTrue(SchemaGenerator.INTEGER_MATCHER.match('1'))
+        self.assertTrue(SchemaGenerator.INTEGER_MATCHER.match('-1'))
+        self.assertTrue(SchemaGenerator.INTEGER_MATCHER.match('+1'))
+
+    def test_integer_matcher_invalid(self):
+        self.assertFalse(SchemaGenerator.INTEGER_MATCHER.match(''))
+        self.assertFalse(SchemaGenerator.INTEGER_MATCHER.match('-'))
+        self.assertFalse(SchemaGenerator.INTEGER_MATCHER.match('+'))
+
+    def test_float_matcher_valid(self):
+        # Floats w/o exponents
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1.0'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1.0'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1.0'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1.'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1.'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1.'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('.1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-.1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+.1'))
+
+        # Different signs in mantissa
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1e1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1e-1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1e+1'))
+
+        # Decimal point in mantissa.
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('2.e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-2.e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+2.e1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('2.e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-2.e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+2.e-1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('2.e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-2.e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+2.e+1'))
+
+        # Decimal point and fraction in mantissa
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('3.3e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-3.3e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+3.3e1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('3.3e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-3.3e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+3.3e-1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('3.3e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-3.3e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+3.3e+1'))
+
+        # Fraction only in mantissa
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('.4e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-.4e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+.4e1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('.4e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-.4e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+.4e-1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('.4e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-.4e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+.4e+1'))
+
+    def test_float_matcher_invalid(self):
+        # No digit in mantissa
+        self.assertFalse(SchemaGenerator.FLOAT_MATCHER.match('.e1'))
+
+        # No mantissa at all
+        self.assertFalse(SchemaGenerator.FLOAT_MATCHER.match('+e1'))
+
+        # Decimal point in exponent
+        self.assertFalse(SchemaGenerator.FLOAT_MATCHER.match('1e.1'))
+
+        # No exponent digit after 'e'
+        self.assertFalse(SchemaGenerator.FLOAT_MATCHER.match('1e'))
+
     def test_infer_value_type(self):
         generator = SchemaGenerator()
 
