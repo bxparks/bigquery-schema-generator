@@ -12,10 +12,41 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-Version: 1.3 (2020-12-05)
+**Version**: 1.3 (2020-12-05)
 
-Changelog: [CHANGELOG.md](CHANGELOG.md)
+**Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
+**Table of Contents**
+
+* [Background](#Background)
+* [Installation](#Installation)
+    * [Ubuntu Linux](#UbuntuLinux)
+    * [MacOS](#MacOS)
+* [Usage](#Usage)
+    * [Command Line](#CommandLine)
+    * [Schema Output](#SchemaOutput)
+    * [Command Line Flag Options](#FlagOptions)
+        * [Help (`--help`)](#Help)
+        * [Input Format (`--input_format`)](#InputFormat)
+        * [Keep Nulls (`--keep_nulls`)](#KeepNulls)
+        * [Quoted Values Are Strings(`--quoted_values_are_strings`)](#QuotedValuesAreStrings)
+        * [Infer Mode (`--infer_mode`)](#InferMode)
+        * [Debugging Interval (`--debugging_interval`)](#DebuggingInterval)
+        * [Debugging Map (`--debugging_map`)](#DebuggingMap)
+        * [Sanitize Names (`--sanitize_names`)](#SanitizedNames)
+        * [Ignore Invalid Lines (`--ignore_invalid_lines`)](#IgnoreInvalidLines)
+        * [Existing Schema Path (`--existing_schema_path`)](#ExistingSchemaPath)
+    * [Using as a Library](#UsingAsLibrary)
+* [Schema Types](#SchemaTypes)
+    * [Supported Types](#SupportedTypes)
+    * [Type Inferrence](#TypeInferrence)
+* [Examples](#Examples)
+* [Benchmarks](#Benchmarks)
+* [System Requirements](#SystemRequirements)
+* [Authors](#Authors)
+* [License](#License)
+
+<a name="Background"></a>
 ## Background
 
 Data can be imported into [BigQuery](https://cloud.google.com/bigquery/) using
@@ -44,6 +75,7 @@ in JSON format on the STDOUT. This schema file can be fed back into the **bq
 load** tool to create a table that is more compatible with the data fields in
 the input dataset.
 
+<a name="Installation"></a>
 ## Installation
 
 **Prerequisite**: You need have Python 3.6 or higher.
@@ -87,6 +119,7 @@ The shell script `generate-schema` will be installed somewhere in your system,
 depending on how your Python environment is configured. See below for
 some notes for Ubuntu Linux and MacOS.
 
+<a name="UbuntuLinux"></a>
 ### Ubuntu Linux (18.04, 20.04)
 
 After running `pip3 install bigquery_schema_generator`, the `generate-schema`
@@ -97,6 +130,7 @@ script may be installed in one the following locations:
 * `$HOME/.local/bin/generate-schema`
 * `$HOME/.virtualenvs/{your_virtual_env}/bin/generate-schema`
 
+<a name="MacOS"></a>
 ### MacOS (10.14 Mojave)
 
 I don't use my Mac for software development these days, and I won't upgrade to
@@ -119,7 +153,11 @@ You can install Python3 using
 `generate-schema` script will probably be installed in `/usr/local/bin` but I'm
 not completely certain.
 
+<a name="Usage"></a>
 ## Usage
+
+<a name="CommandLine"></a>
+### Command Line
 
 The `generate_schema.py` script accepts a newline-delimited JSON or
 CSV data file on the STDIN. JSON input format has been tested extensively.
@@ -161,6 +199,7 @@ then you can invoke the Python script directly:
 $ ./generate_schema.py < file.data.json > file.schema.json
 ```
 
+<a name="SchemaOutput"></a>
 ### Using the Schema Output
 
 The resulting schema file can be given to the **bq load** command using the
@@ -226,11 +265,13 @@ $ bq show --schema mydataset.mytable | python3 -m json.tool
 file. An alternative is the [jq command](https://stedolan.github.io/jq/).)
 The resulting schema file should be identical to `file.schema.json`.
 
-### Flag Options
+<a name="FlagOptions"></a>
+### Command Line Flag Options
 
 The `generate_schema.py` script supports a handful of command line flags
 as shown by the `--help` flag below.
 
+<a name="Help"></a>
 #### Help (`--help`)
 
 Print the built-in help strings:
@@ -268,6 +309,7 @@ optional arguments:
                         <project_id>:<dataset>:<table_name>
 ```
 
+<a name="InputFormat"></a>
 #### Input Format (`--input_format`)
 
 Specifies the format of the input file, either `json` (default) or `csv`.
@@ -280,6 +322,7 @@ order, even if the column contains an empty value for every record.
 See [Issue #26](https://github.com/bxparks/bigquery-schema-generator/issues/26)
 for implementation details.
 
+<a name="KeepNulls"></a>
 #### Keep Nulls (`--keep_nulls`)
 
 Normally when the input data file contains a field which has a null, empty
@@ -327,6 +370,7 @@ INFO:root:Processed 1 lines
 ]
 ```
 
+<a name="QuotedValuesAreStrings"></a>
 #### Quoted Values Are Strings (`--quoted_values_are_strings`)
 
 By default, quoted values are inspected to determine if they can be interpreted
@@ -360,6 +404,7 @@ $ generate-schema --quoted_values_are_strings
 ]
 ```
 
+<a name="InferMode"></a>
 #### Infer Mode (`--infer_mode`)
 
 Set the schema `mode` of a field to `REQUIRED` instead of the default
@@ -379,6 +424,7 @@ either input_format, CSV or JSON.
 See [Issue #28](https://github.com/bxparks/bigquery-schema-generator/issues/28)
 for implementation details.
 
+<a name="DebuggingInterval"></a>
 #### Debugging Interval (`--debugging_interval`)
 
 By default, the `generate_schema.py` script prints a short progress message
@@ -389,6 +435,7 @@ every 1000 lines of input data. This interval can be changed using the
 $ generate-schema --debugging_interval 50 < file.data.json > file.schema.json
 ```
 
+<a name="DebuggingMap"></a>
 #### Debugging Map (`--debugging_map`)
 
 Instead of printing out the BigQuery schema, the `--debugging_map` prints out
@@ -400,6 +447,7 @@ flag is intended to be used for debugging.
 $ generate-schema --debugging_map < file.data.json > file.schema.json
 ```
 
+<a name="SanitizedNames"></a>
 #### Sanitize Names (`--sanitize_names`)
 
 BigQuery column names are [restricted to certain characters and
@@ -426,6 +474,7 @@ through the data files to cleanup the column names anyway. See
 [Issue #14](https://github.com/bxparks/bigquery-schema-generator/issues/14) and
 [Issue #33](https://github.com/bxparks/bigquery-schema-generator/issues/33).
 
+<a name="IgnoreInvalidLines"></a>
 #### Ignore Invalid Lines (`--ignore_invalid_lines`)
 
 By default, if an error is encountered on a particular line, processing stops
@@ -446,6 +495,7 @@ deduction logic will handle any missing or extra columns gracefully.
 Fixes
 [Issue #49](https://github.com/bxparks/bigquery-schema-generator/issues/49).
 
+<a name="ExistingSchemaPath"></a>
 #### Existing Schema Path (`--existing_schema_path`)
 
 There are cases where we would like to start from an existing BigQuery table
@@ -478,8 +528,72 @@ See discussion in
 [PR #57](https://github.com/bxparks/bigquery-schema-generator/pull/57) for
 more details.
 
+<a name="UsingAsLibrary"></a>
+### Using As a Library
+
+The `bigquery_schema_generator` module can be used as a library by an external
+Python client code by creating an instance of `SchemaGenerator` and calling the
+`run(input, output)` method:
+
+```python
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+
+generator = SchemaGenerator(
+    input_format=input_format,
+    infer_mode=infer_mode,
+    keep_nulls=keep_nulls,
+    quoted_values_are_strings=quoted_values_are_strings,
+    debugging_interval=debugging_interval,
+    debugging_map=debugging_map,
+    sanitize_names=sanitize_names,
+    ignore_invalid_lines=ignore_invalid_lines,
+)
+generator.run(input_file=input_file, output_file=output_file)
+```
+
+If you need to process the generated schema programmatically, use the
+`deduce_schema()` method and process the resulting `schema_map` and `error_log`
+data structures like this:
+
+```python
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+...
+generator = SchemaGenerator(
+  ...(same as above)...
+)
+
+schema_map, error_logs = generator.deduce_schema(input_data=input_data)
+
+# Print errors if desired.
+for error in error_logs:
+    logging.info("Problem on line %s: %s", error['line_number'], error['msg'])
+
+schema = generator.flatten_schema(schema_map)
+json.dump(schema, output_file, indent=2)
+```
+
+The `decude_schema()` now supports starting from an existing `schema_map`
+instead of starting from scratch. This is the internal version of the
+`--existing_schema_path` functionality.
+
+```python
+schema_map1, error_logs = generator.deduce_schema(input_data=data1)
+schema_map2, error_logs = generator.deduce_schema(
+    input_data=data1, schema_map=schema_map1
+)
+```
+
+When using the `SchemaGenerator` object directly, the `input_format` parameter
+supports `dict` as a third input format in addition to the `json` and `csv`
+formats. The `dict` input format tells `SchemaGenerator.deduce_schema()` to
+accept a list of Python dict objects as the `input_data`. This is useful if the
+input data (usually JSON) has already been read into memory and parsed from
+newline-delimited JSON into native Python dict objects.
+
+<a name="SchemaTypes"></a>
 ## Schema Types
 
+<a name="SupportedTypes"></a>
 ### Supported Types
 
 The `bq show --schema` command produces a JSON schema file that uses the
@@ -531,6 +645,7 @@ The following types are _not_ supported at all:
 * `BYTES`
 * `DATETIME` (unable to distinguish from `TIMESTAMP`)
 
+<a name="TypeInferrence"></a>
 ### Type Inferrence Rules
 
 The `generate-schema` script attempts to emulate the various type conversion and
@@ -572,6 +687,7 @@ compatibility rules implemented by **bq load**:
     * integers less than `-2^63` (-9223372036854775808)
     * (See [Issue #18](https://github.com/bxparks/bigquery-schema-generator/issues/18) for more details)
 
+<a name="Examples"></a>
 ## Examples
 
 Here is an example of a single JSON data record on the STDIN (the `^D` below
@@ -705,41 +821,7 @@ INFO:root:Processed 4 lines
 ]
 ```
 
-## Using As a Library
-
-The `bigquery_schema_generator` module can be used as a library by an external
-Python client code by creating an instance of `SchemaGenerator` and calling the
-`run(input, output)` method:
-
-```python
-from bigquery_schema_generator.generate_schema import SchemaGenerator
-
-generator = SchemaGenerator(
-    input_format=input_format,
-    infer_mode=infer_mode,
-    keep_nulls=keep_nulls,
-    quoted_values_are_strings=quoted_values_are_strings,
-    debugging_interval=debugging_interval,
-    debugging_map=debugging_map)
-generator.run(input_file, output_file)
-```
-
-If you need to process the generated schema programmatically, use the
-`deduce_schema()` method and process the resulting `schema_map` and `error_log`
-data structures like this:
-
-```python
-from bigquery_schema_generator.generate_schema import SchemaGenerator
-...
-schema_map, error_logs = generator.deduce_schema(input_file)
-
-for error in error_logs:
-    logging.info("Problem on line %s: %s", error['line'], error['msg'])
-
-schema = generator.flatten_schema(schema_map)
-json.dump(schema, output_file, indent=2)
-```
-
+<a name="Benchmarks"></a>
 ## Benchmarks
 
 I wrote the `bigquery_schema_generator/anonymize.py` script to create an
@@ -759,6 +841,7 @@ $ bigquery_schema_generator/generate_schema.py < anon1.data.json \
 took 67s on a Dell Precision M4700 laptop with an Intel Core i7-3840QM CPU @
 2.80GHz, 32GB of RAM, Ubuntu Linux 18.04, Python 3.6.7.
 
+<a name="SystemRequirements"></a>
 ## System Requirements
 
 This project was initially developed on Ubuntu 17.04 using Python 3.5.3, but it
@@ -776,6 +859,12 @@ I have tested it on:
 The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
 and 3.8.
 
+<a name="License"></a>
+## License
+
+Apache License 2.0
+
+<a name="Authors"></a>
 ## Authors
 
 * Created by Brian T. Park (brian@xparks.net).
@@ -793,8 +882,6 @@ and 3.8.
   (abroglesc@).
 * Allow an existing schema file to be specified using `--existing_schema_path`,
   by Austin Brogle (abroglesc@) and Bozo Dragojevic (bozzzzo@).
+* Allow `SchemaGenerator.deduce_schema()` to accept a list of native Python
+  `dict` objects, by Zigfrid Zvezdin (ZiggerZZ@).
 
-
-## License
-
-Apache License 2.0
