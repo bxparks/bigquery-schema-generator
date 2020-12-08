@@ -19,24 +19,25 @@ There are a lot of instructions on the web that uses
 those are deprecated. The tool that seems to work for me is
 [Twine](https://github.com/pypa/twine).
 
-[PyPI](https://pypi.python.org/pypi) does not support Markdown, so
-we use `pypandoc` and `pandoc` to convert Markdown to RST.
-`pypandoc` is a thin Python wrapper around `pandoc`.
+[PyPI](https://pypi.python.org/pypi) now supports Markdown so we no longer need
+to download `pypandoc` (Python package) and `pandoc` (apt package) to convert
+Markdown to RST.
 
 Install the following packages:
 ```
-$ sudo apt install pandoc
-$ sudo -H pip3 install setuptools wheel twine pypandoc
+$ sudo -H pip3 install setuptools wheel twine
 ```
 
 ### Steps
 
 1. Edit `setup.py` and increment the `version`.
 1. Push all changes to `develop` branch.
-1. Merge `develop` into `master` branch, and checkout the `master` branch.
+1. Create a GitHub pull request (PR) from `develop` into `master` branch.
+1. Merge the PR into `master`.
+1. Create a new Release in GitHub with the new tag label.
 1. Create the dist using `python3 setup.py sdist`.
-1. Upload to PyPI using `twine upload dist/*`.
-   (Need to enter my PyPI login creddentials).
+1. Upload to PyPI using `twine upload
+   dist/bigquery-schema-generator-{version}.tar.gz`.
+    * Enter my PyPI login creddentials.
     * If `dist/` becomes too cluttered, we can remove the entire `dist/`
       directory and run `python3 setup.py sdist` again.
-1. Tag the `master` branch with the release on GitHub.
