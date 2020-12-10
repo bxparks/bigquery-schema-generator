@@ -676,6 +676,79 @@ SCHEMA
 ]
 END
 
+# Support less common incantations of integers
+DATA
+{ "qi": "1" }
+{ "qi": "+1" }
+{ "qi": "-1" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qi",
+    "type": "INTEGER"
+  }
+]
+END
+
+# Support less common incantations of floats. The examples should match the
+# test cases in TestSchemaGenerator.test_float_matcher_valid() ideally.
+DATA
+{ "qf": "1.0" }
+{ "qf": "-1.0" }
+{ "qf": "+1.0" }
+{ "qf": "1." }
+{ "qf": "-1." }
+{ "qf": "+1." }
+{ "qf": ".1" }
+{ "qf": "-.1" }
+{ "qf": "+.1" }
+{ "qf": "1e1" }
+{ "qf": "-1e1" }
+{ "qf": "+1e1" }
+{ "qf": "1e-1" }
+{ "qf": "-1e-1" }
+{ "qf": "+1e-1" }
+{ "qf": "1e+1" }
+{ "qf": "-1e+1" }
+{ "qf": "+1e+1" }
+{ "qf": "2.e1" }
+{ "qf": "-2.e1" }
+{ "qf": "+2.e1" }
+{ "qf": "2.e-1" }
+{ "qf": "-2.e-1" }
+{ "qf": "+2.e-1" }
+{ "qf": "2.e+1" }
+{ "qf": "-2.e+1" }
+{ "qf": "+2.e+1" }
+{ "qf": "3.3e1" }
+{ "qf": "-3.3e1" }
+{ "qf": "+3.3e1" }
+{ "qf": "3.3e-1" }
+{ "qf": "-3.3e-1" }
+{ "qf": "+3.3e-1" }
+{ "qf": "3.3e+1" }
+{ "qf": "-3.3e+1" }
+{ "qf": "+3.3e+1" }
+{ "qf": ".4e1" }
+{ "qf": "-.4e1" }
+{ "qf": "+.4e1" }
+{ "qf": ".4e-1" }
+{ "qf": "-.4e-1" }
+{ "qf": "+.4e-1" }
+{ "qf": ".4e+1" }
+{ "qf": "-.4e+1" }
+{ "qf": "+.4e+1" }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "qf",
+    "type": "FLOAT"
+  }
+]
+END
+
 # Integers in quoted strings that fit inside a signed 64-bit -> INTEGER
 # See https://github.com/bxparks/bigquery-schema-generator/issues/18.
 DATA

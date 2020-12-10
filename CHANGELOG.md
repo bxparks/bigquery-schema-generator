@@ -1,6 +1,17 @@
 # Changelog
 
 * Unreleased
+* 1.4 (2020-12-09)
+    * Add 'dict' as a third `input_format` when `SchemaGenerator` is used as a
+      library. This can be useful when the data has already been transformed
+      into a list of native Python `dict` objects (see #58, thanks to
+      ZiggerZZ@).
+    * Expand the pattern matchers for quoted integers and quoted floating point
+      numbers to be more compatible with the patterns recognized by `bq load
+      --autodetect`.
+    * Add Table of Contents to READMD.md. Add usage info for the
+      `schema_map=existing_schema_map` and the `input_format='dict'` parameters
+      in the `SchemaGenerator()` constructor.
 * 1.3 (2020-12-05)
     * Allow an existing schema file to be specified using
       `--existing_schema_path` flag, so that new data can be merged into it.

@@ -62,7 +62,7 @@ class SchemaGenerator:
     TIME_MATCHER = re.compile(r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$')
 
     # Detect integers inside quotes.
-    INTEGER_MATCHER = re.compile(r'^[-]?\d+$')
+    INTEGER_MATCHER = re.compile(r'^[-+]?\d+$')
 
     # Max INTEGER value supported by 'bq load'.
     INTEGER_MAX_VALUE = 2**63 - 1
@@ -71,7 +71,7 @@ class SchemaGenerator:
     INTEGER_MIN_VALUE = -2**63
 
     # Detect floats inside quotes.
-    FLOAT_MATCHER = re.compile(r'^[-]?\d+\.\d+$')
+    FLOAT_MATCHER = re.compile(r'^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$')
 
     # Valid field name characters of BigQuery
     FIELD_NAME_MATCHER = re.compile(r'[^a-zA-Z0-9_]')
@@ -108,12 +108,12 @@ class SchemaGenerator:
         # If CSV, force keep_nulls = True
         self.keep_nulls = True if (input_format == 'csv') else keep_nulls
 
-        # If JSON, sort the schema using the name of the column to be
+        # If JSON or dict, sort the schema using the name of the column to be
         # consistent with 'bq load'.
         # If CSV, preserve the original ordering because 'bq load` matches the
         # CSV column with the respective schema entry using the position of the
         # column in the schema.
-        self.sorted_schema = (input_format == 'json')
+        self.sorted_schema = (input_format in {'json', 'dict'})
 
         self.line_number = 0
         self.error_logs = []
@@ -121,8 +121,8 @@ class SchemaGenerator:
     def log_error(self, msg):
         self.error_logs.append({'line_number': self.line_number, 'msg': msg})
 
-    def deduce_schema(self, file, *, schema_map=None):
-        """Loop through each newlined-delimited line of 'file' and deduce the
+    def deduce_schema(self, input_data, *, schema_map=None):
+        """Loop through each element of 'input_data' and deduce the
         BigQuery schema. The schema is returned as a recursive map that contains
         both the database schema and some additional metadata about each entry.
         It has the following form:
@@ -171,9 +171,11 @@ class SchemaGenerator:
         """
 
         if self.input_format == 'csv':
-            reader = csv.DictReader(file)
+            reader = csv.DictReader(input_data)
         elif self.input_format == 'json' or self.input_format is None:
-            reader = json_reader(file)
+            reader = json_reader(input_data)
+        elif self.input_format == 'dict':
+            reader = input_data
         else:
             raise Exception(f"Unknown input_format '{self.input_format}'")
 
@@ -202,11 +204,12 @@ class SchemaGenerator:
                         raise json_object
                 else:
                     self.log_error(
-                        'Record should be a JSON Object but was a'
-                        f' {type(json_object)}'
+                        'Record should be a JSON Object '
+                        f'but was a {type(json_object)}'
                     )
                     if not self.ignore_invalid_lines:
-                        raise Exception('Record must be a JSON Object')
+                        raise Exception(f'Record must be a JSON Object '
+                                        f'but was a {type(json_object)}')
         finally:
             logging.info(f'Processed {self.line_number} lines')
 
@@ -714,15 +717,15 @@ class SchemaGenerator:
             print(file=output_file)
 
 
-def json_reader(file):
+def json_reader(input_data):
     """A generator that converts an iterable of newline-delimited JSON objects
-    ('file' could be a 'list' for testing purposes) into an iterable of Python
-    dict objects. If the line cannot be parsed as JSON, the exception thrown by
-    the json.loads() is yielded back, instead of the json object. The calling
-    code can check for this exception with an isinstance() function, then
-    continue processing the rest of the file.
+    ('input_data' could be a 'list' for testing purposes) into an iterable of
+    Python dict objects. If the line cannot be parsed as JSON, the exception
+    thrown by the json.loads() is yielded back, instead of the json object.
+    The calling code can check for this exception with an isinstance() function,
+    then continue processing the rest of the file.
     """
-    for line in file:
+    for line in input_data:
         try:
             yield json.loads(line)
         except Exception as e:

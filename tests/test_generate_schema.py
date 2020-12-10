@@ -25,6 +25,7 @@ from bigquery_schema_generator.generate_schema import bq_schema_to_map
 from bigquery_schema_generator.generate_schema import convert_type
 from bigquery_schema_generator.generate_schema import is_string_type
 from bigquery_schema_generator.generate_schema import json_full_path
+from bigquery_schema_generator.generate_schema import json_reader
 from .data_reader import DataReader
 
 
@@ -105,6 +106,95 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertFalse(SchemaGenerator.TIME_MATCHER.match('123:33:01'))
         self.assertFalse(
             SchemaGenerator.TIME_MATCHER.match('12:33:01.1234567'))
+
+    def test_integer_matcher_valid(self):
+        self.assertTrue(SchemaGenerator.INTEGER_MATCHER.match('1'))
+        self.assertTrue(SchemaGenerator.INTEGER_MATCHER.match('-1'))
+        self.assertTrue(SchemaGenerator.INTEGER_MATCHER.match('+1'))
+
+    def test_integer_matcher_invalid(self):
+        self.assertFalse(SchemaGenerator.INTEGER_MATCHER.match(''))
+        self.assertFalse(SchemaGenerator.INTEGER_MATCHER.match('-'))
+        self.assertFalse(SchemaGenerator.INTEGER_MATCHER.match('+'))
+
+    def test_float_matcher_valid(self):
+        # Floats w/o exponents
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1.0'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1.0'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1.0'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1.'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1.'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1.'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('.1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-.1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+.1'))
+
+        # Different signs in mantissa
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1e1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1e-1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('1e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-1e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+1e+1'))
+
+        # Decimal point in mantissa.
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('2.e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-2.e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+2.e1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('2.e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-2.e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+2.e-1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('2.e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-2.e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+2.e+1'))
+
+        # Decimal point and fraction in mantissa
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('3.3e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-3.3e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+3.3e1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('3.3e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-3.3e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+3.3e-1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('3.3e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-3.3e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+3.3e+1'))
+
+        # Fraction only in mantissa
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('.4e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-.4e1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+.4e1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('.4e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-.4e-1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+.4e-1'))
+
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('.4e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('-.4e+1'))
+        self.assertTrue(SchemaGenerator.FLOAT_MATCHER.match('+.4e+1'))
+
+    def test_float_matcher_invalid(self):
+        # No digit in mantissa
+        self.assertFalse(SchemaGenerator.FLOAT_MATCHER.match('.e1'))
+
+        # No mantissa at all
+        self.assertFalse(SchemaGenerator.FLOAT_MATCHER.match('+e1'))
+
+        # Decimal point in exponent
+        self.assertFalse(SchemaGenerator.FLOAT_MATCHER.match('1e.1'))
+
+        # No exponent digit after 'e'
+        self.assertFalse(SchemaGenerator.FLOAT_MATCHER.match('1e'))
 
     def test_infer_value_type(self):
         generator = SchemaGenerator()
@@ -432,6 +522,7 @@ class TestDataChunksFromFile(unittest.TestCase):
     schema matches the one produced by SchemaGenerator.deduce_schema(). Multiple
     test cases are stored in TESTDATA_FILE. The data_reader.py module knows how
     to parse that file.
+    JSON chunks are verified as JSON but also as dict.
     """
 
     TESTDATA_FILE = 'testdata.txt'
@@ -456,6 +547,15 @@ class TestDataChunksFromFile(unittest.TestCase):
                     raise e
 
     def verify_data_chunk(self, chunk):
+        self.verify_data_chunk_as_csv_json_dict(chunk=chunk, as_dict=False)
+        self.verify_data_chunk_as_csv_json_dict(chunk=chunk, as_dict=True)
+
+    def verify_data_chunk_as_csv_json_dict(self, *, chunk, as_dict):
+        """Verify the given chunk from the testdata.txt file. If `as_dict` is
+        True, then if the input_format of the chunk is 'json', pretend
+        that the input data was given as an internal Python dict, and verify
+        the 'input_format=dict' code path in SchemaGenerator.
+        """
         chunk_count = chunk['chunk_count']
         line_number = chunk['line_number']
         data_flags = chunk['data_flags']
@@ -471,10 +571,23 @@ class TestDataChunksFromFile(unittest.TestCase):
         expected_schema = chunk['schema']
         existing_schema = chunk['existing_schema']
 
-        print(
-            f"Test chunk: {chunk_count}; line_number: {line_number}; "
-            f"first record: {records[0]}"
-        )
+        if as_dict:
+            if input_format == 'json':
+                print(
+                    f"Test chunk: {chunk_count}; line_number: {line_number}; "
+                    f"input_format='dict'"
+                )
+                input_format = 'dict'
+                records = json_reader(records)
+            else:
+                # Don't bother converting CSV data chunks into Python dict.
+                return
+        else:
+            print(
+                f"Test chunk: {chunk_count}; line_number: {line_number}; "
+                f"first record: {records[0]}"
+            )
+
         # Generate schema.
         generator = SchemaGenerator(
             input_format=input_format,
@@ -549,7 +662,7 @@ class TestBigQuerySchemaToSchemaMap(unittest.TestCase):
                 schema_map = bq_schema_to_map(schema)
                 for input_format_and_mode in valid_input_formats_and_modes:
                     for keep_null_param in valid_keep_null_params:
-                        for quotes_are_strings in\
+                        for quotes_are_strings in \
                                 valid_quoted_values_are_strings:
                             generator = SchemaGenerator(
                                 input_format=input_format_and_mode[0],
