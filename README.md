@@ -12,11 +12,11 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-**Version**: 1.3 (2020-12-05)
+**Version**: 1.4 (2020-12-09)
 
 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
-**Table of Contents**
+## Table of Contents
 
 * [Background](#Background)
 * [Installation](#Installation)
@@ -572,7 +572,7 @@ schema = generator.flatten_schema(schema_map)
 json.dump(schema, output_file, indent=2)
 ```
 
-The `decude_schema()` now supports starting from an existing `schema_map`
+The `deduce_schema()` now supports starting from an existing `schema_map`
 instead of starting from scratch. This is the internal version of the
 `--existing_schema_path` functionality.
 
