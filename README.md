@@ -43,8 +43,9 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
 * [Examples](#Examples)
 * [Benchmarks](#Benchmarks)
 * [System Requirements](#SystemRequirements)
-* [Authors](#Authors)
 * [License](#License)
+* [Feedback and Support](#Feedback)
+* [Authors](#Authors)
 
 <a name="Background"></a>
 ## Background
@@ -863,6 +864,20 @@ and 3.8.
 ## License
 
 Apache License 2.0
+
+<a name="Feedback"></a>
+## Feedback and Support
+
+If you find this library useful, consider starring this project on GitHub. The
+stars will let me prioritize the more popular libraries over the less popular
+ones.
+
+If you have any questions, comments, bug reports, or feature requests, please
+file a GitHub ticket instead of emailing me unless the content is sensitive.
+(The problem with email is that I cannot reference the email conversation when
+other people ask similar questions later.) I'd love to hear about how this
+software and its documentation can be improved. I can't promise that I will
+incorporate everything, but I will give your ideas serious consideration.
 
 <a name="Authors"></a>
 ## Authors
