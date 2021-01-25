@@ -86,6 +86,7 @@ class SchemaGenerator:
         debugging_map=False,
         sanitize_names=False,
         ignore_invalid_lines=False,
+        csv_dialect=None,
     ):
         self.input_format = input_format
         self.infer_mode = infer_mode
@@ -93,6 +94,7 @@ class SchemaGenerator:
         self.quoted_values_are_strings = quoted_values_are_strings
         self.debugging_interval = debugging_interval
         self.debugging_map = debugging_map
+        self.csv_dialect = csv_dialect
 
         # Make column names conform to BigQuery. Illegal characters outside the
         # range of [a-zA-Z0-9-_] are converted into an underscore. Names longer
@@ -171,7 +173,10 @@ class SchemaGenerator:
         """
 
         if self.input_format == 'csv':
-            reader = csv.DictReader(input_data)
+            if self.csv_dialect:
+                reader = csv.DictReader(input_data, dialect=self.csv_dialect)
+            else:
+                reader = csv.DictReader(input_data)
         elif self.input_format == 'json' or self.input_format is None:
             reader = json_reader(input_data)
         elif self.input_format == 'dict':
