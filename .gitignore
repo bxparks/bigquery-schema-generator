@@ -21,3 +21,5 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+venv/
+.idea/
