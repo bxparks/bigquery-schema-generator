@@ -28,27 +28,33 @@ generator = SchemaGenerator(
     # csv_dialect=PaywayDialect
 )
 
-def generate_schema(input_file, encryption_key_id):
+def generate_schema(input_file, encryption_key_id, personal_columns):
   schema_map, _ = generator.deduce_schema(input_file)
 
   schema = generator.flatten_schema(schema_map)
   for item in schema:
       item.update({'description': 'Describe this column briefly',
-                  'privacy_classification': 'personal_data/non_personal_data'})
+                  'privacy_classification': 'non_personal_data'})
       
 
       if encryption_key_id == item['name']:
         item.update({'encryption_key_id': True})
 
+      if item['name'] in personal_columns:
+        item.update({'privacy_classification': 'personal_data'})
+
   print(json.dumps(schema, indent=2))
 
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description='Generate a Schema')
+  parser = argparse.ArgumentParser(description='Generate a schema for Kirby')
   parser.add_argument('input', type=argparse.FileType('r'))
   parser.add_argument('--encryption_key_id', help='Column that should be key for encryption, if dataset should be encrypted')
+  parser.add_argument('--personal_columns', nargs='+', help='Columns that contain personal data', default=[])
 
   args = parser.parse_args()
   print(args)
-  generate_schema(input_file = args.input, encryption_key_id = args.encryption_key_id)
+  generate_schema(input_file = args.input, 
+                  encryption_key_id = args.encryption_key_id,
+                  personal_columns = args.personal_columns)
 
