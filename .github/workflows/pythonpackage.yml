@@ -15,8 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy: 
       matrix:
-        # 3.5 does not support f-strings
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -37,10 +36,8 @@ jobs:
         # Stop the build for most python errors.
         # W503 and W504 are both enabled by default and are mutual
         # contradictory, so we have to suppress one of them
-        # E501 uses 79 columns by default, but 80 is the default line wrap in
-        # vim, so change the line-length.
-        flake8 . --count --ignore W503 --show-source --statistics \
-            --max-line-length=80
+        # line length is 120. If that's a problem, get a wider screen
+        flake8 . --count --ignore W503 --show-source --statistics --max-line-length=120
 
         # Exit-zero treats all errors as warnings.
         # The complexity warning is not useful... in fact the whole thing is
