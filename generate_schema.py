@@ -5,10 +5,7 @@ import json
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 
 
-# POC for generating schemas for Kirby ingestion pipelines
-# A schema should have personal_data/non_personal_data even if it's not encrypted
-# (full dumps with a 30 day retention), so that we have metadata on where we have personal data.
-
+# Generating schemas for Kirby ingestion pipelines
 
 class PaywayDialect(csv.Dialect):
     delimiter = '^'
