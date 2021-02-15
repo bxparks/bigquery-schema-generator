@@ -28,13 +28,17 @@ generator = SchemaGenerator(
     # csv_dialect=PaywayDialect
 )
 
-def generate_schema(input_file):
+def generate_schema(input_file, encryption_key_id):
   schema_map, _ = generator.deduce_schema(input_file)
 
   schema = generator.flatten_schema(schema_map)
   for item in schema:
       item.update({'description': 'Describe this column briefly',
                   'privacy_classification': 'personal_data/non_personal_data'})
+      
+
+      if encryption_key_id == item['name']:
+        item.update({'encryption_key_id': True})
 
   print(json.dumps(schema, indent=2))
 
@@ -42,7 +46,9 @@ def generate_schema(input_file):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Generate a Schema')
   parser.add_argument('input', type=argparse.FileType('r'))
+  parser.add_argument('--encryption_key_id', help='Column that should be key for encryption, if dataset should be encrypted')
 
   args = parser.parse_args()
-  generate_schema(input_file = args.input)
+  print(args)
+  generate_schema(input_file = args.input, encryption_key_id = args.encryption_key_id)
 
