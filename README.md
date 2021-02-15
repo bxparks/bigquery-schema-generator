@@ -4,26 +4,26 @@ Generates schema files that are used for describing data that is ingested by Kir
 ## Usage
 A sample data file is required for analyzing which will be used when generating the final schema.
 ```
-$ python poc_schema_generator.py <sample_data_file> --encryption_key_id <key_column_name> --personal_columns <column_names> 
+$ python3 generate_schema.py <sample_data_file> --encryption_key_id <key_column_name> --personal_columns <column_names> 
 ```
-example_data_file can be example.csv or example.json
-encryption_key_id the column to use for keys, if dataset is to be encrypted
+sample_data_file: path to the sample file to be analyzed
+encryption_key_id: If dataset is to be encrypted the column to use for keys, usually the user id.
 
-This will return the analyzed schema to standard out. To save it to a file:
+This will return the generated schema to stdout. To save it to a file:
 ```
-$ python poc_schema_generator <sample_data_file> [options] > schema.json
+$ python3 generate_schema.py <sample_data_file> [options] > schema.json
 ```
 
 
 For a description on all options, use:
 ```
- python3 poc_schema_generator.py -h   
+$ python3 generate_schema.py -h   
 ```
 
 ### Examples
 
 ```
- python3 poc_schema_generator.py  example_data_file.csv --encryption_key_id user_id --personal_columns name email
+$ python3 generate_schema.py example_data_file.csv --encryption_key_id user_id --personal_columns name email
 ```
 
 
@@ -40,6 +40,6 @@ Example JSON sample file:
 TODO: @dnjo Add JSON example
 ```
 
-### TODO
+## TODO
 * Add support for nested JSON properties
 
