@@ -14,20 +14,16 @@ class PaywayDialect(csv.Dialect):
   quotechar = '"'
   lineterminator = '\r\n'
 
+csv_dialects = {
+        "payway": PaywayDialect
+  }
 
-def generate_schema(input_file, encryption_key_id, personal_columns, input_format):
+def generate_schema(input_file, encryption_key_id, personal_columns, input_format, csv_dialect):
 
   generator = SchemaGenerator(
       input_format=input_format,
-      # infer_mode=infer_mode,
-      # keep_nulls=keep_nulls,
-      # quoted_values_are_strings=quoted_values_are_strings,
-      # debugging_interval=debugging_interval,
-      # debugging_map=debugging_map,
-      # sanitize_names=True,
-      # ignore_invalid_lines=ignore_invalid_lines,
       infer_mode=True,
-      # csv_dialect=PaywayDialect
+      csv_dialect=csv_dialect
   )
 
   schema_map, _ = generator.deduce_schema(input_file)
@@ -37,7 +33,6 @@ def generate_schema(input_file, encryption_key_id, personal_columns, input_forma
       item.update({'description': 'Describe this column briefly',
                   'privacy_classification': 'non_personal_data'})
       
-
       if encryption_key_id == item['name']:
         item.update({'encryption_key_id': True})
 
@@ -53,11 +48,12 @@ if __name__ == "__main__":
   parser.add_argument('--encryption_key_id', help='Column that should be key for encryption, if dataset should be encrypted')
   parser.add_argument('--personal_columns', nargs='+', help='Columns that contain personal data', default=[])
   parser.add_argument('--input_format', help='json or csv (default = csv)', default='csv')
-
+  parser.add_argument('--csv_dialect', choices=csv_dialects.keys(), help='')
   args = parser.parse_args()
-  print(args)
+  
   generate_schema(input_file = args.input, 
                   encryption_key_id = args.encryption_key_id,
                   personal_columns = args.personal_columns,
-                  input_format = args.input_format)
+                  input_format = args.input_format,
+                  csv_dialect = csv_dialects.get(args.csv_dialect))
 

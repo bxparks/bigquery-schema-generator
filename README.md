@@ -1,6 +1,8 @@
 # Kirby Schema Generator
 Generates schema files that are used for describing data that is ingested by Kirby.
 
+Description has to be updated manually after schema generation.
+
 ## Usage
 A sample data file is required for analyzing which will be used when generating the final schema.
 ```
@@ -23,7 +25,7 @@ $ python3 generate_schema.py -h
 ### Examples
 
 ```
-$ python3 generate_schema.py example_data_file.csv --encryption_key_id user_id --personal_columns name email
+$ python3 generate_schema.py sample_data_file.csv --encryption_key_id user_id --personal_columns name email
 ```
 
 
