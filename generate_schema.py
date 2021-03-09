@@ -26,6 +26,10 @@ csv_dialects = {
 
 
 def generate_schema(input_file, encryption_key_id, personal_columns, input_format, csv_dialect):
+    if csv_dialect is None:
+        sample = input_file.read()
+        input_file.seek(0)
+        csv_dialect = csv.Sniffer().sniff(sample)
     generator = SchemaGenerator(
         input_format=input_format,
         infer_mode=True,
@@ -56,7 +60,6 @@ if __name__ == "__main__":
     parser.add_argument('--input_format', help='json or csv (default = csv)', default='csv')
     parser.add_argument('--csv_dialect', choices=csv_dialects.keys(), help='')
     args = parser.parse_args()
-
     generate_schema(input_file=args.input,
                     encryption_key_id=args.encryption_key_id,
                     personal_columns=args.personal_columns,
