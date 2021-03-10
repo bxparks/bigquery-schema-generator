@@ -1968,3 +1968,193 @@ SCHEMA
   }
 ]
 END
+
+# Test a JSON record that is nested 26-levels deep. This issue
+# (https://github.com/bxparks/bigquery-schema-generator/issues/51) claims
+# that there is a problem, but I cannot reproduce it with the following test.
+DATA
+{ "a": { "b": { "c": { "d": { "e": { "f": { "g": { "h": { "i": { "j": { "k": { "l": { "m" : { "n": { "o": { "p" : { "q": { "r": { "s": { "t": { "u": { "v": { "w": { "x": { "y": { "z": 1 }}}}}}}}}}}}}}}}}}}}}}}}}}
+SCHEMA
+[
+  {
+    "fields": [
+      {
+        "fields": [
+          {
+            "fields": [
+              {
+                "fields": [
+                  {
+                    "fields": [
+                      {
+                        "fields": [
+                          {
+                            "fields": [
+                              {
+                                "fields": [
+                                  {
+                                    "fields": [
+                                      {
+                                        "fields": [
+                                          {
+                                            "fields": [
+                                              {
+                                                "fields": [
+                                                  {
+                                                    "fields": [
+                                                      {
+                                                        "fields": [
+                                                          {
+                                                            "fields": [
+                                                              {
+                                                                "fields": [
+                                                                  {
+                                                                    "fields": [
+                                                                      {
+                                                                        "fields": [
+                                                                          {
+                                                                            "fields": [
+                                                                              {
+                                                                                "fields": [
+                                                                                  {
+                                                                                    "fields": [
+                                                                                      {
+                                                                                        "fields": [
+                                                                                          {
+                                                                                            "fields": [
+                                                                                              {
+                                                                                                "fields": [
+                                                                                                  {
+                                                                                                    "fields": [
+                                                                                                      {
+                                                                                                        "mode": "NULLABLE",
+                                                                                                        "name": "z",
+                                                                                                        "type": "INTEGER"
+                                                                                                      }
+                                                                                                    ],
+                                                                                                    "mode": "NULLABLE",
+                                                                                                    "name": "y",
+                                                                                                    "type": "RECORD"
+                                                                                                  }
+                                                                                                ],
+                                                                                                "mode": "NULLABLE",
+                                                                                                "name": "x",
+                                                                                                "type": "RECORD"
+                                                                                              }
+                                                                                            ],
+                                                                                            "mode": "NULLABLE",
+                                                                                            "name": "w",
+                                                                                            "type": "RECORD"
+                                                                                          }
+                                                                                        ],
+                                                                                        "mode": "NULLABLE",
+                                                                                        "name": "v",
+                                                                                        "type": "RECORD"
+                                                                                      }
+                                                                                    ],
+                                                                                    "mode": "NULLABLE",
+                                                                                    "name": "u",
+                                                                                    "type": "RECORD"
+                                                                                  }
+                                                                                ],
+                                                                                "mode": "NULLABLE",
+                                                                                "name": "t",
+                                                                                "type": "RECORD"
+                                                                              }
+                                                                            ],
+                                                                            "mode": "NULLABLE",
+                                                                            "name": "s",
+                                                                            "type": "RECORD"
+                                                                          }
+                                                                        ],
+                                                                        "mode": "NULLABLE",
+                                                                        "name": "r",
+                                                                        "type": "RECORD"
+                                                                      }
+                                                                    ],
+                                                                    "mode": "NULLABLE",
+                                                                    "name": "q",
+                                                                    "type": "RECORD"
+                                                                  }
+                                                                ],
+                                                                "mode": "NULLABLE",
+                                                                "name": "p",
+                                                                "type": "RECORD"
+                                                              }
+                                                            ],
+                                                            "mode": "NULLABLE",
+                                                            "name": "o",
+                                                            "type": "RECORD"
+                                                          }
+                                                        ],
+                                                        "mode": "NULLABLE",
+                                                        "name": "n",
+                                                        "type": "RECORD"
+                                                      }
+                                                    ],
+                                                    "mode": "NULLABLE",
+                                                    "name": "m",
+                                                    "type": "RECORD"
+                                                  }
+                                                ],
+                                                "mode": "NULLABLE",
+                                                "name": "l",
+                                                "type": "RECORD"
+                                              }
+                                            ],
+                                            "mode": "NULLABLE",
+                                            "name": "k",
+                                            "type": "RECORD"
+                                          }
+                                        ],
+                                        "mode": "NULLABLE",
+                                        "name": "j",
+                                        "type": "RECORD"
+                                      }
+                                    ],
+                                    "mode": "NULLABLE",
+                                    "name": "i",
+                                    "type": "RECORD"
+                                  }
+                                ],
+                                "mode": "NULLABLE",
+                                "name": "h",
+                                "type": "RECORD"
+                              }
+                            ],
+                            "mode": "NULLABLE",
+                            "name": "g",
+                            "type": "RECORD"
+                          }
+                        ],
+                        "mode": "NULLABLE",
+                        "name": "f",
+                        "type": "RECORD"
+                      }
+                    ],
+                    "mode": "NULLABLE",
+                    "name": "e",
+                    "type": "RECORD"
+                  }
+                ],
+                "mode": "NULLABLE",
+                "name": "d",
+                "type": "RECORD"
+              }
+            ],
+            "mode": "NULLABLE",
+            "name": "c",
+            "type": "RECORD"
+          }
+        ],
+        "mode": "NULLABLE",
+        "name": "b",
+        "type": "RECORD"
+      }
+    ],
+    "mode": "NULLABLE",
+    "name": "a",
+    "type": "RECORD"
+  }
+]
+END
