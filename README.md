@@ -1,5 +1,7 @@
 # BigQuery Schema Generator
 
+[![BigQuery Schema Generator CI](https://github.com/bxparks/bigquery-schema-generator/actions/workflows/pythonpackage.yml/badge.svg)](https://github.com/bxparks/bigquery-schema-generator/actions/workflows/pythonpackage.yml)
+
 This script generates the BigQuery schema from the newline-delimited data
 records on the STDIN. The records can be in JSON format or CSV format. The
 BigQuery data importer (`bq load`) uses only the first 100 lines when the schema
