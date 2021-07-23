@@ -25,7 +25,7 @@ setup(
     author_email='brian@xparks.net',
     license='Apache 2.0',
     packages=['bigquery_schema_generator'],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     entry_points={
         'console_scripts': [
             'generate-schema = bigquery_schema_generator.generate_schema:main'
