@@ -36,6 +36,9 @@ import csv
 import logging
 import re
 import sys
+import dataclasses
+import datetime
+import typing
 
 
 class SchemaGenerator:
@@ -113,7 +116,7 @@ class SchemaGenerator:
         # If CSV, preserve the original ordering because 'bq load` matches the
         # CSV column with the respective schema entry using the position of the
         # column in the schema.
-        self.sorted_schema = (input_format in {'json', 'dict'})
+        self.sorted_schema = (input_format in {'json', 'dict', 'dataclass'})
 
         self.line_number = 0
         self.error_logs = []
@@ -176,6 +179,8 @@ class SchemaGenerator:
             reader = json_reader(input_data)
         elif self.input_format == 'dict':
             reader = input_data
+        elif self.input_format == 'dataclass':
+            reader = [input_data]
         else:
             raise Exception(f"Unknown input_format '{self.input_format}'")
 
@@ -202,6 +207,11 @@ class SchemaGenerator:
                     )
                     if not self.ignore_invalid_lines:
                         raise json_object
+                elif dataclasses.is_dataclass(json_object):
+                    self.deduce_schema_for_dataclass(
+                        data_class=json_object,
+                        schema_map=schema_map,
+                    )
                 else:
                     self.log_error(
                         'Record should be a JSON Object '
@@ -241,6 +251,21 @@ class SchemaGenerator:
                 old_schema_entry=schema_entry,
                 new_schema_entry=new_schema_entry,
                 base_path=base_path
+            )
+
+    def deduce_schema_for_dataclass(self, data_class, schema_map):
+        for field in list(data_class.__dataclass_fields__.values()):
+            canonical_key = self.sanitize_name(field.name).lower()
+            schema_entry = schema_map.get(canonical_key)
+            new_schema_entry = self.get_schema_entry(
+                key=field.name,
+                value=field.type,
+                base_path=None
+            )
+            schema_map[canonical_key] = self.merge_schema_entry(
+                old_schema_entry=schema_entry,
+                new_schema_entry=new_schema_entry,
+                base_path=None
             )
 
     def sanitize_name(self, value):
@@ -483,11 +508,17 @@ class SchemaGenerator:
             # recursively figure out the RECORD
             fields = OrderedDict()
             if value_mode == 'NULLABLE':
-                self.deduce_schema_for_record(
-                    json_object=value,
-                    schema_map=fields,
-                    base_path=new_base_path,
-                )
+                if dataclasses.is_dataclass(value):
+                    self.deduce_schema_for_dataclass(
+                        data_class=value,
+                        schema_map=fields,
+                    )
+                else:
+                    self.deduce_schema_for_record(
+                        json_object=value,
+                        schema_map=fields,
+                        base_path=new_base_path,
+                    )
             else:
                 for val in value:
                     self.deduce_schema_for_record(
@@ -599,6 +630,29 @@ class SchemaGenerator:
         Note that primitive types do not have the string '__' in the returned
         type string, which is a useful marker.
         """
+
+        type_args = typing.get_args(value)
+        is_optional = len(type_args) == 2 and type_args[-1] is type(None)
+
+        # Unwrap unions (and by default Optionals)
+        if is_optional:
+            value = type_args[0]
+
+        if value == str:
+            return 'STRING'
+        elif value == bool:
+            return 'BOOLEAN'
+        elif value == int:
+            return 'INTEGER'
+        elif value == float:
+            return 'FLOAT'
+        elif typing.get_origin(value) == list:
+            return '__array__'
+        elif dataclasses.is_dataclass(value):
+            return 'RECORD'
+        elif value == datetime.datetime:
+            return 'TIMESTAMP'
+
         if isinstance(value, str):
             if self.TIMESTAMP_MATCHER.match(value):
                 return 'TIMESTAMP'
@@ -661,6 +715,9 @@ class SchemaGenerator:
         """
         if not elements:
             raise Exception('Empty array, should never happen here.')
+
+        if typing.get_origin(elements) == list:
+            return self.infer_value_type(typing.get_args(elements)[0])
 
         candidate_type = ''
         for e in elements:
