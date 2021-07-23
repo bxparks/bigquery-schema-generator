@@ -19,6 +19,8 @@ import os
 import json
 from io import StringIO
 from collections import OrderedDict
+from dataclasses import dataclass
+import typing
 from bigquery_schema_generator.generate_schema import BQ_TYPES
 from bigquery_schema_generator.generate_schema import SchemaGenerator
 from bigquery_schema_generator.generate_schema import bq_schema_to_map
@@ -516,6 +518,27 @@ class TestSchemaGenerator(unittest.TestCase):
 
         self.assertEqual('server.port', json_full_path('server', 'port'))
 
+    def test_generate_schema_with_dataclass(self):
+        @dataclass
+        class SubTest:
+            thing_one: int
+            thing_two: float
+            thing_three: bool
+            thing_four: typing.Optional[str]
+
+        @dataclass
+        class Test:
+            thing: str
+            sub_test: SubTest
+            other_things: typing.List[int]
+
+        generator = SchemaGenerator(input_format='dataclass')
+        schema_map, _ = generator.deduce_schema(Test)
+        schema = generator.flatten_schema(schema_map)
+        self.assertEqual(
+            json.dumps(schema),
+            '[{"mode": "REPEATED", "name": "other_things", "type": "INTEGER"}, {"fields": [{"mode": "NULLABLE", "name": "thing_four", "type": "STRING"}, {"mode": "NULLABLE", "name": "thing_one", "type": "INTEGER"}, {"mode": "NULLABLE", "name": "thing_three", "type": "BOOLEAN"}, {"mode": "NULLABLE", "name": "thing_two", "type": "FLOAT"}], "mode": "NULLABLE", "name": "sub_test", "type": "RECORD"}, {"mode": "NULLABLE", "name": "thing", "type": "STRING"}]',
+        )
 
 class TestDataChunksFromFile(unittest.TestCase):
     """Read the test case data from TESTDATA_FILE and verify that the expected
