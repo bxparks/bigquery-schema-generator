@@ -1004,7 +1004,7 @@ def main():
         description='Generate BigQuery schema from JSON or CSV file.')
     parser.add_argument(
         '--input_format',
-        help="Specify an alternative input format ('csv', 'json')",
+        help="Specify an alternative input format ('csv', 'json', 'dict')",
         default='json')
     parser.add_argument(
         '--keep_nulls',

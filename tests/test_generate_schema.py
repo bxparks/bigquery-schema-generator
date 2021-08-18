@@ -29,7 +29,7 @@ from bigquery_schema_generator.generate_schema import json_reader
 from .data_reader import DataReader
 
 
-class TestSchemaGenerator(unittest.TestCase):
+class TestSchemaGeneratorHelpers(unittest.TestCase):
     def test_timestamp_matcher_valid(self):
         self.assertTrue(
             SchemaGenerator.TIMESTAMP_MATCHER.match('2017-05-22T12:33:01'))
@@ -479,6 +479,17 @@ class TestSchemaGenerator(unittest.TestCase):
         self.assertTrue(is_string_type('DATE'))
         self.assertTrue(is_string_type('TIME'))
 
+    def test_json_full_path(self):
+        self.assertEqual('port', json_full_path(None, 'port'))
+        self.assertEqual('port', json_full_path("", 'port'))
+
+        # 'base_path' should never be '0', but if is do something reasonable.
+        self.assertEqual('0.port', json_full_path(0, 'port'))
+
+        self.assertEqual('server.port', json_full_path('server', 'port'))
+
+
+class TestSchemaGeneratorDeduce(unittest.TestCase):
     def test_run_with_input_and_output(self):
         generator = SchemaGenerator()
         input = StringIO('{ "name": "1" }')
@@ -507,14 +518,46 @@ class TestSchemaGenerator(unittest.TestCase):
         with self.assertRaises(Exception):
             generator.run(input, output)
 
-    def test_json_full_path(self):
-        self.assertEqual('port', json_full_path(None, 'port'))
-        self.assertEqual('port', json_full_path("", 'port'))
+    def test_deduce_schema_with_dict_input(self):
+        generator = SchemaGenerator(input_format='dict')
+        input_data = [
+            {
+                's': 'string',
+                'b': True,
+            },
+            {
+                'd': '2021-08-18',
+                'x': 3.1
+            },
+        ]
+        schema_map, error_logs = generator.deduce_schema(input_data)
+        schema = generator.flatten_schema(schema_map)
 
-        # 'base_path' should never be '0', but if is do something reasonable.
-        self.assertEqual('0.port', json_full_path(0, 'port'))
-
-        self.assertEqual('server.port', json_full_path('server', 'port'))
+        self.assertEqual(
+            schema,
+            [
+                OrderedDict([
+                    ('mode', 'NULLABLE'),
+                    ('name', 'b'),
+                    ('type', 'BOOLEAN'),
+                ]),
+                OrderedDict([
+                    ('mode', 'NULLABLE'),
+                    ('name', 'd'),
+                    ('type', 'DATE'),
+                ]),
+                OrderedDict([
+                    ('mode', 'NULLABLE'),
+                    ('name', 's'),
+                    ('type', 'STRING'),
+                ]),
+                OrderedDict([
+                    ('mode', 'NULLABLE'),
+                    ('name', 'x'),
+                    ('type', 'FLOAT'),
+                ]),
+            ],
+        )
 
 
 class TestDataChunksFromFile(unittest.TestCase):
