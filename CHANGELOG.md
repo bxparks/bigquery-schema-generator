@@ -1,6 +1,10 @@
 # Changelog
 
 * Unreleased
+* 1.4.1 (2021-08-23)
+    * Add documentation for the `input_format='dict'` option.
+    * Add additional inpout format 'json' and 'dict' test cases.
+    * Maintenance release, no functional change in core code.
 * 1.4 (2020-12-09)
     * Add 'dict' as a third `input_format` when `SchemaGenerator` is used as a
       library. This can be useful when the data has already been transformed
