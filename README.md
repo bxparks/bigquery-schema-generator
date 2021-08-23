@@ -1,5 +1,7 @@
 # BigQuery Schema Generator
 
+[![BigQuery Schema Generator CI](https://github.com/bxparks/bigquery-schema-generator/actions/workflows/pythonpackage.yml/badge.svg)](https://github.com/bxparks/bigquery-schema-generator/actions/workflows/pythonpackage.yml)
+
 This script generates the BigQuery schema from the newline-delimited data
 records on the STDIN. The records can be in JSON format or CSV format. The
 BigQuery data importer (`bq load`) uses only the first 100 lines when the schema
@@ -12,7 +14,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-**Version**: 1.4 (2020-12-09)
+**Version**: 1.4.1 (2021-08-23)
 
 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
@@ -37,14 +39,17 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
         * [Ignore Invalid Lines (`--ignore_invalid_lines`)](#IgnoreInvalidLines)
         * [Existing Schema Path (`--existing_schema_path`)](#ExistingSchemaPath)
     * [Using as a Library](#UsingAsLibrary)
+        * [`SchemaGenerator.run()`](#SchemaGeneratorRun)
+        * [`SchemaGenerator.deduce_schema()`](#SchemaGeneratorDeduceSchema)
 * [Schema Types](#SchemaTypes)
     * [Supported Types](#SupportedTypes)
     * [Type Inferrence](#TypeInferrence)
 * [Examples](#Examples)
 * [Benchmarks](#Benchmarks)
 * [System Requirements](#SystemRequirements)
-* [Authors](#Authors)
 * [License](#License)
+* [Feedback and Support](#Feedback)
+* [Authors](#Authors)
 
 <a name="Background"></a>
 ## Background
@@ -290,7 +295,8 @@ Generate BigQuery schema from JSON or CSV file.
 optional arguments:
   -h, --help            show this help message and exit
   --input_format INPUT_FORMAT
-                        Specify an alternative input format ('csv', 'json')
+                        Specify an alternative input format ('csv', 'json',
+                        'dict')
   --keep_nulls          Print the schema for null values, empty arrays or
                         empty records
   --quoted_values_are_strings
@@ -312,7 +318,20 @@ optional arguments:
 <a name="InputFormat"></a>
 #### Input Format (`--input_format`)
 
-Specifies the format of the input file, either `json` (default) or `csv`.
+Specifies the format of the input file as a string. It must be one of `json`
+(default), `csv`, or `dict`:
+
+* `json`
+    * a "file-like" object containing newline-delimited JSON
+* `csv`
+    * a "file-like" object containing newline-delimited CSV
+* `dict`
+    * a `list` of Python `dict` objects corresponding to list of
+      newline-delimited JSON, in other words `List[Dict[str, Any]]`
+    * applies only if `SchemaGenerator` is used as a library through the
+      `run()` or `deduce_schema()` method
+    * useful if the input data (usually JSON) has already been read into memory
+      and parsed from newline-delimited JSON into native Python dict objects.
 
 If `csv` file is specified, the `--keep_nulls` flag is automatically activated.
 This is required because CSV columns are defined positionally, so the schema
@@ -531,6 +550,12 @@ more details.
 <a name="UsingAsLibrary"></a>
 ### Using As a Library
 
+The `SchemaGenerator` class can be used programmatically as a library from a
+larger Python application.
+
+<a name="SchemaGeneratorRun"></a>
+#### `SchemaGenerator.run()`
+
 The `bigquery_schema_generator` module can be used as a library by an external
 Python client code by creating an instance of `SchemaGenerator` and calling the
 `run(input, output)` method:
@@ -550,6 +575,17 @@ generator = SchemaGenerator(
 )
 generator.run(input_file=input_file, output_file=output_file)
 ```
+
+The `input_format` is one of `json`, `csv`, and `dict` as described in the
+[Input Format](#InputFormat) section above. The `input_file` must match the
+format given by this parameter.
+
+See the `TestSchemaGeneratorDeduce.test_run_with_input_and_output()` test
+case in [examples/test_generate_schema.py](examples/test_generate_schema.py) for
+an example of an `input_file` of type `json`.
+
+<a name="SchemaGeneratorDeduceSchema"></a>
+#### `SchemaGenerator.deduce_schema()`
 
 If you need to process the generated schema programmatically, use the
 `deduce_schema()` method and process the resulting `schema_map` and `error_log`
@@ -583,12 +619,12 @@ schema_map2, error_logs = generator.deduce_schema(
 )
 ```
 
-When using the `SchemaGenerator` object directly, the `input_format` parameter
-supports `dict` as a third input format in addition to the `json` and `csv`
-formats. The `dict` input format tells `SchemaGenerator.deduce_schema()` to
-accept a list of Python dict objects as the `input_data`. This is useful if the
-input data (usually JSON) has already been read into memory and parsed from
-newline-delimited JSON into native Python dict objects.
+The `input_data` must match the `input_format` given in the constructor. The
+format is described in the [Input Format](#InputFormat) section above.
+
+See the `TestSchemaGeneratorDeduce.test_deduce_schema_with_dict_input()` test
+case in [examples/test_generate_schema.py](examples/test_generate_schema.py) for
+an example of an `input_data` of type `dict`.
 
 <a name="SchemaTypes"></a>
 ## Schema Types
@@ -863,6 +899,22 @@ and 3.8.
 ## License
 
 Apache License 2.0
+
+<a name="Feedback"></a>
+## Feedback and Support
+
+If you have any questions, comments and other support questions about how to
+use this library, use the
+[GitHub Discussions](https://github.com/bxparks/bigquery-schema-generator/discussions)
+for this project. If you have bug reports or feature requests, file a ticket in
+[GitHub Issues](https://github.com/bxparks/bigquery-schema-generator/issues).
+I'd love to hear about how this software and its documentation can be improved.
+I can't promise that I will incorporate everything, but I will give your ideas
+serious consideration.
+
+Please refrain from emailing me directly unless the content is sensitive. The
+problem with email is that I cannot reference the email conversation when other
+people ask similar questions later.
 
 <a name="Authors"></a>
 ## Authors
