@@ -30,7 +30,10 @@ $ sudo -H pip3 install setuptools wheel twine
 
 ### Steps
 
-1. Edit `setup.py` and increment the `version`.
+1. Increment the version numbers in:
+    * `version.py`
+    * `README.md`
+    * `CHANGELOG.md`
 1. Push all changes to `develop` branch.
 1. Create a GitHub pull request (PR) from `develop` into `master` branch.
 1. Merge the PR into `master`.
@@ -38,6 +41,6 @@ $ sudo -H pip3 install setuptools wheel twine
 1. Create the dist using `python3 setup.py sdist`.
 1. Upload to PyPI using `twine upload
    dist/bigquery-schema-generator-{version}.tar.gz`.
-    * Enter my PyPI login creddentials.
+    * Enter my PyPI login credentials.
     * If `dist/` becomes too cluttered, we can remove the entire `dist/`
       directory and run `python3 setup.py sdist` again.
