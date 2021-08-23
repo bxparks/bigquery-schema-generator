@@ -3,7 +3,7 @@
 * Unreleased
 * 1.4.1 (2021-08-23)
     * Add documentation for the `input_format='dict'` option.
-    * Add additional inpout format 'json' and 'dict' test cases.
+    * Add additional input format 'json' and 'dict' test cases.
     * Maintenance release, no functional change in core code.
 * 1.4 (2020-12-09)
     * Add 'dict' as a third `input_format` when `SchemaGenerator` is used as a
@@ -13,7 +13,7 @@
     * Expand the pattern matchers for quoted integers and quoted floating point
       numbers to be more compatible with the patterns recognized by `bq load
       --autodetect`.
-    * Add Table of Contents to READMD.md. Add usage info for the
+    * Add Table of Contents to README.md. Add usage info for the
       `schema_map=existing_schema_map` and the `input_format='dict'` parameters
       in the `SchemaGenerator()` constructor.
 * 1.3 (2020-12-05)
@@ -92,8 +92,8 @@
 * 0.1.3 (2018-01-23)
     * Attempt #2 to fix exception during pip3 install.
 * 0.1.2 (2018-01-23)
-    * Attemp to fix exception during pip3 install. Didn't work. Pulled.
+    * Attempt to fix exception during pip3 install. Didn't work. Pulled.
 * 0.1.1 (2018-01-03)
     * Install `generate-schema` script in `/usr/local/bin`
 * 0.1 (2018-01-02)
-    * Iniitial release to PyPI.
+    * Initial release to PyPI.
