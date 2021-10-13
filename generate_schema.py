@@ -13,15 +13,24 @@ class PaywayDialect(csv.Dialect):
     quotechar = '"'
     lineterminator = '\r\n'
 
+
 class KayakDialect(csv.Dialect):
     delimiter = ';'
     quoting = csv.QUOTE_MINIMAL
     quotechar = '"'
     lineterminator = '\r\n'
 
+
+class MatrixDialect(csv.Dialect):
+    delimiter = '|'
+    quoting = csv.QUOTE_MINIMAL
+    quotechar = '"'
+    lineterminator = '\n'
+
 csv_dialects = {
     "payway": PaywayDialect,
     "kayak": KayakDialect,
+    "matrix": MatrixDialect,
 }
 
 
