@@ -86,6 +86,7 @@ class SchemaGenerator:
         debugging_map=False,
         sanitize_names=False,
         ignore_invalid_lines=False,
+        keep_input_sort_order=False,
     ):
         self.input_format = input_format
         self.infer_mode = infer_mode
@@ -113,7 +114,7 @@ class SchemaGenerator:
         # If CSV, preserve the original ordering because 'bq load` matches the
         # CSV column with the respective schema entry using the position of the
         # column in the schema.
-        self.sorted_schema = (input_format in {'json', 'dict'})
+        self.sorted_schema = (input_format in {'json', 'dict'}) and not keep_input_sort_order
 
         self.line_number = 0
         self.error_logs = []
@@ -1042,6 +1043,12 @@ def main():
         ' This can be fetched with:'
         ' `bq show --schema <project_id>:<dataset>:<table_name>',
         default=None)
+    parser.add_argument(
+        '--keep-input-sort-order',
+        help='Preserve the original ordering of columns from input instead of sorting alphabetically.'
+        ' This only only impacts `input_format` of json or dict',
+        action='store_true'
+    )
     args = parser.parse_args()
 
     # Configure logging.
@@ -1056,6 +1063,7 @@ def main():
         debugging_map=args.debugging_map,
         sanitize_names=args.sanitize_names,
         ignore_invalid_lines=args.ignore_invalid_lines,
+        keep_input_sort_order=args.keep_input_sort_order
     )
     existing_schema_map = read_existing_schema_from_file(
         args.existing_schema_path)
