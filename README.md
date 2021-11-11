@@ -291,6 +291,7 @@ usage: generate-schema [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
                        [--debugging_map] [--sanitize_names]
                        [--ignore_invalid_lines]
                        [--existing_schema_path EXISTING_SCHEMA_PATH]
+                       [--preserve_input_sort_order]
 
 Generate BigQuery schema from JSON or CSV file.
 
@@ -315,6 +316,11 @@ optional arguments:
                         File that contains the existing BigQuery schema for a
                         table. This can be fetched with: `bq show --schema
                         <project_id>:<dataset>:<table_name>
+  --preserve_input_sort_order
+                        Preserve the original ordering of columns from input
+                        instead of sorting alphabetically. This only impacts
+                        `input_format` of json or dict
+
 ```
 
 <a name="InputFormat"></a>
