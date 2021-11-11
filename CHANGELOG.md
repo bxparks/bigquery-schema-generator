@@ -1,6 +1,10 @@
 # Changelog
 
 * Unreleased
+    * Make the column order in the BQ schema file match the order of appearance
+      in the JSON data file using the `--preserve_input_sort_order` flag.
+      Thanks to kdeggelman@ in
+      [PR#75](https://github.com/bxparks/bigquery-schema-generator/pull/75).
 * 1.4.1 (2021-08-23)
     * Add documentation for the `input_format='dict'` option.
     * Add additional input format 'json' and 'dict' test cases.
