@@ -2158,3 +2158,97 @@ SCHEMA
   }
 ]
 END
+
+# Test --preserve_input_sort_order flag. Without the flag, the
+# keys are in sorted order, for compatibility with 'bq load --autodetect`,
+# at least what 'bq load' used to do.
+# See https://github.com/bxparks/bigquery-schema-generator/pull/75
+DATA
+{ "s": "string", "i": 3, "x": 3.2, "b": true }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "b",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "s",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  }
+]
+END
+
+# Test --preserve_input_sort_order flag. With the flag, the column keys should
+# be in the order they appear in the JSON data.
+# See https://github.com/bxparks/bigquery-schema-generator/pull/75
+DATA preserve_input_sort_order
+{ "s": "string", "i": 3, "x": 3.2, "b": true }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "s",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "b",
+    "type": "BOOLEAN"
+  }
+]
+END
+
+# Test --preserve_input_sort_order flag. Each JSON data record can contain a
+# partial list of keys. So the order of columns in the schema will be the order
+# in which they are first *seen* by the bigquery_schema_generator.
+# See https://github.com/bxparks/bigquery-schema-generator/pull/75
+DATA preserve_input_sort_order
+{ "s": "string", "i": 3 }
+{ "x": 3.2, "s": "string", "i": 3 }
+{ "b": true, "x": 3.2, "s": "string", "i": 3 }
+SCHEMA
+[
+  {
+    "mode": "NULLABLE",
+    "name": "s",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "b",
+    "type": "BOOLEAN"
+  }
+]
+END

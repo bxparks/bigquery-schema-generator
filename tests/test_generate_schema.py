@@ -608,6 +608,7 @@ class TestDataChunksFromFile(unittest.TestCase):
         quoted_values_are_strings = ('quoted_values_are_strings' in data_flags)
         sanitize_names = ('sanitize_names' in data_flags)
         ignore_invalid_lines = ('ignore_invalid_lines' in data_flags)
+        preserve_input_sort_order = ('preserve_input_sort_order' in data_flags)
         records = chunk['records']
         expected_errors = chunk['errors']
         expected_error_map = chunk['error_map']
@@ -638,7 +639,8 @@ class TestDataChunksFromFile(unittest.TestCase):
             keep_nulls=keep_nulls,
             quoted_values_are_strings=quoted_values_are_strings,
             sanitize_names=sanitize_names,
-            ignore_invalid_lines=ignore_invalid_lines)
+            ignore_invalid_lines=ignore_invalid_lines,
+            preserve_input_sort_order=preserve_input_sort_order)
         existing_schema_map = None
         if existing_schema:
             existing_schema_map = bq_schema_to_map(json.loads(existing_schema))

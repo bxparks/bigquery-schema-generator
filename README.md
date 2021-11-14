@@ -14,7 +14,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-**Version**: 1.4.1 (2021-08-23)
+**Version**: 1.5 (2021-11-14)
 
 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
@@ -38,6 +38,8 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
         * [Sanitize Names (`--sanitize_names`)](#SanitizedNames)
         * [Ignore Invalid Lines (`--ignore_invalid_lines`)](#IgnoreInvalidLines)
         * [Existing Schema Path (`--existing_schema_path`)](#ExistingSchemaPath)
+        * [Preserve Input Sort Order
+          (`--preserve_input_sort_order`)](#PreserveInputSortOrder)
     * [Using as a Library](#UsingAsLibrary)
         * [`SchemaGenerator.run()`](#SchemaGeneratorRun)
         * [`SchemaGenerator.deduce_schema()`](#SchemaGeneratorDeduceSchema)
@@ -289,6 +291,7 @@ usage: generate-schema [-h] [--input_format INPUT_FORMAT] [--keep_nulls]
                        [--debugging_map] [--sanitize_names]
                        [--ignore_invalid_lines]
                        [--existing_schema_path EXISTING_SCHEMA_PATH]
+                       [--preserve_input_sort_order]
 
 Generate BigQuery schema from JSON or CSV file.
 
@@ -313,6 +316,11 @@ optional arguments:
                         File that contains the existing BigQuery schema for a
                         table. This can be fetched with: `bq show --schema
                         <project_id>:<dataset>:<table_name>
+  --preserve_input_sort_order
+                        Preserve the original ordering of columns from input
+                        instead of sorting alphabetically. This only impacts
+                        `input_format` of json or dict
+
 ```
 
 <a name="InputFormat"></a>
@@ -547,6 +555,89 @@ See discussion in
 [PR #57](https://github.com/bxparks/bigquery-schema-generator/pull/57) for
 more details.
 
+<a name="PreserveInputSortOrder"></a>
+#### Preserve Input Sort Order (`--preserve_input_sort_order`)
+
+By default, the order of columns in the BQ schema file is sorted
+lexicographically, which matched the original behavior of `bq load
+--autodetect`. If the `--preserve_input_sort_order` flag is given, the columns
+in the resulting schema file is not sorted, but preserves the order of
+appearance in the input JSON data. For example, the following JSON data with
+the `--preserve_input_sort_order` flag will produce:
+
+```bash
+$ generate-schema --preserve_input_sort_order
+{ "s": "string", "i": 3, "x": 3.2, "b": true }
+^D
+[
+  {
+    "mode": "NULLABLE",
+    "name": "s",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "b",
+    "type": "BOOLEAN"
+  }
+]
+```
+
+It is possible that each JSON record line contains only a partial subset of the
+total possible columns in the data set. The order of the columns in the BQ
+schema will then be the order that each column was first *seen* by the
+script:
+
+```bash
+$ generate-schema --preserve_input_sort_order
+{ "s": "string", "i": 3 }
+{ "x": 3.2, "s": "string", "i": 3 }
+{ "b": true, "x": 3.2, "s": "string", "i": 3 }
+^D
+[
+  {
+    "mode": "NULLABLE",
+    "name": "s",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "i",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "x",
+    "type": "FLOAT"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "b",
+    "type": "BOOLEAN"
+  }
+]
+```
+
+**Note**: In Python 3.6 (the earliest version of Python supported by this
+project), the order of keys in a `dict` was the insertion-order, but this
+ordering was an implementation detail, and not guaranteed. In Python 3.7, that
+ordering was made permanent. So the `--preserve_input_sort_order` flag
+**should** work in Python 3.6 but is not guaranteed.
+
+See discussion in
+[PR #75](https://github.com/bxparks/bigquery-schema-generator/pull/75) for
+more details.
+
 <a name="UsingAsLibrary"></a>
 ### Using As a Library
 
@@ -572,6 +663,7 @@ generator = SchemaGenerator(
     debugging_map=debugging_map,
     sanitize_names=sanitize_names,
     ignore_invalid_lines=ignore_invalid_lines,
+    preserve_input_sort_order=preserve_input_sort_order,
 )
 generator.run(input_file=input_file, output_file=output_file)
 ```
@@ -903,14 +995,14 @@ Apache License 2.0
 <a name="Feedback"></a>
 ## Feedback and Support
 
-If you have any questions, comments and other support questions about how to
-use this library, use the
-[GitHub Discussions](https://github.com/bxparks/bigquery-schema-generator/discussions)
-for this project. If you have bug reports or feature requests, file a ticket in
-[GitHub Issues](https://github.com/bxparks/bigquery-schema-generator/issues).
-I'd love to hear about how this software and its documentation can be improved.
-I can't promise that I will incorporate everything, but I will give your ideas
-serious consideration.
+If you have any questions, comments, or feature requests for this library,
+please use the [GitHub
+Discussions](https://github.com/bxparks/bigquery-schema-generator/discussions)
+for this project. If you have bug reports, please file a ticket in [GitHub
+Issues](https://github.com/bxparks/bigquery-schema-generator/issues). Feature
+requests should go into Discussions first because they often have alternative
+solutions which are useful to remain visible, instead of disappearing from the
+default view of the Issue tracker after the ticket is closed.
 
 Please refrain from emailing me directly unless the content is sensitive. The
 problem with email is that I cannot reference the email conversation when other
@@ -936,4 +1028,6 @@ people ask similar questions later.
   by Austin Brogle (abroglesc@) and Bozo Dragojevic (bozzzzo@).
 * Allow `SchemaGenerator.deduce_schema()` to accept a list of native Python
   `dict` objects, by Zigfrid Zvezdin (ZiggerZZ@).
-
+* Make the column order in the BQ schema file match the order of appearance in
+  the JSON data file using the `--preserve_input_sort_order` flag. By Kevin
+  Deggelman (kdeggelman@).
