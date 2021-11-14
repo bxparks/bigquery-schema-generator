@@ -562,7 +562,7 @@ By default, the order of columns in the BQ schema file is sorted
 lexicographically, which matched the original behavior of `bq load
 --autodetect`. If the `--preserve_input_sort_order` flag is given, the columns
 in the resulting schema file is not sorted, but preserves the order of
-appearance in the input JSON data. For example, for the following JSON data with
+appearance in the input JSON data. For example, the following JSON data with
 the `--preserve_input_sort_order` flag will produce:
 
 ```bash
@@ -595,7 +595,8 @@ $ generate-schema --preserve_input_sort_order
 
 It is possible that each JSON record line contains only a partial subset of the
 total possible columns in the data set. The order of the columns in the BQ
-schema will then be in order that each column was first *seen* by the script:
+schema will then be the order that each column was first *seen* by the
+script:
 
 ```bash
 $ generate-schema --preserve_input_sort_order
