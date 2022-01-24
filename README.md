@@ -673,7 +673,7 @@ The `input_format` is one of `json`, `csv`, and `dict` as described in the
 format given by this parameter.
 
 See the `TestSchemaGeneratorDeduce.test_run_with_input_and_output()` test
-case in [examples/test_generate_schema.py](examples/test_generate_schema.py) for
+case in [tests/test_generate_schema.py](tests/test_generate_schema.py) for
 an example of an `input_file` of type `json`.
 
 <a name="SchemaGeneratorDeduceSchema"></a>
@@ -715,7 +715,7 @@ The `input_data` must match the `input_format` given in the constructor. The
 format is described in the [Input Format](#InputFormat) section above.
 
 See the `TestSchemaGeneratorDeduce.test_deduce_schema_with_dict_input()` test
-case in [examples/test_generate_schema.py](examples/test_generate_schema.py) for
+case in [tests/test_generate_schema.py](tests/test_generate_schema.py) for
 an example of an `input_data` of type `dict`.
 
 <a name="SchemaTypes"></a>
