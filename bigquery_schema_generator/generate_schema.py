@@ -939,6 +939,7 @@ BQ_TYPES = frozenset([
     'TIME',
     'DATETIME',
     'RECORD',
+    'NUMERIC',
 ])
 
 BQ_TYPE_ALIASES = {
