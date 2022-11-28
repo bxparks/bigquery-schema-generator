@@ -42,7 +42,8 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
           (`--preserve_input_sort_order`)](#PreserveInputSortOrder)
     * [Using as a Library](#UsingAsLibrary)
         * [`SchemaGenerator.run()`](#SchemaGeneratorRun)
-        * [`SchemaGenerator.deduce_schema()`](#SchemaGeneratorDeduceSchema)
+        * [`SchemaGenerator.deduce_schema()` with File](#SchemaGeneratorDeduceSchemaFromFile)
+        * [`SchemaGenerator.deduce_schema()` with Dict](#SchemaGeneratorDeduceSchemaFromDict)
 * [Schema Types](#SchemaTypes)
     * [Supported Types](#SupportedTypes)
     * [Type Inferrence](#TypeInferrence)
@@ -665,42 +666,56 @@ generator = SchemaGenerator(
     ignore_invalid_lines=ignore_invalid_lines,
     preserve_input_sort_order=preserve_input_sort_order,
 )
-generator.run(input_file=input_file, output_file=output_file)
+
+FILENAME = "..."
+
+with open(FILENAME) as input_file:
+    generator.run(input_file=input_file, output_file=output_file)
 ```
 
 The `input_format` is one of `json`, `csv`, and `dict` as described in the
 [Input Format](#InputFormat) section above. The `input_file` must match the
 format given by this parameter.
 
-See the `TestSchemaGeneratorDeduce.test_run_with_input_and_output()` test
-case in [tests/test_generate_schema.py](tests/test_generate_schema.py) for
-an example of an `input_file` of type `json`.
+See [generatorrun.py](examples/generatorrun.py) for an example.
 
-<a name="SchemaGeneratorDeduceSchema"></a>
-#### `SchemaGenerator.deduce_schema()`
+<a name="SchemaGeneratorDeduceSchemaFromFile"></a>
+#### `SchemaGenerator.deduce_schema()` from File
 
 If you need to process the generated schema programmatically, use the
 `deduce_schema()` method and process the resulting `schema_map` and `error_log`
 data structures like this:
 
 ```python
+import json
+import logging
+import sys
 from bigquery_schema_generator.generate_schema import SchemaGenerator
-...
+
+FILENAME = "jsonfile.json"
+
 generator = SchemaGenerator(
-  ...(same as above)...
+    input_format='json',
+    quoted_values_are_strings=True,
 )
+
+with open(FILENAME) as file:
+    schema_map, errors = generator.deduce_schema(file)
 
 schema_map, error_logs = generator.deduce_schema(input_data=input_data)
 
-# Print errors if desired.
 for error in error_logs:
     logging.info("Problem on line %s: %s", error['line_number'], error['msg'])
 
 schema = generator.flatten_schema(schema_map)
-json.dump(schema, output_file, indent=2)
+json.dump(schema, sys.stdout, indent=2)
+print()
 ```
 
-The `deduce_schema()` now supports starting from an existing `schema_map`
+See [csvreader.py](examples/csvreader.py) and
+[jsoneader.py](examples/jsoneader.py) for 2 examples.
+
+The `deduce_schema()` also supports starting from an existing `schema_map`
 instead of starting from scratch. This is the internal version of the
 `--existing_schema_path` functionality.
 
@@ -714,9 +729,36 @@ schema_map2, error_logs = generator.deduce_schema(
 The `input_data` must match the `input_format` given in the constructor. The
 format is described in the [Input Format](#InputFormat) section above.
 
-See the `TestSchemaGeneratorDeduce.test_deduce_schema_with_dict_input()` test
-case in [tests/test_generate_schema.py](tests/test_generate_schema.py) for
-an example of an `input_data` of type `dict`.
+<a name="SchemaGeneratorDeduceSchemaFromDict"></a>
+#### `SchemaGenerator.deduce_schema()` from Dict
+
+If the JSON data set has already been read into memory into a Python `dict`
+object, the `SchemaGenerator` can process that too like this:
+
+```Python
+import json
+import logging
+import sys
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+
+generator = SchemaGenerator(input_format='dict')
+input_data = [
+    {
+        's': 'string',
+        'b': True,
+    },
+    {
+        'd': '2021-08-18',
+        'x': 3.1
+    },
+]
+schema_map, error_logs = generator.deduce_schema(input_data)
+schema = generator.flatten_schema(schema_map)
+json.dump(schema, sys.stdout, indent=2)
+print()
+```
+
+See [dictreader.py](examples/dictreader.py) for an example.
 
 <a name="SchemaTypes"></a>
 ## Schema Types
