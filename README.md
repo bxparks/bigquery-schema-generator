@@ -1066,6 +1066,12 @@ I have tested it on:
 The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
 and 3.8.
 
+The unit tests are invoked with `$ make tests` target, and depends only on the
+built-in Python `unittest` package.
+
+The coding style check is invoked using `$ make flake8` and depends on the
+`flake8` package. It can be installed using `$ pip3 install --user flake8`.
+
 <a name="License"></a>
 ## License
 
