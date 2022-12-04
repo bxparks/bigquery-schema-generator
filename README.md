@@ -4,9 +4,10 @@
 
 This script generates the BigQuery schema from the newline-delimited data
 records on the STDIN. The records can be in JSON format or CSV format. The
-BigQuery data importer (`bq load`) uses only the first 100 lines when the schema
-auto-detection feature is enabled. In contrast, this script uses all data
-records to generate the schema.
+BigQuery data importer (`bq load`) uses only the
+[first 500 records](https://cloud.google.com/bigquery/docs/schema-detect)
+when the schema auto-detection feature is enabled. In contrast, this script uses
+all data records to generate the schema.
 
 Usage:
 ```
@@ -67,7 +68,7 @@ schema can be defined manually or the schema can be
 [auto-detected](https://cloud.google.com/bigquery/docs/schema-detect#auto-detect).
 
 When the auto-detect feature is used, the BigQuery data importer examines only
-the [first 100 records](https://cloud.google.com/bigquery/docs/schema-detect)
+the [first 500 records](https://cloud.google.com/bigquery/docs/schema-detect)
 of the input data. In many cases, this is sufficient
 because the data records were dumped from another database and the exact schema
 of the source table was known. However, for data extracted from a service
