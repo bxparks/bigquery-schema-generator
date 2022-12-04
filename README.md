@@ -47,7 +47,7 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
         * [`SchemaGenerator.deduce_schema()` with Dict](#SchemaGeneratorDeduceSchemaFromDict)
 * [Schema Types](#SchemaTypes)
     * [Supported Types](#SupportedTypes)
-    * [Type Inferrence](#TypeInferrence)
+    * [Type Inference](#TypeInference)
 * [Examples](#Examples)
 * [Benchmarks](#Benchmarks)
 * [System Requirements](#SystemRequirements)
@@ -129,7 +129,7 @@ depending on how your Python environment is configured. See below for
 some notes for Ubuntu Linux and MacOS.
 
 <a name="UbuntuLinux"></a>
-### Ubuntu Linux (18.04, 20.04)
+### Ubuntu Linux (18.04, 20.04, 22.04)
 
 After running `pip3 install bigquery_schema_generator`, the `generate-schema`
 script may be installed in one the following locations:
@@ -816,8 +816,8 @@ The following types are _not_ supported at all:
 * `BYTES`
 * `DATETIME` (unable to distinguish from `TIMESTAMP`)
 
-<a name="TypeInferrence"></a>
-### Type Inferrence Rules
+<a name="TypeInference"></a>
+### Type Inference Rules
 
 The `generate-schema` script attempts to emulate the various type conversion and
 compatibility rules implemented by **bq load**:
@@ -1020,6 +1020,7 @@ now requires Python 3.6 or higher, I think mostly due to the use of f-strings.
 
 I have tested it on:
 
+* Ubuntu 22.04, Python 3.10.6
 * Ubuntu 20.04, Python 3.8.5
 * Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
