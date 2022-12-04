@@ -1,6 +1,12 @@
 # Changelog
 
 * Unreleased
+* 1.5.1 (2022-12-04)
+    * Add `examples/*.py` to demonstrate how to use `SchemaGenerator` as a
+      library.
+    * Update README.md to state that `bq load --autodetect` uses the first
+      500 records. Previously, it scanned only the 100 records.
+    * This is a maintenance release with no new features or bug fixes.
 * 1.5 (2021-11-14)
     * Make the column order in the BQ schema file match the order of appearance
       in the JSON data file using the `--preserve_input_sort_order` flag.

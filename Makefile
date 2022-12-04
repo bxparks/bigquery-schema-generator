@@ -6,7 +6,7 @@ tests:
 	python3 -m unittest
 
 flake8:
-	flake8 bigquery_schema_generator tests \
+	flake8 bigquery_schema_generator tests examples \
 		--count \
 		--ignore W503 \
 		--show-source \

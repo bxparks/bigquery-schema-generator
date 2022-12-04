@@ -4,9 +4,10 @@
 
 This script generates the BigQuery schema from the newline-delimited data
 records on the STDIN. The records can be in JSON format or CSV format. The
-BigQuery data importer (`bq load`) uses only the first 100 lines when the schema
-auto-detection feature is enabled. In contrast, this script uses all data
-records to generate the schema.
+BigQuery data importer (`bq load`) uses only the
+[first 500 records](https://cloud.google.com/bigquery/docs/schema-detect)
+when the schema auto-detection feature is enabled. In contrast, this script uses
+all data records to generate the schema.
 
 Usage:
 ```
@@ -14,7 +15,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-**Version**: 1.5 (2021-11-14)
+**Version**: 1.5.1 (2022-12-04)
 
 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
@@ -24,6 +25,8 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
 * [Installation](#Installation)
     * [Ubuntu Linux](#UbuntuLinux)
     * [MacOS](#MacOS)
+        * [MacOS 11 (Big Sur)](#MacOS11)
+        * [MacOS 10.14 (Mojave)](#MacOS1014)
 * [Usage](#Usage)
     * [Command Line](#CommandLine)
     * [Schema Output](#SchemaOutput)
@@ -42,10 +45,11 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
           (`--preserve_input_sort_order`)](#PreserveInputSortOrder)
     * [Using as a Library](#UsingAsLibrary)
         * [`SchemaGenerator.run()`](#SchemaGeneratorRun)
-        * [`SchemaGenerator.deduce_schema()`](#SchemaGeneratorDeduceSchema)
+        * [`SchemaGenerator.deduce_schema()` with File](#SchemaGeneratorDeduceSchemaFromFile)
+        * [`SchemaGenerator.deduce_schema()` with Dict](#SchemaGeneratorDeduceSchemaFromDict)
 * [Schema Types](#SchemaTypes)
     * [Supported Types](#SupportedTypes)
-    * [Type Inferrence](#TypeInferrence)
+    * [Type Inference](#TypeInference)
 * [Examples](#Examples)
 * [Benchmarks](#Benchmarks)
 * [System Requirements](#SystemRequirements)
@@ -66,7 +70,7 @@ schema can be defined manually or the schema can be
 [auto-detected](https://cloud.google.com/bigquery/docs/schema-detect#auto-detect).
 
 When the auto-detect feature is used, the BigQuery data importer examines only
-the [first 100 records](https://cloud.google.com/bigquery/docs/schema-detect)
+the [first 500 records](https://cloud.google.com/bigquery/docs/schema-detect)
 of the input data. In many cases, this is sufficient
 because the data records were dumped from another database and the exact schema
 of the source table was known. However, for data extracted from a service
@@ -127,7 +131,7 @@ depending on how your Python environment is configured. See below for
 some notes for Ubuntu Linux and MacOS.
 
 <a name="UbuntuLinux"></a>
-### Ubuntu Linux (18.04, 20.04)
+### Ubuntu Linux (18.04, 20.04, 22.04)
 
 After running `pip3 install bigquery_schema_generator`, the `generate-schema`
 script may be installed in one the following locations:
@@ -138,16 +142,48 @@ script may be installed in one the following locations:
 * `$HOME/.virtualenvs/{your_virtual_env}/bin/generate-schema`
 
 <a name="MacOS"></a>
-### MacOS (10.14 Mojave)
+### MacOS
 
-I don't use my Mac for software development these days, and I won't upgrade to
-Catalina (10.15) or later, but here are some notes if they help.
+I don't have any Macs which are able to run the latest macOS, and I don't use
+them much for software development these days, but here are some notes if they
+help.
 
-If you installed Python from
-[Python Releases for Mac OS X](https://www.python.org/downloads/mac-osx/),
-then `/usr/local/bin/pip3` is a symlink to
-`/Library/Frameworks/Python.framework/Versions/3.6/bin/pip3`. So
-`generate-schema` is installed at
+<a name="MacOS11"></a>
+#### MacOS 11 (Big Sur)
+
+I believe Big Sur comes preinstalled with Python 3.8. If you install
+`bigquery_schema_generator` using:
+
+```
+$ pip3 install --user bigquery_schema_generator
+```
+
+then the `generate-schema` wrapper script will be installed at:
+
+```
+/User/{your-login}/Library/Python/3.8/bin/generate-schema
+```
+
+<a name="MacOS1014"></a>
+#### MacOS 10.14 (Mojave)
+
+This MacOS version comes with Python 2.7 only. To install Python 3, you can
+install using:
+
+1)) Downloading the [macos installer directly from
+   Python.org](https://www.python.org/downloads/macos/).
+
+The python3 binary will be located at `/usr/local/bin/python3`, and the
+`/usr/local/bin/pip3` is a symlink to
+`/Library/Frameworks/Python.framework/Versions/3.6/bin/pip3`.
+
+So running
+
+```
+$ pip3 install --user bigquery_schema_generator
+```
+
+will install `generate-schema` at
 `/Library/Frameworks/Python.framework/Versions/3.6/bin/generate-schema`.
 
 The Python installer updates `$HOME/.bash_profile` to add
@@ -155,10 +191,10 @@ The Python installer updates `$HOME/.bash_profile` to add
 environment variable. So you should be able to run the `generate-schema`
 command without typing in the full path.
 
-You can install Python3 using
-[Homebrew](https://docs.brew.sh/Homebrew-and-Python). In this environment, the
-`generate-schema` script will probably be installed in `/usr/local/bin` but I'm
-not completely certain.
+2)) Using [Homebrew](https://docs.brew.sh/Homebrew-and-Python).
+
+In this environment, the `generate-schema` script will probably be installed in
+`/usr/local/bin` but I'm not completely certain.
 
 <a name="Usage"></a>
 ## Usage
@@ -665,42 +701,56 @@ generator = SchemaGenerator(
     ignore_invalid_lines=ignore_invalid_lines,
     preserve_input_sort_order=preserve_input_sort_order,
 )
-generator.run(input_file=input_file, output_file=output_file)
+
+FILENAME = "..."
+
+with open(FILENAME) as input_file:
+    generator.run(input_file=input_file, output_file=output_file)
 ```
 
 The `input_format` is one of `json`, `csv`, and `dict` as described in the
 [Input Format](#InputFormat) section above. The `input_file` must match the
 format given by this parameter.
 
-See the `TestSchemaGeneratorDeduce.test_run_with_input_and_output()` test
-case in [examples/test_generate_schema.py](examples/test_generate_schema.py) for
-an example of an `input_file` of type `json`.
+See [generatorrun.py](examples/generatorrun.py) for an example.
 
-<a name="SchemaGeneratorDeduceSchema"></a>
-#### `SchemaGenerator.deduce_schema()`
+<a name="SchemaGeneratorDeduceSchemaFromFile"></a>
+#### `SchemaGenerator.deduce_schema()` from File
 
 If you need to process the generated schema programmatically, use the
 `deduce_schema()` method and process the resulting `schema_map` and `error_log`
 data structures like this:
 
 ```python
+import json
+import logging
+import sys
 from bigquery_schema_generator.generate_schema import SchemaGenerator
-...
+
+FILENAME = "jsonfile.json"
+
 generator = SchemaGenerator(
-  ...(same as above)...
+    input_format='json',
+    quoted_values_are_strings=True,
 )
+
+with open(FILENAME) as file:
+    schema_map, errors = generator.deduce_schema(file)
 
 schema_map, error_logs = generator.deduce_schema(input_data=input_data)
 
-# Print errors if desired.
 for error in error_logs:
     logging.info("Problem on line %s: %s", error['line_number'], error['msg'])
 
 schema = generator.flatten_schema(schema_map)
-json.dump(schema, output_file, indent=2)
+json.dump(schema, sys.stdout, indent=2)
+print()
 ```
 
-The `deduce_schema()` now supports starting from an existing `schema_map`
+See [csvreader.py](examples/csvreader.py) and
+[jsoneader.py](examples/jsoneader.py) for 2 examples.
+
+The `deduce_schema()` also supports starting from an existing `schema_map`
 instead of starting from scratch. This is the internal version of the
 `--existing_schema_path` functionality.
 
@@ -714,9 +764,36 @@ schema_map2, error_logs = generator.deduce_schema(
 The `input_data` must match the `input_format` given in the constructor. The
 format is described in the [Input Format](#InputFormat) section above.
 
-See the `TestSchemaGeneratorDeduce.test_deduce_schema_with_dict_input()` test
-case in [examples/test_generate_schema.py](examples/test_generate_schema.py) for
-an example of an `input_data` of type `dict`.
+<a name="SchemaGeneratorDeduceSchemaFromDict"></a>
+#### `SchemaGenerator.deduce_schema()` from Dict
+
+If the JSON data set has already been read into memory into a Python `dict`
+object, the `SchemaGenerator` can process that too like this:
+
+```Python
+import json
+import logging
+import sys
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+
+generator = SchemaGenerator(input_format='dict')
+input_data = [
+    {
+        's': 'string',
+        'b': True,
+    },
+    {
+        'd': '2021-08-18',
+        'x': 3.1
+    },
+]
+schema_map, error_logs = generator.deduce_schema(input_data)
+schema = generator.flatten_schema(schema_map)
+json.dump(schema, sys.stdout, indent=2)
+print()
+```
+
+See [dictreader.py](examples/dictreader.py) for an example.
 
 <a name="SchemaTypes"></a>
 ## Schema Types
@@ -773,8 +850,8 @@ The following types are _not_ supported at all:
 * `BYTES`
 * `DATETIME` (unable to distinguish from `TIMESTAMP`)
 
-<a name="TypeInferrence"></a>
-### Type Inferrence Rules
+<a name="TypeInference"></a>
+### Type Inference Rules
 
 The `generate-schema` script attempts to emulate the various type conversion and
 compatibility rules implemented by **bq load**:
@@ -977,15 +1054,23 @@ now requires Python 3.6 or higher, I think mostly due to the use of f-strings.
 
 I have tested it on:
 
+* Ubuntu 22.04, Python 3.10.6
 * Ubuntu 20.04, Python 3.8.5
 * Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
-* MacOS 10.14.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
-* MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
+* MacOS 11.7.1 (Big Sur), Python 3.8.9
+* MacOS 10.14.2 (Mojave), Python 3.6.4
+* MacOS 10.13.2 (High Sierra), Python 3.6.4
 
 The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
 and 3.8.
+
+The unit tests are invoked with `$ make tests` target, and depends only on the
+built-in Python `unittest` package.
+
+The coding style check is invoked using `$ make flake8` and depends on the
+`flake8` package. It can be installed using `$ pip3 install --user flake8`.
 
 <a name="License"></a>
 ## License
