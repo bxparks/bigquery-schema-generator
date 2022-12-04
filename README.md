@@ -25,6 +25,8 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
 * [Installation](#Installation)
     * [Ubuntu Linux](#UbuntuLinux)
     * [MacOS](#MacOS)
+        * [MacOS 11 (Big Sur)](#MacOS11)
+        * [MacOS 10.14 (Mojave)](#MacOS1014)
 * [Usage](#Usage)
     * [Command Line](#CommandLine)
     * [Schema Output](#SchemaOutput)
@@ -140,16 +142,48 @@ script may be installed in one the following locations:
 * `$HOME/.virtualenvs/{your_virtual_env}/bin/generate-schema`
 
 <a name="MacOS"></a>
-### MacOS (10.14 Mojave)
+### MacOS
 
-I don't use my Mac for software development these days, and I won't upgrade to
-Catalina (10.15) or later, but here are some notes if they help.
+I don't have any Macs which are able to run the latest macOS, and I don't use
+them much for software development these days, but here are some notes if they
+help.
 
-If you installed Python from
-[Python Releases for Mac OS X](https://www.python.org/downloads/mac-osx/),
-then `/usr/local/bin/pip3` is a symlink to
-`/Library/Frameworks/Python.framework/Versions/3.6/bin/pip3`. So
-`generate-schema` is installed at
+<a name="MacOS11"></a>
+#### MacOS 11 (Big Sur)
+
+I believe Big Sur comes preinstalled with Python 3.8. If you install
+`bigquery_schema_generator` using:
+
+```
+$ pip3 install --user bigquery_schema_generator
+```
+
+then the `generate-schema` wrapper script will be installed at:
+
+```
+/User/{your-login}/Library/Python/3.8/bin/generate-schema
+```
+
+<a name="MacOS1014"></a>
+#### MacOS 10.14 (Mojave)
+
+This MacOS version comes with Python 2.7 only. To install Python 3, you can
+install using:
+
+1)) Downloading the [macos installer directly from
+   Python.org](https://www.python.org/downloads/macos/).
+
+The python3 binary will be located at `/usr/local/bin/python3`, and the
+`/usr/local/bin/pip3` is a symlink to
+`/Library/Frameworks/Python.framework/Versions/3.6/bin/pip3`.
+
+So running
+
+```
+$ pip3 install --user bigquery_schema_generator
+```
+
+will install `generate-schema` at
 `/Library/Frameworks/Python.framework/Versions/3.6/bin/generate-schema`.
 
 The Python installer updates `$HOME/.bash_profile` to add
@@ -157,10 +191,10 @@ The Python installer updates `$HOME/.bash_profile` to add
 environment variable. So you should be able to run the `generate-schema`
 command without typing in the full path.
 
-You can install Python3 using
-[Homebrew](https://docs.brew.sh/Homebrew-and-Python). In this environment, the
-`generate-schema` script will probably be installed in `/usr/local/bin` but I'm
-not completely certain.
+2)) Using [Homebrew](https://docs.brew.sh/Homebrew-and-Python).
+
+In this environment, the `generate-schema` script will probably be installed in
+`/usr/local/bin` but I'm not completely certain.
 
 <a name="Usage"></a>
 ## Usage
@@ -1025,8 +1059,9 @@ I have tested it on:
 * Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
-* MacOS 10.14.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
-* MacOS 10.13.2, [Python 3.6.4](https://www.python.org/downloads/release/python-364/)
+* MacOS 11.7.1 (Big Sur), Python 3.8.9
+* MacOS 10.14.2 (Mojave), Python 3.6.4
+* MacOS 10.13.2 (High Sierra), Python 3.6.4
 
 The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
 and 3.8.
