@@ -737,9 +737,7 @@ generator = SchemaGenerator(
 with open(FILENAME) as file:
     schema_map, errors = generator.deduce_schema(file)
 
-schema_map, error_logs = generator.deduce_schema(input_data=input_data)
-
-for error in error_logs:
+for error in errors:
     logging.info("Problem on line %s: %s", error['line_number'], error['msg'])
 
 schema = generator.flatten_schema(schema_map)
@@ -755,8 +753,8 @@ instead of starting from scratch. This is the internal version of the
 `--existing_schema_path` functionality.
 
 ```python
-schema_map1, error_logs = generator.deduce_schema(input_data=data1)
-schema_map2, error_logs = generator.deduce_schema(
+schema_map1, errors = generator.deduce_schema(input_data=data1)
+schema_map2, errors = generator.deduce_schema(
     input_data=data1, schema_map=schema_map1
 )
 ```
@@ -787,7 +785,7 @@ input_data = [
         'x': 3.1
     },
 ]
-schema_map, error_logs = generator.deduce_schema(input_data)
+schema_map, errors = generator.deduce_schema(input_data)
 schema = generator.flatten_schema(schema_map)
 json.dump(schema, sys.stdout, indent=2)
 print()
