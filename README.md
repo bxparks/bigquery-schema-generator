@@ -25,6 +25,7 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
 * [Installation](#Installation)
     * [Ubuntu Linux](#UbuntuLinux)
     * [MacOS](#MacOS)
+        * [MacOS 12 (Monterey)](#MacOS12)
         * [MacOS 11 (Big Sur)](#MacOS11)
         * [MacOS 10.14 (Mojave)](#MacOS1014)
 * [Usage](#Usage)
@@ -75,7 +76,7 @@ of the input data. In many cases, this is sufficient
 because the data records were dumped from another database and the exact schema
 of the source table was known. However, for data extracted from a service
 (e.g. using a REST API) the record fields could have been organically added
-at later dates. In this case, the first 100 records do not contain fields which
+at later dates. In this case, the first 500 records do not contain fields which
 are present in later records. The **bq load** auto-detection fails and the data
 fails to load.
 
@@ -145,24 +146,77 @@ script may be installed in one the following locations:
 ### MacOS
 
 I don't have any Macs which are able to run the latest macOS, and I don't use
-them much for software development these days, but here are some notes if they
-help.
+them much for software development these days, but here are some notes on older
+versions of macOS in case they help.
+
+<a name="MacOS12"></a>
+#### MacOS 12 (Monterey)
+
+Python 2 or 3 is not installed by default on Monterey. If you try to run
+`python3` on the command line, a dialog box asks you to install the
+[Xcode](https://developer.apple.com/support/xcode/) development package. It
+apparently takes over an hour at 10 MB/s.
+
+You can instead install Python 3 using
+[Homebrew](https://docs.brew.sh/Homebrew-and-Python), by installing `brew`, and
+typing `$ brew install python`. Currently, it downloads Python 3.10 in about 1-2
+minutes and installs the `python3` and `pip3` binaries into
+`/usr/local/bin/python3` and `/usr/local/bin/pip3`. Using `brew` seems to be
+easiest option, so let's assume that Python 3 was installed through that.
+
+If you run:
+```
+$ pip3 install bigquery_schema_generator
+```
+the package will be installed at `/usr/local/lib/python3.10/site-packages/`, and
+the `generate-schema` script will be installed at
+`/usr/local/bin/generate-schema`.
+
+If you use the `--user` flag:
+```
+$ pip3 install --user bigquery_schema_generator
+```
+the package will be installed at
+`$HOME/Library/Python/3.10/lib/python/site-packages/`, and the `generate-schema`
+script will be installed at `$HOME/Library/Python/3.10/bin/generate-schema`.
+
+You may need to add the `$HOME/Library/Python/3.10/bin` directory to your
+`$PATH` variable in your `$HOME/.bashrc` file.
 
 <a name="MacOS11"></a>
 #### MacOS 11 (Big Sur)
 
-I believe Big Sur comes preinstalled with Python 3.8. If you install
-`bigquery_schema_generator` using:
+Python 2.7.16 is installed by default on Big Sur as `/usr/bin/python`. If you
+try to run `python3` on the command line, a dialog box asks you to install
+the [Xcode](https://developer.apple.com/support/xcode/) development package will
+be installed, which I think installs Python 3.8 as `/usr/bin/python3` (I can't
+remember, it was installed a long time ago.)
 
+You can instead install Python 3 using
+[Homebrew](https://docs.brew.sh/Homebrew-and-Python), by installing `brew`, and
+typing `$ brew install python`. Currently, it downloads Python 3.10 in about 1-2
+minutes and installs the `python3` and `pip3` binaries into
+`/usr/local/bin/python3` and `/usr/local/bin/pip3`. Using `brew` seems to be
+easiest option, so let's assume that Python 3 was installed through that.
+
+If you run:
+```
+$ pip3 install bigquery_schema_generator
+```
+the package will be installed at `/usr/local/lib/python3.10/site-packages/`, and
+the `generate-schema` script will be installed at
+`/usr/local/bin/generate-schema`.
+
+If you use the `--user` flag:
 ```
 $ pip3 install --user bigquery_schema_generator
 ```
+the package will be installed at
+`$HOME/Library/Python/3.10/lib/python/site-packages/`, and the `generate-schema`
+script will be installed at `$HOME/Library/Python/3.10/bin/generate-schema`.
 
-then the `generate-schema` wrapper script will be installed at:
-
-```
-/User/{your-login}/Library/Python/3.8/bin/generate-schema
-```
+You may need to add the `$HOME/Library/Python/3.10/bin` directory to your
+`$PATH` variable in your `$HOME/.bashrc` file.
 
 <a name="MacOS1014"></a>
 #### MacOS 10.14 (Mojave)
@@ -1057,12 +1111,14 @@ I have tested it on:
 * Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
-* MacOS 11.7.1 (Big Sur), Python 3.8.9
+* MacOS 12.6.2 (Monterey), Python 3.10.9
+* MacOS 11.7.2 (Big Sur), Python 3.10.9
+* MacOS 11.7.2 (Big Sur), Python 3.8.9
 * MacOS 10.14.2 (Mojave), Python 3.6.4
 * MacOS 10.13.2 (High Sierra), Python 3.6.4
 
-The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
-and 3.8.
+The GitHub Actions continuous integration pipeline validates on Python 3.7,
+3.8, 3.9, and 3.10.
 
 The unit tests are invoked with `$ make tests` target, and depends only on the
 built-in Python `unittest` package.
