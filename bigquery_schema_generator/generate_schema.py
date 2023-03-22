@@ -144,7 +144,7 @@ class SchemaGenerator:
               'name': key,
               'type': 'STRING | TIMESTAMP | DATE | TIME
                       | FLOAT | INTEGER | BOOLEAN | RECORD'
-              'mode': 'NULLABLE | REPEATED',
+              'mode': 'NULLABLE | REQUIRED | REPEATED',
               'fields': schema_map
             }
           }
@@ -418,6 +418,8 @@ class SchemaGenerator:
                 REQUIRED -> NULLABLE transition.
             b) If --infer_mode is not given, then we log an error and ignore
                 this field from the schema.
+
+        Returning a 'None' causes the field to be dropped from the schema.
         """
         old_info = old_schema_entry['info']
         new_info = new_schema_entry['info']
@@ -457,13 +459,31 @@ class SchemaGenerator:
                         f'{new_type})'
                     )
                     return None
+        elif old_mode == 'NULLABLE' and new_mode == 'REPEATED':
+            # Allow NULLABLE(soft) -> REPEATED(hard)
+            if not (old_status == 'soft' and new_status == 'hard'):
+                self.log_error(
+                    f'Cannot convert NULLABLE(hard) -> REPEATED: '
+                    f'old=({old_status},{full_old_name},{old_mode},{old_type});'
+                    f' new=({new_status},{full_new_name},{new_mode},{new_type})'
+                )
+                return None
+            return new_mode
+        elif old_mode == 'REPEATED' and new_mode == 'NULLABLE':
+            # Allow REPEATED -> NULLABLE(soft), but retain REPEATED.
+            if not (old_status == 'hard' and new_status == 'soft'):
+                self.log_error(
+                    f'Cannot convert REPEATED -> NULLABLE(hard): '
+                    f'old=({old_status},{full_old_name},{old_mode},{old_type});'
+                    f' new=({new_status},{full_new_name},{new_mode},{new_type})'
+                )
+                return None
+            return old_mode
         elif old_mode != new_mode:
             self.log_error(
                 f'Ignoring non-RECORD field with mismatched mode: '
-                f'old=({old_status},{full_old_name},{old_mode},'
-                f'{old_type});'
-                f' new=({new_status},{full_new_name},{new_mode},'
-                f'{new_type})'
+                f'old=({old_status},{full_old_name},{old_mode},{old_type});'
+                f' new=({new_status},{full_new_name},{new_mode},{new_type})'
             )
             return None
         return old_mode

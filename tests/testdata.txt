@@ -446,7 +446,7 @@ DATA
 { "i": 3 }
 { "i": [1, 2] }
 ERRORS
-2: Ignoring non-RECORD field with mismatched mode: old=(hard,i,NULLABLE,INTEGER); new=(hard,i,REPEATED,INTEGER)
+2: Cannot convert NULLABLE(hard) -> REPEATED: old=(hard,i,NULLABLE,INTEGER); new=(hard,i,REPEATED,INTEGER)
 SCHEMA
 []
 END
@@ -456,7 +456,7 @@ DATA
 { "i": [1, 2] }
 { "i": 3 }
 ERRORS
-2: Ignoring non-RECORD field with mismatched mode: old=(hard,i,REPEATED,INTEGER); new=(hard,i,NULLABLE,INTEGER)
+2: Cannot convert REPEATED -> NULLABLE(hard): old=(hard,i,REPEATED,INTEGER); new=(hard,i,NULLABLE,INTEGER)
 SCHEMA
 []
 END
@@ -2249,6 +2249,69 @@ SCHEMA
     "mode": "NULLABLE",
     "name": "b",
     "type": "BOOLEAN"
+  }
+]
+END
+
+# Allow null to be converted into a REPEATED.
+DATA
+{"array":null}
+{"array":["a","b"]}
+{"array":null}
+{"array":["c","d","e"]}
+SCHEMA
+[
+  {
+    "mode": "REPEATED",
+    "name": "array",
+    "type": "STRING"
+  }
+]
+END
+
+# The REPEATED fields must be of the same type.
+DATA
+{"array":null}
+{"array":["a","b"]}
+{"array":null}
+{"array":[1,2,3]}
+ERRORS
+4: Ignoring field with mismatched type: old=(hard,array,REPEATED,STRING); new=(hard,array,REPEATED,INTEGER)
+SCHEMA
+[]
+END
+
+# An record with an empty array is considered to be identical to a null record
+# by BigQuery, and should be able to convert into converted into a REPEATED
+# String.
+DATA
+{"array":[]}
+{"array":["a","b"]}
+{"array":null}
+{"array":["c","d","e"]}
+SCHEMA
+[
+  {
+    "mode": "REPEATED",
+    "name": "array",
+    "type": "STRING"
+  }
+]
+END
+
+# An empty array, which is temporarily inferred to be a REPEATED STRING
+# (soft), should be able to convert into a REPEATED INTEGER (hard).
+DATA
+{"array":[]}
+{"array":[1,2]}
+{"array":null}
+{"array":[3,4,5]}
+SCHEMA
+[
+  {
+    "mode": "REPEATED",
+    "name": "array",
+    "type": "INTEGER"
   }
 ]
 END

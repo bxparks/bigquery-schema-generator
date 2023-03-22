@@ -1,6 +1,9 @@
 # Changelog
 
 * Unreleased
+    * Allow `null` fields to convert to `REPEATED` because `bq load` seems
+      to interpret null fields to be equivalent to an empty array `[]`.
+      See [#90](https://github.com/bxparks/bigquery-schema-generator/issues/90).
 * 1.5.1 (2022-12-04)
     * Add `examples/*.py` to demonstrate how to use `SchemaGenerator` as a
       library.
