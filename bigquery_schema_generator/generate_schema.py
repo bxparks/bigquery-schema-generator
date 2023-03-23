@@ -107,7 +107,8 @@ class SchemaGenerator:
         self.ignore_invalid_lines = ignore_invalid_lines
 
         # If CSV, force keep_nulls = True
-        self.keep_nulls = True if (input_format == 'csv') else keep_nulls
+        if (input_format in ['csv', 'csvdictreader']):
+            self.keep_nulls = True
 
         # If JSON or dict, sort the schema using the name of the column to be
         # consistent with 'bq load'.
@@ -115,7 +116,7 @@ class SchemaGenerator:
         # CSV column with the respective schema entry using the position of the
         # column in the schema.
         self.sorted_schema = (
-            (input_format in {'json', 'dict'})
+            (input_format in ['json', 'dict'])
             and not preserve_input_sort_order
         )
 
@@ -174,11 +175,17 @@ class SchemaGenerator:
         allowed to escape to the calling routine.
         """
 
-        if self.input_format == 'csv':
-            reader = csv.DictReader(input_data)
-        elif self.input_format == 'json' or self.input_format is None:
+        if self.input_format == 'json' or self.input_format is None:
+            # Newline-delimited JSON file
             reader = json_reader(input_data)
+        elif self.input_format == 'csv':
+            # CSV file
+            reader = csv.DictReader(input_data)
         elif self.input_format == 'dict':
+            # Iterable of dict, or anything that acts like it
+            reader = input_data
+        elif self.input_format == 'csvdictreader':
+            # csv.DictReader
             reader = input_data
         else:
             raise Exception(f"Unknown input_format '{self.input_format}'")
@@ -564,7 +571,7 @@ class SchemaGenerator:
         else:
             # Empty fields are returned as empty strings, and must be treated as
             # a (soft String) to allow clobbering by subsquent non-empty fields.
-            if value == "" and self.input_format == 'csv':
+            if value == "" and (self.input_format in ['csv', 'csvdictreader']):
                 status = 'soft'
                 filled = False
             else:
@@ -928,7 +935,7 @@ def flatten_schema_map(
                 # overload the --infer_mode flag to mean that a REQUIRED mode of
                 # an existing schema can transition to a NULLABLE mode.
                 if (infer_mode and value == 'NULLABLE' and filled
-                        and input_format == 'csv'):
+                        and input_format in ['csv', 'csvdictreader']):
                     new_value = 'REQUIRED'
                 else:
                     new_value = value
@@ -1028,7 +1035,10 @@ def main():
         description='Generate BigQuery schema from JSON or CSV file.')
     parser.add_argument(
         '--input_format',
-        help="Specify an alternative input format ('csv', 'json', 'dict')",
+        help=(
+            "Specify an alternative input format "
+            "('csv', 'json', 'dict', 'csvdictreader)"
+        ),
         default='json')
     parser.add_argument(
         '--keep_nulls',

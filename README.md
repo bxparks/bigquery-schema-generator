@@ -46,8 +46,12 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
           (`--preserve_input_sort_order`)](#PreserveInputSortOrder)
     * [Using as a Library](#UsingAsLibrary)
         * [`SchemaGenerator.run()`](#SchemaGeneratorRun)
-        * [`SchemaGenerator.deduce_schema()` with File](#SchemaGeneratorDeduceSchemaFromFile)
-        * [`SchemaGenerator.deduce_schema()` with Dict](#SchemaGeneratorDeduceSchemaFromDict)
+        * [`SchemaGenerator.deduce_schema()` from
+          File](#SchemaGeneratorDeduceSchemaFromFile)
+        * [`SchemaGenerator.deduce_schema()` from
+          Dict](#SchemaGeneratorDeduceSchemaFromDict)
+        * [`SchemaGenerator.deduce_schema()` from
+          DictReader](#SchemaGeneratorDeduceSchemaFromCsvDictReader)
 * [Schema Types](#SchemaTypes)
     * [Supported Types](#SupportedTypes)
     * [Type Inference](#TypeInference)
@@ -771,9 +775,12 @@ See [generatorrun.py](examples/generatorrun.py) for an example.
 <a name="SchemaGeneratorDeduceSchemaFromFile"></a>
 #### `SchemaGenerator.deduce_schema()` from File
 
-If you need to process the generated schema programmatically, use the
-`deduce_schema()` method and process the resulting `schema_map` and `error_log`
-data structures like this:
+If you need to process the generated schema programmatically, create an instance
+of `SchemaGenerator` using the appropriate `input_format` option, use the
+`deduce_schema()` method to read in the file, then postprocess the resulting
+`schema_map` and `error_log` data structures.
+
+The following reads in a JSON file (see [jsoneader.py](examples/jsoneader.py)):
 
 ```python
 import json
@@ -799,8 +806,23 @@ json.dump(schema, sys.stdout, indent=2)
 print()
 ```
 
-See [csvreader.py](examples/csvreader.py) and
-[jsoneader.py](examples/jsoneader.py) for 2 examples.
+The following reads a CSV file (see [csvreader.py](examples/csvreader.py)):
+
+```python
+...(same as above)...
+
+generator = SchemaGenerator(
+    input_format='csv',
+    infer_mode=True,
+    quoted_values_are_strings=True,
+    sanitize_names=True,
+)
+
+with open(FILENAME) as file:
+    schema_map, errors = generator.deduce_schema(file)
+
+...(same as above)...
+```
 
 The `deduce_schema()` also supports starting from an existing `schema_map`
 instead of starting from scratch. This is the internal version of the
@@ -817,10 +839,13 @@ The `input_data` must match the `input_format` given in the constructor. The
 format is described in the [Input Format](#InputFormat) section above.
 
 <a name="SchemaGeneratorDeduceSchemaFromDict"></a>
-#### `SchemaGenerator.deduce_schema()` from Dict
+#### `SchemaGenerator.deduce_schema()` from Iterable of Dict
 
-If the JSON data set has already been read into memory into a Python `dict`
-object, the `SchemaGenerator` can process that too like this:
+If the JSON data set has already been read into memory into an array or iterable
+of Python `dict` objects, the `SchemaGenerator` can process that too using the
+`input_format='dict'` option. Here is an example from
+[dictreader.py](examples/dictreader.py):
+
 
 ```Python
 import json
@@ -845,7 +870,49 @@ json.dump(schema, sys.stdout, indent=2)
 print()
 ```
 
-See [dictreader.py](examples/dictreader.py) for an example.
+**Note**: The `input_format='dict'` option supports any `input_data` object
+which acts like an iterable of `dict`. The data does not have to be loaded into
+memory.
+
+<a name="SchemaGeneratorDeduceSchemaFromCsvDictReader"></a>
+#### `SchemaGenerator.deduce_schema()` from csv.DictReader
+
+The `input_format='csvdictreader'` option is similar to `input_format='dict'`
+but sort of acts like `input_format='csv'`. It supports any object that behaves
+like an iterable of `dict`, but it is intended to be used with the
+[csv.DictReader](https://docs.python.org/3/library/csv.html) object.
+
+The difference between `'dict'` and `'csvdictreader'` is the assumption made
+about the shape of the data. The `'csvdictreader'` option assumes that the data
+is tabular like a CSV file, with every row usually containing an entry for every
+column. The `'dict'` option does not make that assumption, and the data can be
+more hierarchical with some rows containing partial sets of columns.
+
+This semantic difference means that `'csvdictreader'` supports options which
+apply to `'csv'` files. In particular, the `infer_mode=True` option can be used
+to determine if the `mode` field can be `REQUIRED` instead of `NULLABLE` if the
+script finds that all columns are defined in every row.
+
+Here is an example from [tsvreader.py](examples/tsvreader.py) which reads a
+tab-separate file (TSV):
+
+```python
+import csv
+import json
+import sys
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+
+FILENAME = "tsvfile.tsv"
+
+generator = SchemaGenerator(input_format='dict')
+with open(FILENAME) as file:
+    reader = csv.DictReader(file, delimiter='\t')
+    schema_map, errors = generator.deduce_schema(reader)
+
+schema = generator.flatten_schema(schema_map)
+json.dump(schema, sys.stdout, indent=2)
+print()
+```
 
 <a name="SchemaTypes"></a>
 ## Schema Types
