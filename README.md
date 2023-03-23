@@ -51,7 +51,7 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
         * [`SchemaGenerator.deduce_schema()` from
           Dict](#SchemaGeneratorDeduceSchemaFromDict)
         * [`SchemaGenerator.deduce_schema()` from
-          DictReader](#SchemaGeneratorDeduceSchemaFromDictReader)
+          DictReader](#SchemaGeneratorDeduceSchemaFromCsvDictReader)
 * [Schema Types](#SchemaTypes)
     * [Supported Types](#SupportedTypes)
     * [Type Inference](#TypeInference)
@@ -841,8 +841,8 @@ format is described in the [Input Format](#InputFormat) section above.
 <a name="SchemaGeneratorDeduceSchemaFromDict"></a>
 #### `SchemaGenerator.deduce_schema()` from Iterable of Dict
 
-If the JSON data set has already been read into memory into a Python `dict`
-object, the `SchemaGenerator` can process that too using the
+If the JSON data set has already been read into memory into an array or iterable
+of Python `dict` objects, the `SchemaGenerator` can process that too using the
 `input_format='dict'` option. Here is an example from
 [dictreader.py](examples/dictreader.py):
 
@@ -870,15 +870,28 @@ json.dump(schema, sys.stdout, indent=2)
 print()
 ```
 
-<a name="SchemaGeneratorDeduceSchemaFromDictReader"></a>
+**Note**: The `input_format='dict'` option supports any `input_data` object
+which acts like an iterable of `dict`. The data does not have to be loaded into
+memory.
+
+<a name="SchemaGeneratorDeduceSchemaFromCsvDictReader"></a>
 #### `SchemaGenerator.deduce_schema()` from csv.DictReader
 
-The `input_format='dict'` option is actually far more general than reading an
-in-memory instance of `dict`. It supports any object that acts like an iterable
-of `dict`. In particular, the
-[csv.DictReader](https://docs.python.org/3/library/csv.html) object can be used.
-This allows the calling client code to create a custom version of `DictReader`
-with all of its various options, and pass it into `deduce_schema()`.
+The `input_format='csvdictreader'` option is similar to `input_format='dict'`
+but sort of acts like `input_format='csv'`. It supports any object that behaves
+like an iterable of `dict`, but it is intended to be used with the
+[csv.DictReader](https://docs.python.org/3/library/csv.html) object.
+
+The difference between `'dict'` and `'csvdictreader'` is the assumption made
+about the shape of the data. The `'csvdictreader'` option assumes that the data
+is tabular like a CSV file, with every row usually containing an entry for every
+column. The `'dict'` option does not make that assumption, and the data can be
+more hierarchical with some rows containing partial sets of columns.
+
+This semantic difference means that `'csvdictreader'` supports options which
+apply to `'csv'` files. In particular, the `infer_mode=True` option can be used
+to determine if the `mode` field can be `REQUIRED` instead of `NULLABLE` if the
+script finds that all columns are defined in every row.
 
 Here is an example from [tsvreader.py](examples/tsvreader.py) which reads a
 tab-separate file (TSV):
