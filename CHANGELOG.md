@@ -6,8 +6,10 @@
       See [#90](https://github.com/bxparks/bigquery-schema-generator/issues/90).
     * Add `input_format='csvdictreader'` option. Similar to `'dict'` but
       intended to be used with the `csv.DictReader` class to read CSV and TSV
-      files with various options. See [`SchemaGenerator.deduce_schema()` from
-      csv.DictReader](README.md#SchemaGeneratorDeduceSchemaFromCsvDictReader).
+      files with various options. More documentation and discussions at:
+        * [`SchemaGenerator.deduce_schema()` from
+          csv.DictReader](README.md#SchemaGeneratorDeduceSchemaFromCsvDictReader),
+        * [Discussion#91](https://github.com/bxparks/bigquery-schema-generator/discussions/91).
 * 1.5.1 (2022-12-04)
     * Add `examples/*.py` to demonstrate how to use `SchemaGenerator` as a
       library.
