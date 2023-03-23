@@ -46,8 +46,12 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
           (`--preserve_input_sort_order`)](#PreserveInputSortOrder)
     * [Using as a Library](#UsingAsLibrary)
         * [`SchemaGenerator.run()`](#SchemaGeneratorRun)
-        * [`SchemaGenerator.deduce_schema()` with File](#SchemaGeneratorDeduceSchemaFromFile)
-        * [`SchemaGenerator.deduce_schema()` with Dict](#SchemaGeneratorDeduceSchemaFromDict)
+        * [`SchemaGenerator.deduce_schema()` from
+          File](#SchemaGeneratorDeduceSchemaFromFile)
+        * [`SchemaGenerator.deduce_schema()` from
+          Dict](#SchemaGeneratorDeduceSchemaFromDict)
+        * [`SchemaGenerator.deduce_schema()` from
+          DictReader](#SchemaGeneratorDeduceSchemaFromDictReader)
 * [Schema Types](#SchemaTypes)
     * [Supported Types](#SupportedTypes)
     * [Type Inference](#TypeInference)
@@ -771,9 +775,12 @@ See [generatorrun.py](examples/generatorrun.py) for an example.
 <a name="SchemaGeneratorDeduceSchemaFromFile"></a>
 #### `SchemaGenerator.deduce_schema()` from File
 
-If you need to process the generated schema programmatically, use the
-`deduce_schema()` method and process the resulting `schema_map` and `error_log`
-data structures like this:
+If you need to process the generated schema programmatically, create an instance
+of `SchemaGenerator` using the appropriate `input_format` option, use the
+`deduce_schema()` method to read in the file, then postprocess the resulting
+`schema_map` and `error_log` data structures.
+
+The following reads in a JSON file (see [jsoneader.py](examples/jsoneader.py)):
 
 ```python
 import json
@@ -799,8 +806,23 @@ json.dump(schema, sys.stdout, indent=2)
 print()
 ```
 
-See [csvreader.py](examples/csvreader.py) and
-[jsoneader.py](examples/jsoneader.py) for 2 examples.
+The following reads a CSV file (see [csvreader.py](examples/csvreader.py)):
+
+```python
+...(same as above)...
+
+generator = SchemaGenerator(
+    input_format='csv',
+    infer_mode=True,
+    quoted_values_are_strings=True,
+    sanitize_names=True,
+)
+
+with open(FILENAME) as file:
+    schema_map, errors = generator.deduce_schema(file)
+
+...(same as above)...
+```
 
 The `deduce_schema()` also supports starting from an existing `schema_map`
 instead of starting from scratch. This is the internal version of the
@@ -817,10 +839,13 @@ The `input_data` must match the `input_format` given in the constructor. The
 format is described in the [Input Format](#InputFormat) section above.
 
 <a name="SchemaGeneratorDeduceSchemaFromDict"></a>
-#### `SchemaGenerator.deduce_schema()` from Dict
+#### `SchemaGenerator.deduce_schema()` from Iterable of Dict
 
 If the JSON data set has already been read into memory into a Python `dict`
-object, the `SchemaGenerator` can process that too like this:
+object, the `SchemaGenerator` can process that too using the
+`input_format='dict'` option. Here is an example from
+[dictreader.py](examples/dictreader.py):
+
 
 ```Python
 import json
@@ -845,7 +870,36 @@ json.dump(schema, sys.stdout, indent=2)
 print()
 ```
 
-See [dictreader.py](examples/dictreader.py) for an example.
+<a name="SchemaGeneratorDeduceSchemaFromDictReader"></a>
+#### `SchemaGenerator.deduce_schema()` from csv.DictReader
+
+The `input_format='dict'` option is actually far more general than reading an
+in-memory instance of `dict`. It supports any object that acts like an iterable
+of `dict`. In particular, the
+[csv.DictReader](https://docs.python.org/3/library/csv.html) object can be used.
+This allows the calling client code to create a custom version of `DictReader`
+with all of its various options, and pass it into `deduce_schema()`.
+
+Here is an example from [tsvreader.py](examples/tsvreader.py) which reads a
+tab-separate file (TSV):
+
+```python
+import csv
+import json
+import sys
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+
+FILENAME = "tsvfile.tsv"
+
+generator = SchemaGenerator(input_format='dict')
+with open(FILENAME) as file:
+    reader = csv.DictReader(file, delimiter='\t')
+    schema_map, errors = generator.deduce_schema(reader)
+
+schema = generator.flatten_schema(schema_map)
+json.dump(schema, sys.stdout, indent=2)
+print()
+```
 
 <a name="SchemaTypes"></a>
 ## Schema Types
