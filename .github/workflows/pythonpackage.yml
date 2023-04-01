@@ -12,11 +12,18 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy: 
       matrix:
-        # 3.5 does not support f-strings
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        # Supported Python versions under GitHub Actions is listed in
+        # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+        #
+        # * 3.5 does not support f-strings so no longer supported by
+        #   bigquery-schema-generator.
+        # * 3.6 should support bigquery-schema-generator, but is not
+        #   supported by ubuntu-22.04 image.
+        # * 3.11 is the latest under ubuntu-22.04.
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v3

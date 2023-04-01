@@ -15,7 +15,7 @@ $ generate-schema < file.data.json > file.schema.json
 $ generate-schema --input_format csv < file.data.csv > file.schema.json
 ```
 
-**Version**: 1.5.1 (2022-12-04)
+**Version**: 1.5.2 (2023-04-01)
 
 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
@@ -25,6 +25,7 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
 * [Installation](#Installation)
     * [Ubuntu Linux](#UbuntuLinux)
     * [MacOS](#MacOS)
+        * [MacOS 12 (Monterey)](#MacOS12)
         * [MacOS 11 (Big Sur)](#MacOS11)
         * [MacOS 10.14 (Mojave)](#MacOS1014)
 * [Usage](#Usage)
@@ -45,8 +46,12 @@ $ generate-schema --input_format csv < file.data.csv > file.schema.json
           (`--preserve_input_sort_order`)](#PreserveInputSortOrder)
     * [Using as a Library](#UsingAsLibrary)
         * [`SchemaGenerator.run()`](#SchemaGeneratorRun)
-        * [`SchemaGenerator.deduce_schema()` with File](#SchemaGeneratorDeduceSchemaFromFile)
-        * [`SchemaGenerator.deduce_schema()` with Dict](#SchemaGeneratorDeduceSchemaFromDict)
+        * [`SchemaGenerator.deduce_schema()` from
+          File](#SchemaGeneratorDeduceSchemaFromFile)
+        * [`SchemaGenerator.deduce_schema()` from
+          Dict](#SchemaGeneratorDeduceSchemaFromDict)
+        * [`SchemaGenerator.deduce_schema()` from
+          DictReader](#SchemaGeneratorDeduceSchemaFromCsvDictReader)
 * [Schema Types](#SchemaTypes)
     * [Supported Types](#SupportedTypes)
     * [Type Inference](#TypeInference)
@@ -75,7 +80,7 @@ of the input data. In many cases, this is sufficient
 because the data records were dumped from another database and the exact schema
 of the source table was known. However, for data extracted from a service
 (e.g. using a REST API) the record fields could have been organically added
-at later dates. In this case, the first 100 records do not contain fields which
+at later dates. In this case, the first 500 records do not contain fields which
 are present in later records. The **bq load** auto-detection fails and the data
 fails to load.
 
@@ -145,24 +150,77 @@ script may be installed in one the following locations:
 ### MacOS
 
 I don't have any Macs which are able to run the latest macOS, and I don't use
-them much for software development these days, but here are some notes if they
-help.
+them much for software development these days, but here are some notes on older
+versions of macOS in case they help.
+
+<a name="MacOS12"></a>
+#### MacOS 12 (Monterey)
+
+Python 2 or 3 is not installed by default on Monterey. If you try to run
+`python3` on the command line, a dialog box asks you to install the
+[Xcode](https://developer.apple.com/support/xcode/) development package. It
+apparently takes over an hour at 10 MB/s.
+
+You can instead install Python 3 using
+[Homebrew](https://docs.brew.sh/Homebrew-and-Python), by installing `brew`, and
+typing `$ brew install python`. Currently, it downloads Python 3.10 in about 1-2
+minutes and installs the `python3` and `pip3` binaries into
+`/usr/local/bin/python3` and `/usr/local/bin/pip3`. Using `brew` seems to be
+easiest option, so let's assume that Python 3 was installed through that.
+
+If you run:
+```
+$ pip3 install bigquery_schema_generator
+```
+the package will be installed at `/usr/local/lib/python3.10/site-packages/`, and
+the `generate-schema` script will be installed at
+`/usr/local/bin/generate-schema`.
+
+If you use the `--user` flag:
+```
+$ pip3 install --user bigquery_schema_generator
+```
+the package will be installed at
+`$HOME/Library/Python/3.10/lib/python/site-packages/`, and the `generate-schema`
+script will be installed at `$HOME/Library/Python/3.10/bin/generate-schema`.
+
+You may need to add the `$HOME/Library/Python/3.10/bin` directory to your
+`$PATH` variable in your `$HOME/.bashrc` file.
 
 <a name="MacOS11"></a>
 #### MacOS 11 (Big Sur)
 
-I believe Big Sur comes preinstalled with Python 3.8. If you install
-`bigquery_schema_generator` using:
+Python 2.7.16 is installed by default on Big Sur as `/usr/bin/python`. If you
+try to run `python3` on the command line, a dialog box asks you to install
+the [Xcode](https://developer.apple.com/support/xcode/) development package will
+be installed, which I think installs Python 3.8 as `/usr/bin/python3` (I can't
+remember, it was installed a long time ago.)
 
+You can instead install Python 3 using
+[Homebrew](https://docs.brew.sh/Homebrew-and-Python), by installing `brew`, and
+typing `$ brew install python`. Currently, it downloads Python 3.10 in about 1-2
+minutes and installs the `python3` and `pip3` binaries into
+`/usr/local/bin/python3` and `/usr/local/bin/pip3`. Using `brew` seems to be
+easiest option, so let's assume that Python 3 was installed through that.
+
+If you run:
+```
+$ pip3 install bigquery_schema_generator
+```
+the package will be installed at `/usr/local/lib/python3.10/site-packages/`, and
+the `generate-schema` script will be installed at
+`/usr/local/bin/generate-schema`.
+
+If you use the `--user` flag:
 ```
 $ pip3 install --user bigquery_schema_generator
 ```
+the package will be installed at
+`$HOME/Library/Python/3.10/lib/python/site-packages/`, and the `generate-schema`
+script will be installed at `$HOME/Library/Python/3.10/bin/generate-schema`.
 
-then the `generate-schema` wrapper script will be installed at:
-
-```
-/User/{your-login}/Library/Python/3.8/bin/generate-schema
-```
+You may need to add the `$HOME/Library/Python/3.10/bin` directory to your
+`$PATH` variable in your `$HOME/.bashrc` file.
 
 <a name="MacOS1014"></a>
 #### MacOS 10.14 (Mojave)
@@ -717,9 +775,12 @@ See [generatorrun.py](examples/generatorrun.py) for an example.
 <a name="SchemaGeneratorDeduceSchemaFromFile"></a>
 #### `SchemaGenerator.deduce_schema()` from File
 
-If you need to process the generated schema programmatically, use the
-`deduce_schema()` method and process the resulting `schema_map` and `error_log`
-data structures like this:
+If you need to process the generated schema programmatically, create an instance
+of `SchemaGenerator` using the appropriate `input_format` option, use the
+`deduce_schema()` method to read in the file, then postprocess the resulting
+`schema_map` and `error_log` data structures.
+
+The following reads in a JSON file (see [jsoneader.py](examples/jsoneader.py)):
 
 ```python
 import json
@@ -737,9 +798,7 @@ generator = SchemaGenerator(
 with open(FILENAME) as file:
     schema_map, errors = generator.deduce_schema(file)
 
-schema_map, error_logs = generator.deduce_schema(input_data=input_data)
-
-for error in error_logs:
+for error in errors:
     logging.info("Problem on line %s: %s", error['line_number'], error['msg'])
 
 schema = generator.flatten_schema(schema_map)
@@ -747,16 +806,31 @@ json.dump(schema, sys.stdout, indent=2)
 print()
 ```
 
-See [csvreader.py](examples/csvreader.py) and
-[jsoneader.py](examples/jsoneader.py) for 2 examples.
+The following reads a CSV file (see [csvreader.py](examples/csvreader.py)):
+
+```python
+...(same as above)...
+
+generator = SchemaGenerator(
+    input_format='csv',
+    infer_mode=True,
+    quoted_values_are_strings=True,
+    sanitize_names=True,
+)
+
+with open(FILENAME) as file:
+    schema_map, errors = generator.deduce_schema(file)
+
+...(same as above)...
+```
 
 The `deduce_schema()` also supports starting from an existing `schema_map`
 instead of starting from scratch. This is the internal version of the
 `--existing_schema_path` functionality.
 
 ```python
-schema_map1, error_logs = generator.deduce_schema(input_data=data1)
-schema_map2, error_logs = generator.deduce_schema(
+schema_map1, errors = generator.deduce_schema(input_data=data1)
+schema_map2, errors = generator.deduce_schema(
     input_data=data1, schema_map=schema_map1
 )
 ```
@@ -765,10 +839,13 @@ The `input_data` must match the `input_format` given in the constructor. The
 format is described in the [Input Format](#InputFormat) section above.
 
 <a name="SchemaGeneratorDeduceSchemaFromDict"></a>
-#### `SchemaGenerator.deduce_schema()` from Dict
+#### `SchemaGenerator.deduce_schema()` from Iterable of Dict
 
-If the JSON data set has already been read into memory into a Python `dict`
-object, the `SchemaGenerator` can process that too like this:
+If the JSON data set has already been read into memory into an array or iterable
+of Python `dict` objects, the `SchemaGenerator` can process that too using the
+`input_format='dict'` option. Here is an example from
+[dictreader.py](examples/dictreader.py):
+
 
 ```Python
 import json
@@ -787,13 +864,55 @@ input_data = [
         'x': 3.1
     },
 ]
-schema_map, error_logs = generator.deduce_schema(input_data)
+schema_map, errors = generator.deduce_schema(input_data)
 schema = generator.flatten_schema(schema_map)
 json.dump(schema, sys.stdout, indent=2)
 print()
 ```
 
-See [dictreader.py](examples/dictreader.py) for an example.
+**Note**: The `input_format='dict'` option supports any `input_data` object
+which acts like an iterable of `dict`. The data does not have to be loaded into
+memory.
+
+<a name="SchemaGeneratorDeduceSchemaFromCsvDictReader"></a>
+#### `SchemaGenerator.deduce_schema()` from csv.DictReader
+
+The `input_format='csvdictreader'` option is similar to `input_format='dict'`
+but sort of acts like `input_format='csv'`. It supports any object that behaves
+like an iterable of `dict`, but it is intended to be used with the
+[csv.DictReader](https://docs.python.org/3/library/csv.html) object.
+
+The difference between `'dict'` and `'csvdictreader'` is the assumption made
+about the shape of the data. The `'csvdictreader'` option assumes that the data
+is tabular like a CSV file, with every row usually containing an entry for every
+column. The `'dict'` option does not make that assumption, and the data can be
+more hierarchical with some rows containing partial sets of columns.
+
+This semantic difference means that `'csvdictreader'` supports options which
+apply to `'csv'` files. In particular, the `infer_mode=True` option can be used
+to determine if the `mode` field can be `REQUIRED` instead of `NULLABLE` if the
+script finds that all columns are defined in every row.
+
+Here is an example from [tsvreader.py](examples/tsvreader.py) which reads a
+tab-separate file (TSV):
+
+```python
+import csv
+import json
+import sys
+from bigquery_schema_generator.generate_schema import SchemaGenerator
+
+FILENAME = "tsvfile.tsv"
+
+generator = SchemaGenerator(input_format='dict')
+with open(FILENAME) as file:
+    reader = csv.DictReader(file, delimiter='\t')
+    schema_map, errors = generator.deduce_schema(reader)
+
+schema = generator.flatten_schema(schema_map)
+json.dump(schema, sys.stdout, indent=2)
+print()
+```
 
 <a name="SchemaTypes"></a>
 ## Schema Types
@@ -1059,12 +1178,14 @@ I have tested it on:
 * Ubuntu 18.04, Python 3.7.7
 * Ubuntu 18.04, Python 3.6.7
 * Ubuntu 17.10, Python 3.6.3
-* MacOS 11.7.1 (Big Sur), Python 3.8.9
+* MacOS 12.6.2 (Monterey), Python 3.10.9
+* MacOS 11.7.2 (Big Sur), Python 3.10.9
+* MacOS 11.7.2 (Big Sur), Python 3.8.9
 * MacOS 10.14.2 (Mojave), Python 3.6.4
 * MacOS 10.13.2 (High Sierra), Python 3.6.4
 
-The GitHub Actions continuous integration pipeline validates on Python 3.6, 3.7
-and 3.8.
+The GitHub Actions continuous integration pipeline validates on Python 3.7,
+3.8, 3.9, and 3.10.
 
 The unit tests are invoked with `$ make tests` target, and depends only on the
 built-in Python `unittest` package.
