@@ -1,0 +1,2 @@
+{ "model": {"data": {"Inventory": {"Observations": [] }}}}
+{ "model": {"data": {"Inventory": {"Observations": ["foo"] }}}}
