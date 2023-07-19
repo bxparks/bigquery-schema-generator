@@ -272,7 +272,7 @@ supports only the comma-separator, and does not support the pipe (`|`) or tab
 [csv.DictReader](https://docs.python.org/3/library/csv.html) class that can be
 customized to handle different delimiters such as tabs. But this requires
 creating a custom Python script using `bigquery_schema_generator` as a library.
-See [SchemaGenerator.deduce_schema()` from
+See [SchemaGenerator.deduce_schema() from
 csv.DictReader](#SchemaGeneratorDeduceSchemaFromCsvDictReader) section below. It
 is probably possible to enable this functionality through the command line
 script, but it was not obvious how to expose the various options of
