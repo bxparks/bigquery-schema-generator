@@ -267,6 +267,18 @@ csv` flag. The support is not as robust as JSON file. For example, CSV format
 supports only the comma-separator, and does not support the pipe (`|`) or tab
 (`\t`) character.
 
+**Side Note**: The `input_format` parameter now supports (v1.6.0) the
+`csvdictreader` option which allows using the
+[csv.DictReader](https://docs.python.org/3/library/csv.html) class that can be
+customized to handle different delimiters such as tabs. But this requires
+creating a custom Python script using `bigquery_schema_generator` as a library.
+See [SchemaGenerator.deduce_schema()` from
+csv.DictReader](#SchemaGeneratorDeduceSchemaFromCsvDictReader) section below. It
+is probably possible to enable this functionality through the command line
+script, but it was not obvious how to expose the various options of
+`csv.DictReader` through the command line flags. I didn't spend any time on this
+problem because this is not a feature that I use personally.)
+
 Unlike `bq load`, the `generate_schema.py` script reads every record in the
 input data file to deduce the table's schema. It prints the JSON formatted
 schema file on the STDOUT.
