@@ -798,6 +798,10 @@ def convert_type(atype, btype):
     * [Q]FLOAT + [Q]INTEGER => FLOAT (except QFLOAT + QINTEGER)
     * (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) +
         (DATE, TIME, TIMESTAMP, QBOOLEAN, QINTEGER, QFLOAT, STRING) => STRING
+
+    The "Q" refers to the quoted (i.e. string) versions of the various types,
+    which are needed to emulate the type inference inside quoted strings
+    performed by BigQuery.
     """
     # type + type => type
     if atype == btype:
