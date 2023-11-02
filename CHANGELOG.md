@@ -1,6 +1,24 @@
 # Changelog
 
 * Unreleased
+    * **Bug Fix**: Prevent amnesia that causes multiple type mismatches warnings
+        * If a data set contains multiple records with a column which do not
+          match each other, then the old code would *remove* the corresponding
+          internal `schema_entry` for that column, and print a warning message.
+        * This means that subsequent records would recreate the `schema_entry`,
+          and a subsequent mismatch would print another warning message.
+        * This also meant that if there was a second record after the most
+          recent mismatch, the script would output a schema entry for the
+          mismatching column, corresponding to the type of the last record which
+          was not marked as a mismatch.
+        * The fix is to use a tombstone entry for the offending column, instead
+          of deleting the `schema_entry` completely. Only a single warning
+          message is printed, and the column is ignored for all subsequent
+          records in the input data set.
+        * See
+          [Issue#98](https://github.com/bxparks/bigquery-schema-generator/issues/98]
+          which identified this problem which seems to have existed from the
+          very beginning.
 * 1.6.0 (2023-04-01)
     * Allow `null` fields to convert to `REPEATED` because `bq load` seems
       to interpret null fields to be equivalent to an empty array `[]`.

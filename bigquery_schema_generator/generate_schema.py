@@ -136,13 +136,15 @@ class SchemaGenerator:
             key: schema_entry
           }
 
-        The 'key' is the name of the table column.
+        The 'key' is the canonical column name, which is set to be the
+        lower-cased version of the sanitized key because BigQuery is
+        case-insensitive to its column name.
 
           schema_entry := {
-            'status': 'hard | soft',
+            'status': 'hard | soft | ignore',
             'filled': True | False,
             'info': {
-              'name': key,
+              'name': column_name,
               'type': 'STRING | TIMESTAMP | DATE | TIME
                       | FLOAT | INTEGER | BOOLEAN | RECORD'
               'mode': 'NULLABLE | REQUIRED | REPEATED',
@@ -159,6 +161,13 @@ class SchemaGenerator:
         are able infer the type definitively, and we change the status to
         'hard'. The status can transition from 'soft' to 'hard' but not the
         reverse.
+
+        The status of 'ignore' identifies a column where the type of one record
+        conflicts with the type of another record. The column will be ignored
+        in the final JSON schema. (Early versions of this script *removed* the
+        offending column entry completely upon the first mismatch. But that
+        caused subsequent records to recreate the schema entry, which would be
+        incorrect.)
 
         The 'filled' entry indicates whether all input data records contained
         the given field. If the --infer_mode flag is given, the 'filled' entry
@@ -277,8 +286,7 @@ class SchemaGenerator:
 
         Returns the merged schema_entry. This method assumes that both
         'old_schema_entry' and 'new_schema_entry' can be modified in place and
-        returned as the new schema_entry. Returns None if the field should
-        be removed from the schema due to internal consistency errors.
+        returned as the new schema_entry.
 
         'base_path' is the string representing the current path within the
         nested record that leads to this specific entry. This is used during
@@ -302,13 +310,19 @@ class SchemaGenerator:
         old_status = old_schema_entry['status']
         new_status = new_schema_entry['status']
 
-        # new 'soft' does not clobber old 'hard'
+        # If the field was previously determined to be inconsistent, hence set
+        # to 'ignore', do nothing and return immediately.
+        if old_status == 'ignore':
+            return old_schema_entry
+
+        # new 'soft' retains the old 'hard'
         if old_status == 'hard' and new_status == 'soft':
             mode = self.merge_mode(old_schema_entry,
                                    new_schema_entry,
                                    base_path)
             if mode is None:
-                return None
+                old_schema_entry['status'] = 'ignore'
+                return old_schema_entry
             old_schema_entry['info']['mode'] = mode
             return old_schema_entry
 
@@ -318,7 +332,8 @@ class SchemaGenerator:
                                    new_schema_entry,
                                    base_path)
             if mode is None:
-                return None
+                old_schema_entry['status'] = 'ignore'
+                return old_schema_entry
             new_schema_entry['info']['mode'] = mode
             return new_schema_entry
 
@@ -389,7 +404,8 @@ class SchemaGenerator:
                                    new_schema_entry,
                                    base_path)
         if new_mode is None:
-            return None
+            old_schema_entry['status'] = 'ignore'
+            return old_schema_entry
         new_schema_entry['info']['mode'] = new_mode
 
         # For all other types...
@@ -402,7 +418,8 @@ class SchemaGenerator:
                     f'old=({old_status},{full_old_name},{old_mode},{old_type});'
                     f' new=({new_status},{full_new_name},{new_mode},{new_type})'
                 )
-                return None
+                old_schema_entry['status'] = 'ignore'
+                return old_schema_entry
 
             new_info['type'] = candidate_type
         return new_schema_entry
@@ -413,6 +430,11 @@ class SchemaGenerator:
         come from an existing schema (though the --existing_schema_path
         flag), because REQUIRED is created only in the flatten_schema()
         method. Therefore, a NULLABLE->REQUIRED transition cannot occur.
+
+        Returns the merged mode.
+
+        Returning None means that the modes of the old_schema and new_schema are
+        not compatible.
 
         We have the following sub cases for the REQUIRED -> NULLABLE
         transition:
@@ -425,8 +447,6 @@ class SchemaGenerator:
                 REQUIRED -> NULLABLE transition.
             b) If --infer_mode is not given, then we log an error and ignore
                 this field from the schema.
-
-        Returning a 'None' causes the field to be dropped from the schema.
         """
         old_info = old_schema_entry['info']
         new_info = new_schema_entry['info']
@@ -883,6 +903,11 @@ def flatten_schema_map(
         status = meta['status']
         filled = meta['filled']
         info = meta['info']
+
+        # An 'ignore' status means different records had different types for
+        # this field, so should be ignored.
+        if status == 'ignore':
+            continue
 
         # Schema entries with a status of 'soft' are caused by 'null' or
         # empty fields. Don't print those out if the 'keep_nulls' flag is
