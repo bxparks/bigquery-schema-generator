@@ -1,0 +1,150 @@
+{
+  "landingPageClicks": 2,
+  "costInLocalCurrency": 3.211797061516033,
+  "impressions": 331,
+  "clicks": 2,
+  "totalEngagements": 3,
+  "account_id": 0,
+  "account_name": "dummy",
+  "date": "2021-07-10",
+  "dimensionValue": [
+    {
+      "servingHoldReasons": [
+        "STOPPED",
+        "CAMPAIGN_STOPPED"
+      ],
+      "lastModifiedAt": 1656605739000,
+      "content": {
+        "reference": "urn:<snip>"
+      },
+      "createdAt": 1622099537000,
+      "review": {
+        "status": "APPROVED"
+      },
+      "id": "urn:<snip>",
+      "lastModifiedBy": "urn:<snip>",
+      "createdBy": "urn:<snip>",
+      "isTest": false,
+      "isServing": false,
+      "campaign": "urn:<snip>",
+      "intendedStatus": "PAUSED",
+      "account": "urn:<snip>"
+    }
+  ],
+  "dimension": "creative"
+}
+{
+  "landingPageClicks": 17,
+  "pivotValues_": [
+    {
+      "message": "<snip>",
+      "status": 400
+    }
+  ],
+  "costInLocalCurrency": 25.41813751523781,
+  "impressions": 2300,
+  "clicks": 17,
+  "totalEngagements": 45,
+  "account_id": 0,
+  "account_name": "dummy",
+  "date": "2021-06-03",
+  "dimensionValue": [
+    "urn:<snip>"
+  ],
+  "dimension": "creative"
+}
+{
+  "landingPageClicks": 11,
+  "pivotValues_": [
+    {
+      "message": "<snip>",
+      "status": 400
+    }
+  ],
+  "costInLocalCurrency": 8.094764692519716,
+  "impressions": 602,
+  "clicks": 11,
+  "totalEngagements": 15,
+  "account_id": 0,
+  "account_name": "dummy",
+  "date": "2021-06-27",
+  "dimensionValue": [
+    "urn:<snip>"
+  ],
+  "dimension": "creative"
+}
+{
+  "landingPageClicks": 10,
+  "pivotValues_": [
+    {
+      "message": "<snip>",
+      "status": 400
+    }
+  ],
+  "costInLocalCurrency": 15.095423445027421,
+  "impressions": 999,
+  "clicks": 10,
+  "totalEngagements": 19,
+  "account_id": 0,
+  "account_name": "dummy",
+  "date": "2021-06-06",
+  "dimensionValue": [
+    "urn:<snip>"
+  ],
+  "dimension": "creative"
+}
+{
+  "landingPageClicks": 19,
+  "pivotValues_": [
+    {
+      "message": "<snip>",
+      "status": 400
+    }
+  ],
+  "costInLocalCurrency": 26.39521675040559,
+  "impressions": 2982,
+  "clicks": 19,
+  "totalEngagements": 45,
+  "account_id": 0,
+  "account_name": "dummy",
+  "date": "2021-07-19",
+  "dimensionValue": [
+    "urn:<snip>"
+  ],
+  "dimension": "creative"
+}
+{
+  "landingPageClicks": 5,
+  "costInLocalCurrency": 7.54,
+  "impressions": 430,
+  "clicks": 5,
+  "totalEngagements": 12,
+  "account_id": 0,
+  "account_name": "dummy",
+  "date": "2021-12-25",
+  "dimensionValue": [
+    {
+      "servingHoldReasons": [
+        "CAMPAIGN_STOPPED",
+        "CAMPAIGN_TOTAL_BUDGET_HOLD"
+      ],
+      "lastModifiedAt": 1656583173000,
+      "content": {
+        "reference": "urn:<snip>"
+      },
+      "createdAt": 1640163564000,
+      "review": {
+        "status": "APPROVED"
+      },
+      "id": "urn:<snip>",
+      "lastModifiedBy": "urn:<snip>",
+      "createdBy": "urn:<snip>",
+      "isTest": false,
+      "isServing": false,
+      "campaign": "urn:<snip>",
+      "intendedStatus": "ACTIVE",
+      "account": "urn:<snip>"
+    }
+  ],
+  "dimension": "creative"
+}

@@ -167,6 +167,26 @@ SCHEMA
 []
 END
 
+# If there are multiple records with a column with a mismatched type, only the
+# first one mismatch should trigger a warning message. All subsequent records
+# should have that column ignored, even if the mismatch occurs multiple times.
+# See Issue 98.
+#
+# Before that fix, the following would generate a warning each time there is a
+# transition between matching and mismatching type for the problematic column.
+# So for the following 4 records, the previous version would print 2 warnings,
+# one for line #2, and one for line #4.
+DATA
+{ "ts": "2017-05-22T17:10:00-07:00" }
+{ "ts": 1.0 }
+{ "ts": 2.0 }
+{ "ts": "2017-05-22T17:10:00-07:00" }
+ERRORS
+2: Ignoring field with mismatched type: old=(hard,ts,NULLABLE,TIMESTAMP); new=(hard,ts,NULLABLE,FLOAT)
+SCHEMA
+[]
+END
+
 # DATE cannot change into a non-String type.
 DATA
 { "d": "2017-01-01" }
