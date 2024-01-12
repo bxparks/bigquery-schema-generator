@@ -1,6 +1,7 @@
 # Changelog
 
 * Unreleased
+* 1.6.1 (2024-01-12)
     * **Bug Fix**: Prevent amnesia that causes multiple type mismatches warnings
         * If a data set contains multiple records with a column which do not
           match each other, then the old code would *remove* the corresponding
